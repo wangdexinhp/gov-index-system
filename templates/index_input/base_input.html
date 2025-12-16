@@ -1,0 +1,73 @@
+<!-- index_input/templates/index_input/base_input.html -->
+{% extends "base.html" %}
+
+{% block title %}城策智库 | 数据录入系统{% endblock %}
+
+{% block content %}
+<!-- 导航 -->
+<div class="border-b border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <h1 class="text-xl font-medium text-black">
+                    <i class="fa-solid fa-database mr-2"></i>数据录入系统
+                </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'index_input:manual_input' %}"
+                   class="px-4 py-2 text-sm font-medium {% if request.resolver_match.url_name == 'manual_input' %}text-white bg-black{% else %}text-black hover:bg-light-gray{% endif %} rounded-md">
+                    <i class="fa-solid fa-keyboard mr-1"></i>手工录入
+                </a>
+                <a href="{% url 'index_input:excel_upload' %}"
+                   class="px-4 py-2 text-sm font-medium {% if request.resolver_match.url_name == 'excel_upload' %}text-white bg-black{% else %}text-black hover:bg-light-gray{% endif %} rounded-md">
+                    <i class="fa-solid fa-file-excel mr-1"></i>Excel上传
+                </a>
+                <a href="{% url 'index_input:home' %}"
+                   class="px-4 py-2 text-sm font-medium text-black hover:bg-light-gray rounded-md">
+                    <i class="fa-solid fa-home mr-1"></i>返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 主内容区域 -->
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% block input_content %}
+        {% endblock %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 全局JavaScript函数
+function formatNumber(value) {
+    if (value === null || value === undefined) return '';
+    return new Intl.NumberFormat('zh-CN').format(value);
+}
+
+function showLoading(message = '处理中...') {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading-overlay';
+    loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    loadingDiv.innerHTML = `
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="flex items-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-black mr-3"></div>
+                <span class="text-lg">${message}</span>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    const loadingDiv = document.getElementById('loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+</script>
+{% endblock %}

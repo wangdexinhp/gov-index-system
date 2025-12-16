@@ -1,0 +1,234 @@
+<!-- index_input/templates/index_input/home.html -->
+{% extends "base.html" %}
+
+{% block title %}城策智库 | 指标数据录入系统{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="pt-16 pb-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl lg:text-5xl font-medium tracking-tight text-black mb-6">
+                <span class="block">指标数据录入系统</span>
+            </h1>
+            <p class="text-xl text-gray max-w-3xl mx-auto mb-10">
+                高效、准确、便捷的城市指标数据录入平台，支持手工录入和批量导入
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'index_input:manual_input' %}"
+                   class="px-8 py-3 bg-black text-white hover:bg-dark-gray text-sm font-medium uppercase tracking-wider flex items-center justify-center">
+                    <i class="fa-solid fa-keyboard mr-2"></i> 手工录入
+                </a>
+                <a href="{% url 'index_input:excel_upload' %}"
+                   class="px-8 py-3 border border-black text-black hover:bg-light-gray text-sm font-medium uppercase tracking-wider flex items-center justify-center">
+                    <i class="fa-solid fa-file-excel mr-2"></i> Excel批量导入
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-sm font-medium uppercase tracking-wider text-black">核心功能</h2>
+            <p class="mt-4 text-3xl font-medium tracking-tight text-black">
+                专业的数据录入解决方案
+            </p>
+            <p class="mt-6 max-w-2xl text-xl text-gray lg:mx-auto">
+                提供两种数据录入方式，满足不同场景需求
+            </p>
+        </div>
+
+        <div class="mt-16">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-2">
+                <!-- 手工录入功能 -->
+                <div class="pt-6">
+                    <div class="h-full border border-light-gray p-8 flex flex-col hover:shadow-lg transition-shadow duration-300">
+                        <div>
+                            <div class="w-12 h-12 flex items-center justify-center border border-light-gray text-black mb-4">
+                                <i class="fa-solid fa-keyboard text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-lg font-medium text-black">手工录入</h3>
+                            <p class="mt-4 text-base text-gray">
+                                支持单个或多个城市的指标数据录入。每项指标包含指标值、备注输入框，并显示上一年数据作为参考。提供提交和重置功能。
+                            </p>
+                            <ul class="mt-6 space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">选择年份、省份和城市</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">310项指标分类展示</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">上一年数据参考</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">实时数据验证</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-light-gray">
+                            <a href="{% url 'index_input:manual_input' %}"
+                               class="inline-flex items-center text-black font-medium hover:text-dark-gray">
+                                开始录入
+                                <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Excel批量导入功能 -->
+                <div class="pt-6">
+                    <div class="h-full border border-light-gray p-8 flex flex-col hover:shadow-lg transition-shadow duration-300">
+                        <div>
+                            <div class="w-12 h-12 flex items-center justify-center border border-light-gray text-black mb-4">
+                                <i class="fa-solid fa-file-excel text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-lg font-medium text-black">Excel批量导入</h3>
+                            <p class="mt-4 text-base text-gray">
+                                支持标准格式Excel文件批量导入。下载模板文件，按格式填写数据后上传，系统自动解析并录入数据库。
+                            </p>
+                            <ul class="mt-6 space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">标准模板下载</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">批量数据导入</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">自动数据校验</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fa-solid fa-check text-green-500 mr-2"></i>
+                                    <span class="text-sm text-gray">错误信息提示</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-light-gray">
+                            <a href="{% url 'index_input:excel_upload' %}"
+                               class="inline-flex items-center text-black font-medium hover:text-dark-gray">
+                                开始导入
+                                <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计数据 -->
+<div class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <div class="text-center">
+                <div class="text-4xl font-medium text-black mb-2">310+</div>
+                <div class="text-gray">项城市指标</div>
+                <p class="mt-2 text-sm text-gray">覆盖经济、社会、环境等各个领域</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl font-medium text-black mb-2">2</div>
+                <div class="text-gray">种录入方式</div>
+                <p class="mt-2 text-sm text-gray">满足不同场景的数据录入需求</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl font-medium text-black mb-2">100%</div>
+                <div class="text-gray">数据准确性</div>
+                <p class="mt-2 text-sm text-gray">严格的校验机制确保数据质量</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 使用指南 -->
+<div class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-sm font-medium uppercase tracking-wider text-black">使用指南</h2>
+            <p class="mt-4 text-3xl font-medium tracking-tight text-black">
+                快速上手，轻松录入
+            </p>
+        </div>
+
+        <div class="mt-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-black text-white rounded-full flex items-center justify-center">
+                        <span class="text-xl font-bold">1</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-black mb-2">选择录入方式</h3>
+                    <p class="text-gray">根据数据量和需求选择手工录入或Excel批量导入</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-black text-white rounded-full flex items-center justify-center">
+                        <span class="text-xl font-bold">2</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-black mb-2">设置筛选条件</h3>
+                    <p class="text-gray">选择年份、省份和需要录入的城市</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-black text-white rounded-full flex items-center justify-center">
+                        <span class="text-xl font-bold">3</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-black mb-2">录入数据</h3>
+                    <p class="text-gray">填写指标值，可参考上一年数据</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-black text-white rounded-full flex items-center justify-center">
+                        <span class="text-xl font-bold">4</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-black mb-2">提交保存</h3>
+                    <p class="text-gray">确认无误后提交，数据自动保存至数据库</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="py-16 bg-black">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:flex lg:items-center lg:justify-between">
+        <h2 class="text-3xl font-medium tracking-tight text-white">
+            <span class="block">开始录入数据</span>
+            <span class="block text-light-gray">选择最适合您的方式开始工作</span>
+        </h2>
+        <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0 gap-4">
+            <div>
+                <a href="{% url 'index_input:manual_input' %}"
+                   class="px-8 py-3 bg-white text-black hover:bg-light-gray text-sm font-medium uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-keyboard mr-2"></i> 手工录入
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'index_input:excel_upload' %}"
+                   class="px-8 py-3 border border-white text-white hover:bg-dark-gray text-sm font-medium uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-file-excel mr-2"></i> Excel导入
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 页面加载完成后的初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('数据录入系统首页加载完成');
+});
+</script>
+{% endblock %}

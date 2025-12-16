@@ -1,0 +1,6 @@
+# Python虚拟环境
+venv/
+.venv/
+
+*.sqlite3
+*.db

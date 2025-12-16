@@ -1,0 +1,207 @@
+<!-- templates/data_entry/home.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}数据录入 - 城策智库{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+  <!-- 顶部导航 -->
+  <div class="bg-white border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-bold text-gray-900">数据录入系统</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600">欢迎，{{ user.username }}</span>
+          <a href="{% url 'account_logout' %}" class="text-sm text-gray-500 hover:text-gray-700">退出</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- 欢迎标题 -->
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-gray-900 mb-4">数据录入与管理</h2>
+      <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+        城策智库数据录入系统，支持手工录入和Excel批量导入两种方式，确保数据准确性和完整性。
+      </p>
+    </div>
+
+    <!-- 功能卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+      <!-- 手工录入卡片 -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-lg">
+              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <h3 class="ml-4 text-xl font-semibold text-gray-900">手工录入</h3>
+          </div>
+          <p class="text-gray-600 mb-6">
+            逐项填写城市指标数据，系统会显示上一年参考数据，确保数据准确性和连续性。
+          </p>
+          <div class="space-y-2 mb-6">
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              选择年份、省份、城市
+            </div>
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              查看上一年参考数据
+            </div>
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              支持110项指标分类录入
+            </div>
+          </div>
+          <a href="{% url 'data_entry:manual_entry_selection' %}"
+             class="block w-full bg-black text-white text-center py-3 px-4 rounded-md hover:bg-dark-gray transition-colors duration-300 font-medium">
+            开始手工录入
+          </a>
+        </div>
+      </div>
+
+      <!-- Excel上传卡片 -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0 bg-green-100 p-3 rounded-lg">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 class="ml-4 text-xl font-semibold text-gray-900">Excel批量上传</h3>
+          </div>
+          <p class="text-gray-600 mb-6">
+            使用标准模板Excel文件批量上传数据，系统自动解析并验证数据格式，支持大规模数据导入。
+          </p>
+          <div class="space-y-2 mb-6">
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              下载标准Excel模板
+            </div>
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              自动数据格式验证
+            </div>
+            <div class="flex items-center text-sm text-gray-500">
+              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              详细上传记录与错误报告
+            </div>
+          </div>
+          <a href="{% url 'data_entry:excel_upload' %}"
+             class="block w-full bg-black text-white text-center py-3 px-4 rounded-md hover:bg-dark-gray transition-colors duration-300 font-medium">
+            Excel批量上传
+          </a>
+          <div class="mt-4 text-center">
+            <a href="{% static 'data_entry/templates/城市指标数据模板.xlsx' %}"
+               class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+              下载Excel模板
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据管理功能 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">数据管理</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="{% url 'data_entry:upload_history' %}"
+           class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+          <svg class="w-6 h-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <div>
+            <h4 class="font-medium text-gray-900">上传历史</h4>
+            <p class="text-sm text-gray-500">查看数据上传记录</p>
+          </div>
+        </a>
+        <a href="{% url 'admin:index' %}"
+           class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+          <svg class="w-6 h-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <div>
+            <h4 class="font-medium text-gray-900">系统管理</h4>
+            <p class="text-sm text-gray-500">进入管理后台</p>
+          </div>
+        </a>
+        <a href="#"
+           class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+          <svg class="w-6 h-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <div>
+            <h4 class="font-medium text-gray-900">数据统计</h4>
+            <p class="text-sm text-gray-500">查看数据汇总</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-blue-900 mb-3">使用说明</h3>
+      <div class="space-y-3">
+        <div class="flex items-start">
+          <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+            <span class="text-blue-600 text-sm font-bold">1</span>
+          </div>
+          <p class="ml-3 text-blue-800">手工录入适合少量数据或需要参考上一年数据的情况</p>
+        </div>
+        <div class="flex items-start">
+          <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+            <span class="text-blue-600 text-sm font-bold">2</span>
+          </div>
+          <p class="ml-3 text-blue-800">Excel上传适合批量数据录入，请先下载模板文件</p>
+        </div>
+        <div class="flex items-start">
+          <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+            <span class="text-blue-600 text-sm font-bold">3</span>
+          </div>
+          <p class="ml-3 text-blue-800">所有数据提交后为草稿状态，需要管理员审核后才能使用</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+// 简单的交互效果
+document.addEventListener('DOMContentLoaded', function() {
+  // 卡片悬停效果
+  const cards = document.querySelectorAll('.hover\\:shadow-xl');
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'translateY(-2px)';
+      card.style.transition = 'all 0.2s ease';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'translateY(0)';
+    });
+  });
+});
+</script>
+{% endblock %}
+{% endblock %}

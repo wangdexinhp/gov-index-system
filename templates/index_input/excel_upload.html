@@ -1,0 +1,193 @@
+<!-- index_input/templates/index_input/excel_upload.html -->
+{% extends "index_input/base_input.html" %}
+
+{% block input_content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white border border-light-gray rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-medium text-black mb-6">
+            <i class="fa-solid fa-file-excel mr-2"></i>Excel模板方式上传
+        </h2>
+
+        <!-- 操作指南 -->
+        <div class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h3 class="font-medium text-blue-800 mb-2">
+                <i class="fa-solid fa-circle-info mr-1"></i>操作指南
+            </h3>
+            <ol class="list-decimal list-inside text-blue-700 space-y-1">
+                <li>下载Excel模板文件</li>
+                <li>按照模板格式填写数据</li>
+                <li>选择年份、省份和上传文件</li>
+                <li>系统将自动解析并导入数据</li>
+            </ol>
+        </div>
+
+        <!-- 下载模板按钮 -->
+        <div class="mb-8">
+            <a href="{% url 'index_input:download_template' %}"
+               class="inline-flex items-center px-4 py-2 border border-green-600 text-green-600 hover:bg-green-50 rounded-md font-medium">
+                <i class="fa-solid fa-download mr-2"></i>下载Excel模板
+            </a>
+            <span class="ml-3 text-sm text-gray">下载标准格式的Excel模板文件</span>
+        </div>
+
+        <!-- 上传表单 -->
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 年份 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray mb-2">
+                        {{ form.year.label }}
+                    </label>
+                    {{ form.year }}
+                    {% if form.year.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.year.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 省份 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray mb-2">
+                        {{ form.province.label }}
+                    </label>
+                    {{ form.province }}
+                    {% if form.province.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.province.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Excel文件 -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray mb-2">
+                        {{ form.excel_file.label }}
+                    </label>
+                    <div class="mt-1 flex items-center">
+                        <label for="excel_file" class="cursor-pointer">
+                            <div class="px-4 py-3 border-2 border-dashed border-light-gray rounded-md hover:border-gray-300">
+                                <div class="text-center">
+                                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray mb-2"></i>
+                                    <p class="text-sm text-gray">
+                                        <span class="font-medium text-black">点击上传</span>
+                                        或拖拽文件到此处
+                                    </p>
+                                    <p class="text-xs text-gray mt-1">支持 .xlsx, .xls 格式，最大10MB</p>
+                                </div>
+                            </div>
+                            {{ form.excel_file }}
+                        </label>
+                    </div>
+                    {% if form.excel_file.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.excel_file.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 使用模板 -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray mb-2">
+                        {{ form.template.label }}
+                    </label>
+                    {{ form.template }}
+                    <p class="mt-1 text-sm text-gray">选择要使用的数据模板（可选）</p>
+                </div>
+            </div>
+
+            <!-- 预览区域 -->
+            <div id="preview-area" class="hidden">
+                <h3 class="text-lg font-medium text-black mb-3">文件预览</h3>
+                <div class="border border-light-gray rounded-md overflow-hidden">
+                    <div id="preview-content" class="p-4 bg-gray-50">
+                        <!-- 预览内容将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传按钮 -->
+            <div class="pt-6 border-t border-light-gray">
+                <button type="submit"
+                        class="px-6 py-3 bg-black text-white hover:bg-dark-gray rounded-md font-medium flex items-center">
+                    <i class="fa-solid fa-upload mr-2"></i>开始上传
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 上传历史 -->
+    <div class="bg-white border border-light-gray rounded-lg p-6">
+        <h3 class="text-lg font-medium text-black mb-4">
+            <i class="fa-solid fa-history mr-2"></i>最近上传记录
+        </h3>
+        <div class="text-center py-8 text-gray">
+            <i class="fa-solid fa-clock text-3xl mb-3"></i>
+            <p>暂无上传记录</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+// 文件上传预览
+document.getElementById('id_excel_file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 检查文件类型
+    const validTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel'
+    ];
+
+    if (!validTypes.includes(file.type)) {
+        alert('请上传Excel文件（.xlsx 或 .xls 格式）');
+        this.value = '';
+        return;
+    }
+
+    // 检查文件大小（10MB）
+    if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过10MB');
+        this.value = '';
+        return;
+    }
+
+    // 显示预览区域
+    const previewArea = document.getElementById('preview-area');
+    const previewContent = document.getElementById('preview-content');
+
+    previewContent.innerHTML = `
+        <div class="flex items-center">
+            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-3"></div>
+            <span>正在解析文件...</span>
+        </div>
+    `;
+
+    previewArea.classList.remove('hidden');
+
+    // 简单预览文件信息
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        previewContent.innerHTML = `
+            <div class="space-y-2">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-file-excel text-green-600 mr-2"></i>
+                    <span class="font-medium">${file.name}</span>
+                </div>
+                <div class="text-sm text-gray">
+                    大小: ${(file.size / 1024 / 1024).toFixed(2)} MB
+                </div>
+                <div class="text-sm text-gray">
+                    类型: ${file.type}
+                </div>
+                <div class="text-sm text-gray">
+                    最后修改: ${new Date(file.lastModified).toLocaleString()}
+                </div>
+            </div>
+        `;
+    };
+
+    reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}
