@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>数据录入系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+<!-- 导航栏 -->
+<header class="bg-white border-b border-yellow-600 h-20 flex items-center px-8 sticky top-0 z-50">
+<div class="flex items-center space-x-3">
+<iconify-icon class="text-yellow-500 text-3xl" icon="mdi:chart-box"></iconify-icon>
+<h1 class="text-2xl font-bold text-white">数据指标管理系统</h1>
+</div>
+<div class="ml-auto flex items-center space-x-4">
+<div class="text-right">
+<p class="text-white text-sm">管理员</p>
+<p class="text-gray-400 text-xs">admin@datasys.com</p>
+</div>
+<div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+<iconify-icon class="text-yellow-500 text-xl" icon="mdi:account"></iconify-icon>
+</div>
+</div>
+</header>
+<!-- 主内容区 -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+<!-- 选择区域 -->
+<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div>
+<label class="block text-sm font-medium text-yellow-500 mb-2">选择年份</label>
+<div class="relative">
+<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
+<option>2025年</option>
+<option>2024年</option>
+<option>2023年</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
+<div class="relative">
+<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
+<option>北京市</option>
+<option>上海市</option>
+<option>广东省</option>
+<option>江苏省</option>
+<option>浙江省</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
+<div class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
+<div class="space-y-2">
+<div class="flex items-center">
+<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
+<span class="ml-2 text-white">北京市</span>
+</div>
+<div class="flex items-center">
+<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
+<span class="ml-2 text-white">上海市</span>
+</div>
+<div class="flex items-center">
+<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
+<span class="ml-2 text-white">广州市</span>
+</div>
+<div class="flex items-center">
+<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
+<span class="ml-2 text-white">深圳市</span>
+</div>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标</label>
+<div class="relative">
+<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none" id="indicator-filter">
+<option value="">全部指标</option>
+<option value="population">人口相关</option>
+<option value="enterprise">企业相关</option>
+<option value="technology">技术创新</option>
+<option value="employment">就业相关</option>
+<option value="budget">预算支出</option>
+</select>
+</div>
+</div>
+</div>
+<p class="text-xs text-gray-400 mt-3">当前日期: 2025年12月11日</p>
+</div>
+<!-- 录入进度显示 -->
+<div class="bg-gradient-to-r from-gray-800 to-gray-750 border border-yellow-500 rounded-xl p-4 mb-8">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
+<div>
+<p class="text-sm text-gray-300">数据录入进度</p>
+<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
+</div>
+</div>
+<div class="w-64 h-3 bg-gray-700 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+</div>
+</div>
+</div>
+<!-- 功能选项卡 -->
+<div class="mb-6 border-b border-gray-700">
+<div class="flex space-x-8">
+<button class="pb-3 px-1 font-medium text-white border-b-2 border-yellow-500" id="manual-tab">手工录入</button>
+<button class="pb-3 px-1 font-medium text-gray-400" id="excel-tab">Excel上传</button>
+</div>
+</div>
+<!-- 手工录入区域 -->
+<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
+<div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
+<table class="w-full border-collapse">
+<thead>
+<tr class="bg-gray-700 sticky top-0">
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium min-w-24">城市</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="常住人口数">常住人口数</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="高新技术企业产值">高新技术企业产值</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="专利授权数量">专利授权数量</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="教育支出">教育支出</th>
+</tr>
+<tr class="bg-gray-700 sticky top-12">
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20"></th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
+<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
+</tr>
+</thead>
+<tbody>
+<!-- 北京市 -->
+<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
+<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">北京市</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+</tr>
+<!-- 上海市 -->
+<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
+<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">上海市</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+</tr>
+<!-- 广州市 -->
+<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
+<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">广州市</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+</tr>
+<!-- 深圳市 -->
+<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
+<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">深圳市</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
+<option value="">选择来源</option>
+<option value="statistics">统计局</option>
+<option value="government">政府部门</option>
+<option value="third-party">第三方数据</option>
+<option value="enterprise">企业上报</option>
+<option value="estimate">人工估算</option>
+</select>
+</td>
+<td class="border border-gray-600 px-2 py-2">
+<div class="text-white text-xs px-1">-</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Excel上传区域 -->
+<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8 hidden" id="excel-section">
+<div class="text-center py-12">
+<div class="mx-auto w-20 h-20 flex items-center justify-center bg-gray-700 rounded-full mb-6">
+<iconify-icon class="text-green-500 text-4xl" icon="mdi:file-excel"></iconify-icon>
+</div>
+<h3 class="text-xl text-white mb-3">上传Excel数据文件</h3>
+<p class="text-gray-400 mb-8">支持.xlsx格式文件，请确保数据格式符合要求</p>
+<div class="border-2 border-dashed border-gray-600 rounded-xl max-w-xl mx-auto p-10 bg-gray-700">
+<div class="flex flex-col items-center">
+<iconify-icon class="text-yellow-500 text-4xl mb-4" icon="mdi:cloud-upload"></iconify-icon>
+<p class="text-gray-400 mb-2">拖放文件到此处</p>
+<p class="text-gray-500 text-sm mb-4">或</p>
+<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-6 rounded-lg">
+              选择文件
+            </button>
+</div>
+</div>
+<div class="mt-8">
+<button class="flex items-center text-yellow-500 mx-auto">
+<iconify-icon class="mr-2" icon="mdi:download"></iconify-icon>
+            下载Excel模板
+          </button>
+</div>
+</div>
+</div>
+<!-- 操作按钮 -->
+<div class="flex space-x-4">
+<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
+        提交数据
+      </button>
+<button class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
+        重置表单
+      </button>
+<button class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
+<iconify-icon class="mr-2" icon="mdi:content-save"></iconify-icon>
+        保存草稿
+      </button>
+</div>
+</main>
+<script>
+    // 计算总指标数和更新进度的函数
+    function updateProgress() {
+      // 只统计type="text"的输入框（即"数值"和"备注"字段）
+      const allInputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
+      const totalIndicators = allInputs.length;
+      
+      // 统计有值的输入框
+      let completedIndicators = 0;
+      allInputs.forEach(input => {
+        if (input.value.trim() !== '') {
+          completedIndicators++;
+        }
+      });
+      
+      // 更新进度文本和进度条
+      const progressText = document.getElementById('progress-text');
+      const progressBar = document.getElementById('progress-bar');
+      
+      if (totalIndicators > 0) {
+        const percentage = (completedIndicators / totalIndicators) * 100;
+        progressText.textContent = `进度：已完成${completedIndicators}/${totalIndicators}指标`;
+        progressBar.style.width = percentage + '%';
+      }
+    }
+
+    // 为所有输入框添加事件监听
+    function attachProgressListeners() {
+      const inputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
+      inputs.forEach(input => {
+        input.addEventListener('input', updateProgress);
+        input.addEventListener('change', updateProgress);
+      });
+    }
+
+    // 页面加载时初始化进度
+    document.addEventListener('DOMContentLoaded', function() {
+      updateProgress();
+      attachProgressListeners();
+    });
+
+    // 选项卡切换功能
+    document.getElementById('manual-tab').addEventListener('click', function() {
+      document.getElementById('manual-section').classList.remove('hidden');
+      document.getElementById('excel-section').classList.add('hidden');
+      this.classList.add('text-white', 'border-yellow-500');
+      document.getElementById('excel-tab').classList.remove('text-white', 'border-yellow-500');
+      document.getElementById('excel-tab').classList.add('text-gray-400');
+      attachProgressListeners();
+      updateProgress();
+    });
+    
+    document.getElementById('excel-tab').addEventListener('click', function() {
+      document.getElementById('excel-section').classList.remove('hidden');
+      document.getElementById('manual-section').classList.add('hidden');
+      this.classList.add('text-white', 'border-yellow-500');
+      document.getElementById('manual-tab').classList.remove('text-white', 'border-yellow-500');
+      document.getElementById('manual-tab').classList.add('text-gray-400');
+    });
+
+    // 指标筛选功能
+    const indicatorFilter = document.getElementById('indicator-filter');
+    const indicatorCategories = {
+      'population': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数'],
+      'enterprise': ['年末个体工商户数量', '年末内资企业数', '年末外资企业数', '年末私营企业数'],
+      'technology': ['高新技术企业产值', '高新技术企业增加值', '技术合同成交额（交易额）', '有效发明专利量（发明专利有效量）', '每万人发明专利拥有量', '专利授权数量'],
+      'employment': ['采矿（掘)业就业人员人数', '制造业就业人员人数', '采矿（掘)业在岗职工人数', '制造业在岗职工人数'],
+      'budget': ['一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出']
+    };
+
+    indicatorFilter.addEventListener('change', function() {
+      const selectedCategory = this.value;
+      const headerCells = document.querySelectorAll('#manual-section table thead th[data-indicator]');
+      
+      if (selectedCategory === '') {
+        headerCells.forEach(cell => cell.style.display = 'table-cell');
+        document.querySelectorAll('#manual-section table tbody td').forEach(td => {
+          td.style.display = 'table-cell';
+        });
+      } else {
+        const categoryIndicators = indicatorCategories[selectedCategory];
+        headerCells.forEach(cell => {
+          const indicatorName = cell.getAttribute('data-indicator');
+          if (categoryIndicators.includes(indicatorName)) {
+            cell.style.display = 'table-cell';
+          } else {
+            cell.style.display = 'none';
+          }
+        });
+        
+        // Hide/show body cells based on colspan grouping (3 cells per indicator)
+        const rows = document.querySelectorAll('#manual-section table tbody tr');
+        const headerRow = document.querySelector('#manual-section table thead tr:first-child');
+        const headers = Array.from(headerRow.querySelectorAll('th[data-indicator]'));
+        
+        rows.forEach(row => {
+          let cellIndex = 1; // Start after city column
+          headers.forEach((header, headerIndex) => {
+            const indicatorName = header.getAttribute('data-indicator');
+            const isVisible = categoryIndicators.includes(indicatorName);
+            // Hide/show 3 cells per indicator
+            for (let i = 0; i < 3; i++) {
+              if (cellIndex < row.children.length) {
+                row.children[cellIndex].style.display = isVisible ? 'table-cell' : 'none';
+                cellIndex++;
+              }
+            }
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

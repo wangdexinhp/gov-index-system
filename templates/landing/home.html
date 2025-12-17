@@ -1,632 +1,334 @@
+{% extends "base.html" %}
 
-<!DOCTYPE html>
+{% block title %}SaaS Platform | Home{% endblock %}
 
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>数据录入系统</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
-<style>
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  </style>
-</head>
-<body class="bg-gray-900 min-h-screen">
-<!-- 导航栏 -->
-<header class="bg-gray-900 border-b border-yellow-600 h-20 flex items-center px-8 sticky top-0 z-50">
-<div class="flex items-center space-x-3">
-<iconify-icon class="text-yellow-500 text-3xl" icon="mdi:chart-box"></iconify-icon>
-<h1 class="text-2xl font-bold text-white">数据指标管理系统</h1>
+{% block content %}
+<!-- Hero Section -->
+<div class="pt-20 pb-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div class="max-w-lg">
+                <h1 class="text-4xl lg:text-5xl font-medium tracking-tight text-black">
+                    <span class="block">城策智库</span>
+                </h1>
+                <p class="mt-6 text-xl text-gray">
+                    数据丈量城市，智慧引领治理
+                </p>
+                <div class="mt-10 flex flex-col sm:flex-row gap-4 sm:gap-6">
+                    <a href="{% url 'account_signup' %}" class="px-8 py-3 text-white bg-black hover:bg-dark-gray text-sm font-medium uppercase tracking-wider flex items-center justify-center">
+                        <i class="fa-solid fa-rocket mr-2"></i> 开始使用
+                    </a>
+                </div>
+            </div>
+            <div class="mt-12 lg:mt-0 lg:ml-10 relative">
+                <div class="max-w-md sm:max-w-2xl lg:max-w-none">
+                    <div class="w-full border border-light-gray">
+                        <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80" alt="Dashboard preview" class="w-full max-w-md mx-auto">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="ml-auto flex items-center space-x-4">
-<div class="text-right">
-<p class="text-white text-sm">管理员</p>
-<p class="text-gray-400 text-xs">admin@datasys.com</p>
+
+<!-- Technologies Section -->
+<div class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p class="text-center text-sm font-medium uppercase tracking-wider text-gray">
+            CUTTING-EDGE TECHNOLOGIES INCLUDED IN THIS BOILERPLATE
+        </p>
+        <div class="mt-10 grid grid-cols-2 gap-8 md:grid-cols-5">
+            <div class="col-span-1 flex justify-center items-center">
+                <div class="h-16 w-16 border border-light-gray rounded-full flex items-center justify-center">
+                    <i class="fa-brands fa-python text-black text-3xl"></i>
+                </div>
+                <span class="ml-3 text-black font-medium">Django</span>
+            </div>
+            <div class="col-span-1 flex justify-center items-center">
+                <div class="h-16 w-16 border border-light-gray rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-wind text-black text-3xl"></i>
+                </div>
+                <span class="ml-3 text-black font-medium">Tailwind CSS</span>
+            </div>
+            <div class="col-span-1 flex justify-center items-center">
+                <div class="h-16 w-16 border border-light-gray rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-database text-black text-3xl"></i>
+                </div>
+                <span class="ml-3 text-black font-medium">PostgreSQL</span>
+            </div>
+            <div class="col-span-1 flex justify-center items-center">
+                <div class="h-16 w-16 border border-light-gray rounded-full flex items-center justify-center">
+                    <i class="fa-brands fa-js text-black text-3xl"></i>
+                </div>
+                <span class="ml-3 text-black font-medium">Alpine.js</span>
+            </div>
+            <div class="col-span-1 flex justify-center items-center">
+                <div class="h-16 w-16 border border-light-gray rounded-full flex items-center justify-center">
+                    <i class="fa-brands fa-stripe text-black text-3xl"></i>
+                </div>
+                <span class="ml-3 text-black font-medium">Stripe</span>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-<iconify-icon class="text-yellow-500 text-xl" icon="mdi:account"></iconify-icon>
+
+<!-- Features Section -->
+<div id="features" class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-sm font-medium uppercase tracking-wider text-black">FEATURES</h2>
+            <p class="mt-4 text-3xl font-medium tracking-tight text-black">
+                EVERYTHING YOU NEED FOR YOUR SAAS
+            </p>
+            <p class="mt-6 max-w-2xl text-xl text-gray lg:mx-auto">
+                Built with best practices and modern technologies to help you launch your product quickly.
+            </p>
+        </div>
+
+        <div class="mt-16">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                {% for feature in features %}
+                <div class="pt-6">
+                    <div class="h-full border border-light-gray p-8 flex flex-col">
+                        <div>
+                            <div class="w-12 h-12 flex items-center justify-center border border-light-gray text-black">
+                                {% if feature.icon == 'chart-bar' %}
+                                <i class="fa-solid fa-chart-column"></i>
+                                {% elif feature.icon == 'shield-check' %}
+                                <i class="fa-solid fa-shield-halved"></i>
+                                {% elif feature.icon == 'device-mobile' %}
+                                <i class="fa-solid fa-mobile-screen"></i>
+                                {% elif feature.icon == 'credit-card' %}
+                                <i class="fa-solid fa-credit-card"></i>
+                                {% else %}
+                                <i class="fa-solid fa-check"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium text-black">{{ feature.title }}</h3>
+                            <p class="mt-4 text-base text-gray">{{ feature.description }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Pricing Section -->
+<div class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-sm font-medium uppercase tracking-wider text-black">PRICING</h2>
+            <p class="mt-4 text-3xl font-medium tracking-tight text-black">
+                SIMPLE AND TRANSPARENT PLANS
+            </p>
+            <p class="mt-6 max-w-2xl text-xl text-gray lg:mx-auto">
+                Start for free and scale as your business grows.
+            </p>
+        </div>
+
+        <div class="mt-16 flex justify-center">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl">
+                <!-- Free Plan -->
+                <div class="border border-light-gray">
+                    <div class="p-8">
+                        <h3 class="text-xl font-medium text-black">FREE</h3>
+                        <p class="mt-4 text-gray">Perfect for testing and getting started.</p>
+                        <p class="mt-8">
+                            <span class="text-4xl font-medium text-black">$0</span>
+                            <span class="text-base text-gray">/month</span>
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="mt-8 block w-full py-3 px-6 border border-black text-center font-medium uppercase tracking-wider text-black hover:bg-light-gray">
+                            START FREE
+                        </a>
+                    </div>
+                    <div class="px-8 pt-6 pb-8 border-t border-light-gray">
+                        <h4 class="text-sm font-medium uppercase tracking-wider text-black">WHAT'S INCLUDED</h4>
+                        <ul class="mt-6 space-y-4">
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">Basic dashboard</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">1 user</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">Maximum 100 records</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">Community support</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="border-2 border-black">
+                    <div class="p-8">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-medium text-black">PRO</h3>
+                            <span class="bg-light-gray text-black py-1 px-3 text-xs font-medium uppercase">POPULAR</span>
+                        </div>
+                        <p class="mt-4 text-gray">Everything you need for a growing business.</p>
+                        <p class="mt-8">
+                            <span class="text-4xl font-medium text-black">${{ pricing.monthly_price }}</span>
+                            <span class="text-base text-gray">/month</span>
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="mt-8 block w-full py-3 px-6 text-center font-medium uppercase tracking-wider text-white bg-black hover:bg-dark-gray">
+                            START 14-DAY TRIAL
+                        </a>
+                    </div>
+                    <div class="px-8 pt-6 pb-8 border-t border-light-gray">
+                        <h4 class="text-sm font-medium uppercase tracking-wider text-black">WHAT'S INCLUDED</h4>
+                        <ul class="mt-6 space-y-4">
+                            {% for feature in pricing.features %}
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">{{ feature }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="border border-light-gray">
+                    <div class="p-8">
+                        <h3 class="text-xl font-medium text-black">ENTERPRISE</h3>
+                        <p class="mt-4 text-gray">Custom solutions for large businesses.</p>
+                        <p class="mt-8">
+                            <span class="text-4xl font-medium text-black">Custom</span>
+                        </p>
+                        <a href="#" class="mt-8 block w-full py-3 px-6 border border-black text-center font-medium uppercase tracking-wider text-black hover:bg-light-gray">
+                            CONTACT US
+                        </a>
+                    </div>
+                    <div class="px-8 pt-6 pb-8 border-t border-light-gray">
+                        <h4 class="text-sm font-medium uppercase tracking-wider text-black">WHAT'S INCLUDED</h4>
+                        <ul class="mt-6 space-y-4">
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">All Pro features</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">Unlimited users</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">Guaranteed SLA</span>
+                            </li>
+                            <li class="flex space-x-3">
+                                <i class="fa-solid fa-check flex-shrink-0 h-5 w-5 text-black"></i>
+                                <span class="text-base text-gray">24/7 priority support</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-</header>
-<!-- 主内容区 -->
-<main class="max-w-7xl mx-auto px-6 py-8">
-<!-- 选择区域 -->
-<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8">
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择年份</label>
-<div class="relative">
-<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-<option>2025年</option>
-<option>2024年</option>
-<option>2023年</option>
-</select>
+
+<!-- Testimonials -->
+<div class="py-16 border-t border-light-gray">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-sm font-medium uppercase tracking-wider text-black">TESTIMONIALS</h2>
+            <p class="mt-4 text-3xl font-medium tracking-tight text-black">
+                WHAT OUR CUSTOMERS SAY
+            </p>
+            <p class="mt-6 max-w-2xl text-xl text-gray lg:mx-auto">
+                Discover why businesses trust our SaaS solution.
+            </p>
+        </div>
+        
+        <div class="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div class="border border-light-gray p-8">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="h-12 w-12 border border-light-gray flex items-center justify-center">
+                            <i class="fa-solid fa-user text-gray"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-lg font-medium text-black">John Smith</h4>
+                        <p class="text-sm text-gray">CEO, Tech Solutions</p>
+                    </div>
+                </div>
+                <div class="mt-6 text-gray">
+                    <p><i class="fa-solid fa-quote-left text-light-gray mr-2"></i>This SaaS template saved us months of development. Now we can focus on what really matters: our customers.<i class="fa-solid fa-quote-right text-light-gray ml-2"></i></p>
+                </div>
+            </div>
+
+            <div class="border border-light-gray p-8">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="h-12 w-12 border border-light-gray flex items-center justify-center">
+                            <i class="fa-solid fa-user text-gray"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-lg font-medium text-black">Sarah Johnson</h4>
+                        <p class="text-sm text-gray">CTO, Innovate Inc.</p>
+                    </div>
+                </div>
+                <div class="mt-6 text-gray">
+                    <p><i class="fa-solid fa-quote-left text-light-gray mr-2"></i>The Stripe integration and secure authentication are exactly what we needed. We implemented them and they worked flawlessly.<i class="fa-solid fa-quote-right text-light-gray ml-2"></i></p>
+                </div>
+            </div>
+
+            <div class="border border-light-gray p-8">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="h-12 w-12 border border-light-gray flex items-center justify-center">
+                            <i class="fa-solid fa-user text-gray"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-lg font-medium text-black">Michael Brown</h4>
+                        <p class="text-sm text-gray">Founder, StartupLabs</p>
+                    </div>
+                </div>
+                <div class="mt-6 text-gray">
+                    <p><i class="fa-solid fa-quote-left text-light-gray mr-2"></i>The subscription system works perfectly. Our customers can sign up and start using our platform in minutes.<i class="fa-solid fa-quote-right text-light-gray ml-2"></i></p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- CTA Section -->
+<div class="py-16 bg-black">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:flex lg:items-center lg:justify-between">
+        <h2 class="text-3xl font-medium tracking-tight text-white">
+            <span class="block">READY TO GET STARTED?</span>
+            <span class="block text-light-gray">Begin your free trial today.</span>
+        </h2>
+        <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0 gap-4">
+            <div>
+                <a href="{% url 'account_signup' %}" class="px-8 py-3 bg-white text-black hover:bg-light-gray text-sm font-medium uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-rocket mr-2"></i> START FREE
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'landing:features' %}" class="px-8 py-3 border border-white text-white hover:bg-dark-gray text-sm font-medium uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-arrow-right mr-2"></i> SEE FEATURES
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
-<div class="relative">
-<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-<option>北京市</option>
-<option>上海市</option>
-<option>广东省</option>
-<option>江苏省</option>
-<option>浙江省</option>
-</select>
-</div>
-</div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
-<div class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
-<div class="space-y-2">
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">北京市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">上海市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">广州市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">深圳市</span>
-</div>
-</div>
-</div>
-</div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标</label>
-<div class="relative">
-<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none" id="indicator-filter">
-<option value="">全部指标</option>
-<option value="population">人口相关</option>
-<option value="enterprise">企业相关</option>
-<option value="technology">技术创新</option>
-<option value="employment">就业相关</option>
-<option value="budget">预算支出</option>
-</select>
-</div>
-</div>
-</div>
-<p class="text-xs text-gray-400 mt-3">当前日期: 2025年12月11日</p>
-</div>
-<!-- 录入进度显示 -->
-<div class="bg-gradient-to-r from-gray-800 to-gray-750 border border-yellow-500 rounded-xl p-4 mb-8">
-<div class="flex items-center justify-between">
-<div class="flex items-center space-x-3">
-<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
-<div>
-<p class="text-sm text-gray-300">数据录入进度</p>
-<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
-</div>
-</div>
-<div class="w-64 h-3 bg-gray-700 rounded-full overflow-hidden">
-<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
-</div>
-</div>
-</div>
-<!-- 功能选项卡 -->
-<div class="mb-6 border-b border-gray-700">
-<div class="flex space-x-8">
-<button class="pb-3 px-1 font-medium text-white border-b-2 border-yellow-500" id="manual-tab">手工录入</button>
-<button class="pb-3 px-1 font-medium text-gray-400" id="excel-tab">Excel上传</button>
-</div>
-</div>
-<!-- 手工录入区域 -->
-<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
-<div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
-<table class="w-full border-collapse">
-<thead>
-<tr class="bg-gray-700 sticky top-0">
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium min-w-24">城市</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="常住人口数">常住人口数</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="高新技术企业产值">高新技术企业产值</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="专利授权数量">专利授权数量</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="教育支出">教育支出</th>
-</tr>
-<tr class="bg-gray-700 sticky top-12">
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20"></th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-</tr>
-</thead>
-<tbody>
-<!-- 北京市 -->
-<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
-<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">北京市</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-</tr>
-<!-- 上海市 -->
-<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
-<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">上海市</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-</tr>
-<!-- 广州市 -->
-<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
-<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">广州市</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-</tr>
-<!-- 深圳市 -->
-<tr class="border-b border-gray-600 hover:bg-gray-700 transition">
-<td class="border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750">深圳市</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">
-<option value="">选择来源</option>
-<option value="statistics">统计局</option>
-<option value="government">政府部门</option>
-<option value="third-party">第三方数据</option>
-<option value="enterprise">企业上报</option>
-<option value="estimate">人工估算</option>
-</select>
-</td>
-<td class="border border-gray-600 px-2 py-2">
-<div class="text-white text-xs px-1">-</div>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<!-- Excel上传区域 -->
-<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8 hidden" id="excel-section">
-<div class="text-center py-12">
-<div class="mx-auto w-20 h-20 flex items-center justify-center bg-gray-700 rounded-full mb-6">
-<iconify-icon class="text-green-500 text-4xl" icon="mdi:file-excel"></iconify-icon>
-</div>
-<h3 class="text-xl text-white mb-3">上传Excel数据文件</h3>
-<p class="text-gray-400 mb-8">支持.xlsx格式文件，请确保数据格式符合要求</p>
-<div class="border-2 border-dashed border-gray-600 rounded-xl max-w-xl mx-auto p-10 bg-gray-700">
-<div class="flex flex-col items-center">
-<iconify-icon class="text-yellow-500 text-4xl mb-4" icon="mdi:cloud-upload"></iconify-icon>
-<p class="text-gray-400 mb-2">拖放文件到此处</p>
-<p class="text-gray-500 text-sm mb-4">或</p>
-<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-6 rounded-lg">
-              选择文件
-            </button>
-</div>
-</div>
-<div class="mt-8">
-<button class="flex items-center text-yellow-500 mx-auto">
-<iconify-icon class="mr-2" icon="mdi:download"></iconify-icon>
-            下载Excel模板
-          </button>
-</div>
-</div>
-</div>
-<!-- 操作按钮 -->
-<div class="flex space-x-4">
-<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
-        提交数据
-      </button>
-<button class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
-        重置表单
-      </button>
-<button class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
-<iconify-icon class="mr-2" icon="mdi:content-save"></iconify-icon>
-        保存草稿
-      </button>
-</div>
-</main>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    // 计算总指标数和更新进度的函数
-    function updateProgress() {
-      // 只统计type="text"的输入框（即"数值"和"备注"字段）
-      const allInputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
-      const totalIndicators = allInputs.length;
-      
-      // 统计有值的输入框
-      let completedIndicators = 0;
-      allInputs.forEach(input => {
-        if (input.value.trim() !== '') {
-          completedIndicators++;
-        }
-      });
-      
-      // 更新进度文本和进度条
-      const progressText = document.getElementById('progress-text');
-      const progressBar = document.getElementById('progress-bar');
-      
-      if (totalIndicators > 0) {
-        const percentage = (completedIndicators / totalIndicators) * 100;
-        progressText.textContent = `进度：已完成${completedIndicators}/${totalIndicators}指标`;
-        progressBar.style.width = percentage + '%';
-      }
-    }
-
-    // 为所有输入框添加事件监听
-    function attachProgressListeners() {
-      const inputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
-      inputs.forEach(input => {
-        input.addEventListener('input', updateProgress);
-        input.addEventListener('change', updateProgress);
-      });
-    }
-
-    // 页面加载时初始化进度
-    document.addEventListener('DOMContentLoaded', function() {
-      updateProgress();
-      attachProgressListeners();
-    });
-
-    // 选项卡切换功能
-    document.getElementById('manual-tab').addEventListener('click', function() {
-      document.getElementById('manual-section').classList.remove('hidden');
-      document.getElementById('excel-section').classList.add('hidden');
-      this.classList.add('text-white', 'border-yellow-500');
-      document.getElementById('excel-tab').classList.remove('text-white', 'border-yellow-500');
-      document.getElementById('excel-tab').classList.add('text-gray-400');
-      attachProgressListeners();
-      updateProgress();
-    });
-    
-    document.getElementById('excel-tab').addEventListener('click', function() {
-      document.getElementById('excel-section').classList.remove('hidden');
-      document.getElementById('manual-section').classList.add('hidden');
-      this.classList.add('text-white', 'border-yellow-500');
-      document.getElementById('manual-tab').classList.remove('text-white', 'border-yellow-500');
-      document.getElementById('manual-tab').classList.add('text-gray-400');
-    });
-
-    // 指标筛选功能
-    const indicatorFilter = document.getElementById('indicator-filter');
-    const indicatorCategories = {
-      'population': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数'],
-      'enterprise': ['年末个体工商户数量', '年末内资企业数', '年末外资企业数', '年末私营企业数'],
-      'technology': ['高新技术企业产值', '高新技术企业增加值', '技术合同成交额（交易额）', '有效发明专利量（发明专利有效量）', '每万人发明专利拥有量', '专利授权数量'],
-      'employment': ['采矿（掘)业就业人员人数', '制造业就业人员人数', '采矿（掘)业在岗职工人数', '制造业在岗职工人数'],
-      'budget': ['一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出']
-    };
-
-    indicatorFilter.addEventListener('change', function() {
-      const selectedCategory = this.value;
-      const headerCells = document.querySelectorAll('#manual-section table thead th[data-indicator]');
-      
-      if (selectedCategory === '') {
-        headerCells.forEach(cell => cell.style.display = 'table-cell');
-        document.querySelectorAll('#manual-section table tbody td').forEach(td => {
-          td.style.display = 'table-cell';
-        });
-      } else {
-        const categoryIndicators = indicatorCategories[selectedCategory];
-        headerCells.forEach(cell => {
-          const indicatorName = cell.getAttribute('data-indicator');
-          if (categoryIndicators.includes(indicatorName)) {
-            cell.style.display = 'table-cell';
-          } else {
-            cell.style.display = 'none';
-          }
-        });
-        
-        // Hide/show body cells based on colspan grouping (3 cells per indicator)
-        const rows = document.querySelectorAll('#manual-section table tbody tr');
-        const headerRow = document.querySelector('#manual-section table thead tr:first-child');
-        const headers = Array.from(headerRow.querySelectorAll('th[data-indicator]'));
-        
-        rows.forEach(row => {
-          let cellIndex = 1; // Start after city column
-          headers.forEach((header, headerIndex) => {
-            const indicatorName = header.getAttribute('data-indicator');
-            const isVisible = categoryIndicators.includes(indicatorName);
-            // Hide/show 3 cells per indicator
-            for (let i = 0; i < 3; i++) {
-              if (cellIndex < row.children.length) {
-                row.children[cellIndex].style.display = isVisible ? 'table-cell' : 'none';
-                cellIndex++;
-              }
-            }
-          });
-        });
-      }
-    });
-  </script>
-</body>
-</html>
+    // Additional JavaScript if needed
+</script>
+{% endblock %}
