@@ -35,8 +35,7 @@ urlpatterns = [
     # 2. 原有路由保持不变
     path('admin/', admin.site.urls),
     
-    # path('accounts/', include('allauth.urls')),
-    path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/', include('allauth.urls')),
 
     path('accounts/signup/', CustomSignupView.as_view(), name='account_signup'),
     path('landing/', include('apps.landing.urls')),
