@@ -47,41 +47,60 @@
 </select>
 </div>
 </div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
-<div class="relative">
-<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-<option>北京市</option>
-<option>上海市</option>
-<option>广东省</option>
-<option>江苏省</option>
-<option>浙江省</option>
-</select>
-</div>
-</div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
-<div class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
-<div class="space-y-2">
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">北京市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">上海市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">广州市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">深圳市</span>
-</div>
-</div>
-</div>
-</div>
+        <div>
+          <label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
+          <div class="relative">
+            <select id="province-select" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
+              <option value="">-- 请选择省份 --</option>
+              <option value="北京市">北京市</option>
+              <option value="天津市">天津市</option>
+              <option value="上海市">上海市</option>
+              <option value="重庆市">重庆市</option>
+              <option value="河北省">河北省</option>
+              <option value="山西省">山西省</option>
+              <option value="辽宁省">辽宁省</option>
+              <option value="吉林省">吉林省</option>
+              <option value="黑龙江省">黑龙江省</option>
+              <option value="江苏省">江苏省</option>
+              <option value="浙江省">浙江省</option>
+              <option value="安徽省">安徽省</option>
+              <option value="福建省">福建省</option>
+              <option value="江西省">江西省</option>
+              <option value="山东省">山东省</option>
+              <option value="河南省">河南省</option>
+              <option value="湖北省">湖北省</option>
+              <option value="湖南省">湖南省</option>
+              <option value="广东省">广东省</option>
+              <option value="海南省">海南省</option>
+              <option value="四川省">四川省</option>
+              <option value="贵州省">贵州省</option>
+              <option value="云南省">云南省</option>
+              <option value="陕西省">陕西省</option>
+              <option value="甘肃省">甘肃省</option>
+              <option value="青海省">青海省</option>
+              <option value="内蒙古自治区">内蒙古自治区</option>
+              <option value="广西壮族自治区">广西壮族自治区</option>
+              <option value="西藏自治区">西藏自治区</option>
+              <option value="宁夏回族自治区">宁夏回族自治区</option>
+              <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+              <option value="香港特别行政区">香港特别行政区</option>
+              <option value="澳门特别行政区">澳门特别行政区</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
+          <div id="city-list" class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
+            <div class="flex justify-end mb-2 space-x-2">
+              <button type="button" id="select-all-cities" class="text-xs text-gray-300 hover:text-white">全选</button>
+              <button type="button" id="deselect-all-cities" class="text-xs text-gray-300 hover:text-white">取消全选</button>
+            </div>
+            <div class="space-y-2" id="city-items">
+              <!-- 城市项由前端渲染 -->
+            </div>
+            <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
+          </div>
+        </div>
 <div>
 <label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标</label>
 <div class="relative">
@@ -121,16 +140,18 @@
 </div>
 </div>
 <!-- 手工录入区域 -->
-<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
+<!-- 手工录入区域 -->
+<form id="manual-form" method="post" action="">
+  <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
 <div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
 <table class="w-full border-collapse">
 <thead>
 <tr class="bg-gray-700 sticky top-0">
 <th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium min-w-24">城市</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="常住人口数">常住人口数</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="高新技术企业产值">高新技术企业产值</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="专利授权数量">专利授权数量</th>
-<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="3" data-indicator="教育支出">教育支出</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="4" data-indicator="常住人口数">常住人口数</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="4" data-indicator="高新技术企业产值">高新技术企业产值</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="4" data-indicator="专利授权数量">专利授权数量</th>
+<th class="border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium" colspan="4" data-indicator="教育支出">教育支出</th>
 </tr>
 <tr class="bg-gray-700 sticky top-12">
 <th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20"></th>
@@ -473,10 +494,12 @@
 <div class="text-white text-xs px-1">-</div>
 </td>
 </tr>
-</tbody>
-</table>
-</div>
-</div>
+          </tbody>
+        </table>
+        <!-- Hidden JSON payload for backend -->
+        <input type="hidden" id="rows-json" name="rows_json" value="" />
+      </div>
+    </div>
 <!-- Excel上传区域 -->
 <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8 hidden" id="excel-section">
 <div class="text-center py-12">
@@ -505,17 +528,18 @@
 </div>
 <!-- 操作按钮 -->
 <div class="flex space-x-4">
-<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
+      <button id="submit-button" type="submit" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
         提交数据
       </button>
-<button class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
+<button id="reset-button" type="button" class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
         重置表单
       </button>
-<button class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
+<button id="save-draft-button" type="button" class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
 <iconify-icon class="mr-2" icon="mdi:content-save"></iconify-icon>
         保存草稿
       </button>
 </div>
+</form>
 </main>
 <script>
     // 计算总指标数和更新进度的函数
@@ -557,6 +581,227 @@
       updateProgress();
       attachProgressListeners();
     });
+
+    // 省份->城市联动：前端渲染城市列表并根据省份过滤（不依赖后端）
+    (function() {
+      const provinceCityMap = {
+        '北京市': ['北京市'],
+        '天津市': ['天津市'],
+        '上海市': ['上海市'],
+        '重庆市': ['重庆市'],
+        '河北省': ['石家庄','唐山','秦皇岛','邯郸','保定'],
+        '山西省': ['太原','大同','运城','临汾'],
+        '辽宁省': ['沈阳','大连','鞍山','营口','锦州'],
+        '吉林省': ['长春','吉林','四平','辽源'],
+        '黑龙江省': ['哈尔滨','齐齐哈尔','牡丹江','佳木斯'],
+        '江苏省': ['南京','苏州','无锡','常州','南通'],
+        '浙江省': ['杭州','宁波','温州','绍兴','金华'],
+        '安徽省': ['合肥','芜湖','蚌埠','阜阳'],
+        '福建省': ['福州','厦门','泉州','漳州'],
+        '江西省': ['南昌','赣州','九江','上饶'],
+        '山东省': ['济南','青岛','烟台','淄博','潍坊'],
+        '河南省': ['郑州','洛阳','开封','南阳'],
+        '湖北省': ['武汉','宜昌','襄阳','黄石'],
+        '湖南省': ['长沙','株洲','湘潭','衡阳'],
+        '广东省': ['广州市','深圳市','珠海','佛山','东莞'],
+        '海南省': ['海口','三亚'],
+        '四川省': ['成都','绵阳','德阳','南充'],
+        '贵州省': ['贵阳','遵义','安顺'],
+        '云南省': ['昆明','大理','玉溪'],
+        '陕西省': ['西安','咸阳','宝鸡'],
+        '甘肃省': ['兰州','天水','酒泉'],
+        '青海省': ['西宁'],
+        '内蒙古自治区': ['呼和浩特','包头','鄂尔多斯'],
+        '广西壮族自治区': ['南宁','桂林','柳州','北海'],
+        '西藏自治区': ['拉萨'],
+        '宁夏回族自治区': ['银川'],
+        '新疆维吾尔自治区': ['乌鲁木齐','克拉玛依'],
+        '香港特别行政区': ['香港'],
+        '澳门特别行政区': ['澳门']
+      };
+
+      function renderCitiesForProvince(prov) {
+        const container = document.getElementById('city-items');
+        const empty = document.getElementById('city-empty');
+        container.innerHTML = '';
+        const cities = prov && prov !== '' ? (provinceCityMap[prov] || []) : Object.values(provinceCityMap).flat();
+        if (!cities || cities.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+        empty.classList.add('hidden');
+        cities.forEach(city => {
+          const id = 'city-' + city.replace(/\s|市/g, '');
+          const div = document.createElement('div');
+          div.className = 'flex items-center';
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.className = 'rounded border-gray-600 text-yellow-500 city-checkbox';
+          input.value = city;
+          input.id = id;
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.className = 'ml-2 text-white';
+          label.textContent = city;
+          div.appendChild(input);
+          div.appendChild(label);
+          container.appendChild(div);
+        });
+      }
+
+      function getSelectedCities() {
+        const checks = Array.from(document.querySelectorAll('.city-checkbox'));
+        const selected = checks.filter(c => c.checked).map(c => c.value);
+        // 如果没有选择城市，返回空数组（不再默认返回全部城市）
+        return selected;
+      }
+
+      function renderTableRows() {
+        const tbodySelector = document.querySelector('#manual-section table tbody');
+        if (!tbodySelector) return;
+        const tbody = tbodySelector;
+        tbody.innerHTML = '';
+        const cities = getSelectedCities();
+        if (!cities || cities.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 17;
+          td.className = 'text-center text-gray-400 p-4';
+          td.textContent = '未找到要录入的城市';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+
+        cities.forEach(city => {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-600 hover:bg-gray-700 transition';
+          const tdCity = document.createElement('td');
+          tdCity.className = 'border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750';
+          tdCity.textContent = city;
+          tr.appendChild(tdCity);
+
+          // For each indicator group (4 groups) render: value, note, source
+          for (let group = 0; group < 4; group++) {
+            const tdVal = document.createElement('td');
+            tdVal.className = 'border border-gray-600 px-2 py-2';
+            tdVal.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+            tr.appendChild(tdVal);
+
+            const tdNote = document.createElement('td');
+            tdNote.className = 'border border-gray-600 px-2 py-2';
+            tdNote.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+            tr.appendChild(tdNote);
+
+            const tdSource = document.createElement('td');
+            tdSource.className = 'border border-gray-600 px-2 py-2';
+            tdSource.innerHTML = '<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
+            tr.appendChild(tdSource);
+          }
+
+          // 4 reference/placeholder cells to match header layout
+          for (let j = 0; j < 4; j++) {
+            const tdRef = document.createElement('td');
+            tdRef.className = 'border border-gray-600 px-2 py-2';
+            tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
+            tr.appendChild(tdRef);
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        // Attach progress listeners to new inputs
+        attachProgressListeners();
+        updateProgress();
+
+        // Enable/disable submit button depending on whether there are rows
+        const submitBtn = document.getElementById('submit-button');
+        if (submitBtn) submitBtn.disabled = !(cities && cities.length > 0);
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const provSel = document.getElementById('province-select');
+        if (!provSel) return;
+        // initial render: all cities
+        renderCitiesForProvince('');
+        provSel.addEventListener('change', function() {
+          renderCitiesForProvince(this.value);
+          renderTableRows();
+        });
+
+        // Select all / deselect all buttons
+        const selectAllBtn = document.getElementById('select-all-cities');
+        const deselectAllBtn = document.getElementById('deselect-all-cities');
+        if (selectAllBtn) selectAllBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = true; });
+          renderTableRows();
+        });
+        if (deselectAllBtn) deselectAllBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          renderTableRows();
+        });
+
+        // Reset button: clear selections and clear table inputs
+        const resetBtn = document.getElementById('reset-button');
+        if (resetBtn) resetBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          renderTableRows();
+        });
+
+        // Form submit: serialize table rows into hidden input as JSON
+        const manualForm = document.getElementById('manual-form');
+        if (manualForm) {
+          manualForm.addEventListener('submit', function(e) {
+            const rows = (function collectRowsData() {
+              const out = [];
+              const tbody = document.querySelector('#manual-section table tbody');
+              if (!tbody) return out;
+              tbody.querySelectorAll('tr').forEach(tr => {
+                const cityCell = tr.children[0];
+                if (!cityCell) return;
+                const city = cityCell.textContent.trim();
+                // if it's the empty-row message, skip
+                if (!city || city === '未找到要录入的城市') return;
+                let cursor = 1; // start after city cell
+                const groups = [];
+                for (let g = 0; g < 4; g++) {
+                  const valTd = tr.children[cursor];
+                  const noteTd = tr.children[cursor+1];
+                  const sourceTd = tr.children[cursor+2];
+                  const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                  const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                  const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                  groups.push({ value: val, note: note, source: source });
+                  cursor += 3;
+                }
+                out.push({ city: city, groups: groups });
+              });
+              return out;
+            })();
+
+            if (!rows || rows.length === 0) {
+              e.preventDefault();
+              alert('请先选择一个或多个城市，再提交数据。');
+              return false;
+            }
+
+            const hidden = document.getElementById('rows-json');
+            if (hidden) hidden.value = JSON.stringify(rows);
+            // allow form to submit normally
+          });
+        }
+
+        // Listen for city checkbox changes (delegated)
+        document.addEventListener('change', function(e) {
+          if (e.target && e.target.classList && e.target.classList.contains('city-checkbox')) {
+            renderTableRows();
+          }
+        });
+
+        // initial table render
+        renderTableRows();
+      });
+    })();
 
     // 选项卡切换功能
     document.getElementById('manual-tab').addEventListener('click', function() {
