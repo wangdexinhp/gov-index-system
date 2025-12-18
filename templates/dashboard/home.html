@@ -47,41 +47,56 @@
 </select>
 </div>
 </div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
-<div class="relative">
-<select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-<option>北京市</option>
-<option>上海市</option>
-<option>广东省</option>
-<option>江苏省</option>
-<option>浙江省</option>
-</select>
-</div>
-</div>
-<div>
-<label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
-<div class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
-<div class="space-y-2">
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">北京市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">上海市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">广州市</span>
-</div>
-<div class="flex items-center">
-<input class="rounded border-gray-600 text-yellow-500" type="checkbox"/>
-<span class="ml-2 text-white">深圳市</span>
-</div>
-</div>
-</div>
-</div>
+        <div>
+          <label class="block text-sm font-medium text-yellow-500 mb-2">选择省份</label>
+          <div class="relative">
+            <select id="province-select" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
+              <option value="">-- 请选择省份 --</option>
+              <option value="北京市">北京市</option>
+              <option value="天津市">天津市</option>
+              <option value="上海市">上海市</option>
+              <option value="重庆市">重庆市</option>
+              <option value="河北省">河北省</option>
+              <option value="山西省">山西省</option>
+              <option value="辽宁省">辽宁省</option>
+              <option value="吉林省">吉林省</option>
+              <option value="黑龙江省">黑龙江省</option>
+              <option value="江苏省">江苏省</option>
+              <option value="浙江省">浙江省</option>
+              <option value="安徽省">安徽省</option>
+              <option value="福建省">福建省</option>
+              <option value="江西省">江西省</option>
+              <option value="山东省">山东省</option>
+              <option value="河南省">河南省</option>
+              <option value="湖北省">湖北省</option>
+              <option value="湖南省">湖南省</option>
+              <option value="广东省">广东省</option>
+              <option value="海南省">海南省</option>
+              <option value="四川省">四川省</option>
+              <option value="贵州省">贵州省</option>
+              <option value="云南省">云南省</option>
+              <option value="陕西省">陕西省</option>
+              <option value="甘肃省">甘肃省</option>
+              <option value="青海省">青海省</option>
+              <option value="内蒙古自治区">内蒙古自治区</option>
+              <option value="广西壮族自治区">广西壮族自治区</option>
+              <option value="西藏自治区">西藏自治区</option>
+              <option value="宁夏回族自治区">宁夏回族自治区</option>
+              <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+              <option value="香港特别行政区">香港特别行政区</option>
+              <option value="澳门特别行政区">澳门特别行政区</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
+          <div id="city-list" class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
+            <div class="space-y-2" id="city-items">
+              <!-- 城市项由前端渲染 -->
+            </div>
+            <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
+          </div>
+        </div>
 <div>
 <label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标</label>
 <div class="relative">
@@ -557,6 +572,84 @@
       updateProgress();
       attachProgressListeners();
     });
+
+    // 省份->城市联动：前端渲染城市列表并根据省份过滤（不依赖后端）
+    (function() {
+      const provinceCityMap = {
+        '北京市': ['北京市'],
+        '天津市': ['天津市'],
+        '上海市': ['上海市'],
+        '重庆市': ['重庆市'],
+        '河北省': ['石家庄','唐山','秦皇岛','邯郸','保定'],
+        '山西省': ['太原','大同','运城','临汾'],
+        '辽宁省': ['沈阳','大连','鞍山','营口','锦州'],
+        '吉林省': ['长春','吉林','四平','辽源'],
+        '黑龙江省': ['哈尔滨','齐齐哈尔','牡丹江','佳木斯'],
+        '江苏省': ['南京','苏州','无锡','常州','南通'],
+        '浙江省': ['杭州','宁波','温州','绍兴','金华'],
+        '安徽省': ['合肥','芜湖','蚌埠','阜阳'],
+        '福建省': ['福州','厦门','泉州','漳州'],
+        '江西省': ['南昌','赣州','九江','上饶'],
+        '山东省': ['济南','青岛','烟台','淄博','潍坊'],
+        '河南省': ['郑州','洛阳','开封','南阳'],
+        '湖北省': ['武汉','宜昌','襄阳','黄石'],
+        '湖南省': ['长沙','株洲','湘潭','衡阳'],
+        '广东省': ['广州市','深圳市','珠海','佛山','东莞'],
+        '海南省': ['海口','三亚'],
+        '四川省': ['成都','绵阳','德阳','南充'],
+        '贵州省': ['贵阳','遵义','安顺'],
+        '云南省': ['昆明','大理','玉溪'],
+        '陕西省': ['西安','咸阳','宝鸡'],
+        '甘肃省': ['兰州','天水','酒泉'],
+        '青海省': ['西宁'],
+        '内蒙古自治区': ['呼和浩特','包头','鄂尔多斯'],
+        '广西壮族自治区': ['南宁','桂林','柳州','北海'],
+        '西藏自治区': ['拉萨'],
+        '宁夏回族自治区': ['银川'],
+        '新疆维吾尔自治区': ['乌鲁木齐','克拉玛依'],
+        '香港特别行政区': ['香港'],
+        '澳门特别行政区': ['澳门']
+      };
+
+      function renderCitiesForProvince(prov) {
+        const container = document.getElementById('city-items');
+        const empty = document.getElementById('city-empty');
+        container.innerHTML = '';
+        const cities = prov && prov !== '' ? (provinceCityMap[prov] || []) : Object.values(provinceCityMap).flat();
+        if (!cities || cities.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+        empty.classList.add('hidden');
+        cities.forEach(city => {
+          const id = 'city-' + city.replace(/\s|市/g, '');
+          const div = document.createElement('div');
+          div.className = 'flex items-center';
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.className = 'rounded border-gray-600 text-yellow-500 city-checkbox';
+          input.value = city;
+          input.id = id;
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.className = 'ml-2 text-white';
+          label.textContent = city;
+          div.appendChild(input);
+          div.appendChild(label);
+          container.appendChild(div);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const provSel = document.getElementById('province-select');
+        if (!provSel) return;
+        // initial render: all cities
+        renderCitiesForProvince('');
+        provSel.addEventListener('change', function() {
+          renderCitiesForProvince(this.value);
+        });
+      });
+    })();
 
     // 选项卡切换功能
     document.getElementById('manual-tab').addEventListener('click', function() {
