@@ -91,6 +91,10 @@
         <div>
           <label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
           <div id="city-list" class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
+            <div class="flex justify-end mb-2 space-x-2">
+              <button type="button" id="select-all-cities" class="text-xs text-gray-300 hover:text-white">全选</button>
+              <button type="button" id="deselect-all-cities" class="text-xs text-gray-300 hover:text-white">取消全选</button>
+            </div>
             <div class="space-y-2" id="city-items">
               <!-- 城市项由前端渲染 -->
             </div>
@@ -136,7 +140,10 @@
 </div>
 </div>
 <!-- 手工录入区域 -->
-<div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
+<!-- 手工录入区域 -->
+<form id="manual-form" method="post" action="">
+  {% csrf_token %}
+  <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
 <div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
 <table class="w-full border-collapse">
 <thead>
@@ -488,10 +495,12 @@
 <div class="text-white text-xs px-1">-</div>
 </td>
 </tr>
-</tbody>
-</table>
-</div>
-</div>
+          </tbody>
+        </table>
+        <!-- Hidden JSON payload for backend -->
+        <input type="hidden" id="rows-json" name="rows_json" value="" />
+      </div>
+    </div>
 <!-- Excel上传区域 -->
 <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8 hidden" id="excel-section">
 <div class="text-center py-12">
@@ -520,17 +529,18 @@
 </div>
 <!-- 操作按钮 -->
 <div class="flex space-x-4">
-<button class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
+      <button id="submit-button" type="submit" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
         提交数据
       </button>
-<button class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
+<button id="reset-button" type="button" class="bg-transparent border border-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg">
         重置表单
       </button>
-<button class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
+<button id="save-draft-button" type="button" class="ml-auto bg-gray-700 border border-gray-600 text-white font-medium py-3 px-6 rounded-lg flex items-center">
 <iconify-icon class="mr-2" icon="mdi:content-save"></iconify-icon>
         保存草稿
       </button>
 </div>
+</form>
 </main>
 <script>
     // 计算总指标数和更新进度的函数
@@ -704,6 +714,10 @@
         // Attach progress listeners to new inputs
         attachProgressListeners();
         updateProgress();
+
+        // Enable/disable submit button depending on whether there are rows
+        const submitBtn = document.getElementById('submit-button');
+        if (submitBtn) submitBtn.disabled = !(cities && cities.length > 0);
       }
 
       document.addEventListener('DOMContentLoaded', function() {
@@ -715,6 +729,68 @@
           renderCitiesForProvince(this.value);
           renderTableRows();
         });
+
+        // Select all / deselect all buttons
+        const selectAllBtn = document.getElementById('select-all-cities');
+        const deselectAllBtn = document.getElementById('deselect-all-cities');
+        if (selectAllBtn) selectAllBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = true; });
+          renderTableRows();
+        });
+        if (deselectAllBtn) deselectAllBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          renderTableRows();
+        });
+
+        // Reset button: clear selections and clear table inputs
+        const resetBtn = document.getElementById('reset-button');
+        if (resetBtn) resetBtn.addEventListener('click', function() {
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          renderTableRows();
+        });
+
+        // Form submit: serialize table rows into hidden input as JSON
+        const manualForm = document.getElementById('manual-form');
+        if (manualForm) {
+          manualForm.addEventListener('submit', function(e) {
+            const rows = (function collectRowsData() {
+              const out = [];
+              const tbody = document.querySelector('#manual-section table tbody');
+              if (!tbody) return out;
+              tbody.querySelectorAll('tr').forEach(tr => {
+                const cityCell = tr.children[0];
+                if (!cityCell) return;
+                const city = cityCell.textContent.trim();
+                // if it's the empty-row message, skip
+                if (!city || city === '未找到要录入的城市') return;
+                let cursor = 1; // start after city cell
+                const groups = [];
+                for (let g = 0; g < 4; g++) {
+                  const valTd = tr.children[cursor];
+                  const noteTd = tr.children[cursor+1];
+                  const sourceTd = tr.children[cursor+2];
+                  const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                  const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                  const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                  groups.push({ value: val, note: note, source: source });
+                  cursor += 3;
+                }
+                out.push({ city: city, groups: groups });
+              });
+              return out;
+            })();
+
+            if (!rows || rows.length === 0) {
+              e.preventDefault();
+              alert('请先选择一个或多个城市，再提交数据。');
+              return false;
+            }
+
+            const hidden = document.getElementById('rows-json');
+            if (hidden) hidden.value = JSON.stringify(rows);
+            // allow form to submit normally
+          });
+        }
 
         // Listen for city checkbox changes (delegated)
         document.addEventListener('change', function(e) {
