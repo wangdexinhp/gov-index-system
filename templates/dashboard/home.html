@@ -662,53 +662,54 @@
         const tbody = tbodySelector;
         tbody.innerHTML = '';
         const cities = getSelectedCities();
-        if (!cities || cities.length === 0) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = 17;
-          td.className = 'text-center text-gray-400 p-4';
-          td.textContent = '未找到要录入的城市';
-          tr.appendChild(td);
-          tbody.appendChild(tr);
-          return;
-        }
+          // calculate current number of indicator groups from header
+          const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
+          const groups = headers ? headers.length : 0;
 
-        cities.forEach(city => {
-          const tr = document.createElement('tr');
-          tr.className = 'border-b border-gray-600 hover:bg-gray-700 transition';
-          const tdCity = document.createElement('td');
-          tdCity.className = 'border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750';
-          tdCity.textContent = city;
-          tr.appendChild(tdCity);
-
-          // For each indicator group (4 groups) render: value, note, source
-          for (let group = 0; group < 4; group++) {
-            const tdVal = document.createElement('td');
-            tdVal.className = 'border border-gray-600 px-2 py-2';
-            tdVal.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
-            tr.appendChild(tdVal);
-
-            const tdNote = document.createElement('td');
-            tdNote.className = 'border border-gray-600 px-2 py-2';
-            tdNote.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
-            tr.appendChild(tdNote);
-
-            const tdSource = document.createElement('td');
-            tdSource.className = 'border border-gray-600 px-2 py-2';
-            tdSource.innerHTML = '<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
-            tr.appendChild(tdSource);
+          if (!cities || cities.length === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 1 + groups * 4;
+            td.className = 'text-center text-gray-400 p-4';
+            td.textContent = '未找到要录入的城市';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
           }
 
-          // 4 reference/placeholder cells to match header layout
-          for (let j = 0; j < 4; j++) {
-            const tdRef = document.createElement('td');
-            tdRef.className = 'border border-gray-600 px-2 py-2';
-            tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
-            tr.appendChild(tdRef);
-          }
+          cities.forEach(city => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-gray-600 hover:bg-gray-700 transition';
+            const tdCity = document.createElement('td');
+            tdCity.className = 'border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750';
+            tdCity.textContent = city;
+            tr.appendChild(tdCity);
 
-          tbody.appendChild(tr);
-        });
+            // For each indicator group render: value, note, source, last-year reference (4 cells per group)
+            for (let group = 0; group < groups; group++) {
+              const tdVal = document.createElement('td');
+              tdVal.className = 'border border-gray-600 px-2 py-2';
+              tdVal.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+              tr.appendChild(tdVal);
+
+              const tdNote = document.createElement('td');
+              tdNote.className = 'border border-gray-600 px-2 py-2';
+              tdNote.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+              tr.appendChild(tdNote);
+
+              const tdSource = document.createElement('td');
+              tdSource.className = 'border border-gray-600 px-2 py-2';
+              tdSource.innerHTML = '<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
+              tr.appendChild(tdSource);
+
+              const tdRef = document.createElement('td');
+              tdRef.className = 'border border-gray-600 px-2 py-2';
+              tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
+              tr.appendChild(tdRef);
+            }
+
+            tbody.appendChild(tr);
+          });
 
         // Attach progress listeners to new inputs
         attachProgressListeners();
@@ -719,7 +720,53 @@
         if (submitBtn) submitBtn.disabled = !(cities && cities.length > 0);
       }
 
+      // Build table headers dynamically given an array of indicator names
+      function buildTableHeaders(indicators) {
+        const thead = document.querySelector('#manual-section table thead');
+        if (!thead) return;
+        const firstRow = thead.querySelector('tr:first-child');
+        const secondRow = thead.querySelector('tr:nth-child(2)');
+
+        // first row: city + indicator ths (colspan=4)
+        firstRow.innerHTML = '';
+        const thCity = document.createElement('th');
+        thCity.className = 'border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium min-w-24';
+        thCity.textContent = '城市';
+        firstRow.appendChild(thCity);
+
+        indicators.forEach(ind => {
+          const th = document.createElement('th');
+          th.className = 'border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium';
+          th.colSpan = 4;
+          th.setAttribute('data-indicator', ind);
+          th.textContent = ind;
+          firstRow.appendChild(th);
+        });
+
+        // second row: blank + 4 sub-headers per indicator
+        secondRow.innerHTML = '';
+        const thEmpty = document.createElement('th');
+        thEmpty.className = 'border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20';
+        secondRow.appendChild(thEmpty);
+        indicators.forEach(() => {
+          ['数值', '备注', '数据来源', '去年参考'].forEach(title => {
+            const th = document.createElement('th');
+            th.className = 'border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20';
+            th.textContent = title;
+            secondRow.appendChild(th);
+          });
+        });
+      }
+
+      // expose functions so outside code (indicator filter) can rebuild headers
+      window.buildTableHeaders = buildTableHeaders;
+      window.renderTableRows = renderTableRows;
+
       document.addEventListener('DOMContentLoaded', function() {
+        // capture the initial indicators from the static header so we can restore later
+        const existingHeaders = Array.from(document.querySelectorAll('#manual-section table thead th[data-indicator]')).map(h => h.getAttribute('data-indicator'));
+        window.initialIndicators = existingHeaders || [];
+
         const provSel = document.getElementById('province-select');
         if (!provSel) return;
         // initial render: all cities
@@ -764,7 +811,8 @@
                 if (!city || city === '未找到要录入的城市') return;
                 let cursor = 1; // start after city cell
                 const groups = [];
-                for (let g = 0; g < 4; g++) {
+                const headerCount = document.querySelectorAll('#manual-section table thead th[data-indicator]').length || 0;
+                for (let g = 0; g < headerCount; g++) {
                   const valTd = tr.children[cursor];
                   const noteTd = tr.children[cursor+1];
                   const sourceTd = tr.children[cursor+2];
@@ -772,7 +820,7 @@
                   const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
                   const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
                   groups.push({ value: val, note: note, source: source });
-                  cursor += 3;
+                  cursor += 4; // skip the last-year reference cell
                 }
                 out.push({ city: city, groups: groups });
               });
@@ -834,44 +882,18 @@
 
     indicatorFilter.addEventListener('change', function() {
       const selectedCategory = this.value;
-      const headerCells = document.querySelectorAll('#manual-section table thead th[data-indicator]');
-      
       if (selectedCategory === '') {
-        headerCells.forEach(cell => cell.style.display = 'table-cell');
-        document.querySelectorAll('#manual-section table tbody td').forEach(td => {
-          td.style.display = 'table-cell';
-        });
-      } else {
-        const categoryIndicators = indicatorCategories[selectedCategory];
-        headerCells.forEach(cell => {
-          const indicatorName = cell.getAttribute('data-indicator');
-          if (categoryIndicators.includes(indicatorName)) {
-            cell.style.display = 'table-cell';
-          } else {
-            cell.style.display = 'none';
-          }
-        });
-        
-        // Hide/show body cells based on colspan grouping (3 cells per indicator)
-        const rows = document.querySelectorAll('#manual-section table tbody tr');
-        const headerRow = document.querySelector('#manual-section table thead tr:first-child');
-        const headers = Array.from(headerRow.querySelectorAll('th[data-indicator]'));
-        
-        rows.forEach(row => {
-          let cellIndex = 1; // Start after city column
-          headers.forEach((header, headerIndex) => {
-            const indicatorName = header.getAttribute('data-indicator');
-            const isVisible = categoryIndicators.includes(indicatorName);
-            // Hide/show 3 cells per indicator
-            for (let i = 0; i < 3; i++) {
-              if (cellIndex < row.children.length) {
-                row.children[cellIndex].style.display = isVisible ? 'table-cell' : 'none';
-                cellIndex++;
-              }
-            }
-          });
-        });
+        // restore initial headers
+        if (window.buildTableHeaders) window.buildTableHeaders(window.initialIndicators || []);
+        if (window.renderTableRows) window.renderTableRows();
+        return;
       }
+
+      const categoryIndicators = indicatorCategories[selectedCategory] || [];
+      // rebuild headers to show only indicators in the selected category
+      if (window.buildTableHeaders) window.buildTableHeaders(categoryIndicators);
+      // re-render body rows so columns match new headers
+      if (window.renderTableRows) window.renderTableRows();
     });
   </script>
 </body>
