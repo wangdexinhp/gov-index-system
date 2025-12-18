@@ -543,11 +543,11 @@
 </main>
 <script>
     // 计算总指标数和更新进度的函数
-    function updateProgress() {
-      // 只统计type="text"的输入框（即"数值"和"备注"字段）
-      const allInputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
+      function updateProgress() {
+      // 只统计“数值”和“备注”字段（通过 placeholder 选择，避免把“去年参考”计入）
+      const allInputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"], #manual-section table tbody input[placeholder="备注"]');
       const totalIndicators = allInputs.length;
-      
+
       // 统计有值的输入框
       let completedIndicators = 0;
       allInputs.forEach(input => {
@@ -569,7 +569,8 @@
 
     // 为所有输入框添加事件监听
     function attachProgressListeners() {
-      const inputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
+      // 仅为“数值”和“备注”字段添加监听
+      const inputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"], #manual-section table tbody input[placeholder="备注"]');
       inputs.forEach(input => {
         input.addEventListener('input', updateProgress);
         input.addEventListener('change', updateProgress);
@@ -689,22 +690,31 @@
             for (let group = 0; group < groups; group++) {
               const tdVal = document.createElement('td');
               tdVal.className = 'border border-gray-600 px-2 py-2';
-              tdVal.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+              // sanitize city and indicator to build safe names
+              const indicatorName = headers[group] ? headers[group].getAttribute('data-indicator') || ('indicator' + group) : ('indicator' + group);
+              const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
+              const cityKey = sanitize(city);
+              const indKey = sanitize(indicatorName);
+              const valueName = 'data[' + cityKey + '][' + indKey + '][value]';
+              tdVal.innerHTML = '<input name="' + valueName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
               tr.appendChild(tdVal);
 
               const tdNote = document.createElement('td');
               tdNote.className = 'border border-gray-600 px-2 py-2';
-              tdNote.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+              const noteName = 'data[' + cityKey + '][' + indKey + '][note]';
+              tdNote.innerHTML = '<input name="' + noteName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
               tr.appendChild(tdNote);
 
               const tdSource = document.createElement('td');
               tdSource.className = 'border border-gray-600 px-2 py-2';
-              tdSource.innerHTML = '<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
+              const sourceName = 'data[' + cityKey + '][' + indKey + '][source]';
+              tdSource.innerHTML = '<select name="' + sourceName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
               tr.appendChild(tdSource);
 
               const tdRef = document.createElement('td');
               tdRef.className = 'border border-gray-600 px-2 py-2';
-              tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
+              const refName = 'data[' + cityKey + '][' + indKey + '][reference]';
+              tdRef.innerHTML = '<input name="' + refName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="去年参考" type="text"/>';
               tr.appendChild(tdRef);
             }
 
@@ -816,11 +826,13 @@
                   const valTd = tr.children[cursor];
                   const noteTd = tr.children[cursor+1];
                   const sourceTd = tr.children[cursor+2];
-                  const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
-                  const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
-                  const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
-                  groups.push({ value: val, note: note, source: source });
-                  cursor += 4; // skip the last-year reference cell
+                    const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                    const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                    const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                    const refTd = tr.children[cursor+3];
+                    const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
+                    groups.push({ value: val, note: note, source: source, reference: reference });
+                    cursor += 4; // skip the last-year reference cell
                 }
                 out.push({ city: city, groups: groups });
               });
