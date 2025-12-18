@@ -640,6 +640,72 @@
         });
       }
 
+      function getSelectedCities() {
+        const checks = Array.from(document.querySelectorAll('.city-checkbox'));
+        const selected = checks.filter(c => c.checked).map(c => c.value);
+        // 如果没有选择城市，返回空数组（不再默认返回全部城市）
+        return selected;
+      }
+
+      function renderTableRows() {
+        const tbodySelector = document.querySelector('#manual-section table tbody');
+        if (!tbodySelector) return;
+        const tbody = tbodySelector;
+        tbody.innerHTML = '';
+        const cities = getSelectedCities();
+        if (!cities || cities.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 17;
+          td.className = 'text-center text-gray-400 p-4';
+          td.textContent = '未找到要录入的城市';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+
+        cities.forEach(city => {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-600 hover:bg-gray-700 transition';
+          const tdCity = document.createElement('td');
+          tdCity.className = 'border border-gray-600 px-4 py-3 text-white font-medium bg-gray-750';
+          tdCity.textContent = city;
+          tr.appendChild(tdCity);
+
+          // For each indicator group (4 groups) render: value, note, source
+          for (let group = 0; group < 4; group++) {
+            const tdVal = document.createElement('td');
+            tdVal.className = 'border border-gray-600 px-2 py-2';
+            tdVal.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+            tr.appendChild(tdVal);
+
+            const tdNote = document.createElement('td');
+            tdNote.className = 'border border-gray-600 px-2 py-2';
+            tdNote.innerHTML = '<input class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+            tr.appendChild(tdNote);
+
+            const tdSource = document.createElement('td');
+            tdSource.className = 'border border-gray-600 px-2 py-2';
+            tdSource.innerHTML = '<select class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="statistics">统计局</option>\n<option value="government">政府部门</option>\n<option value="third-party">第三方数据</option>\n<option value="enterprise">企业上报</option>\n<option value="estimate">人工估算</option>\n</select>';
+            tr.appendChild(tdSource);
+          }
+
+          // 4 reference/placeholder cells to match header layout
+          for (let j = 0; j < 4; j++) {
+            const tdRef = document.createElement('td');
+            tdRef.className = 'border border-gray-600 px-2 py-2';
+            tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
+            tr.appendChild(tdRef);
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        // Attach progress listeners to new inputs
+        attachProgressListeners();
+        updateProgress();
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
         const provSel = document.getElementById('province-select');
         if (!provSel) return;
@@ -647,7 +713,18 @@
         renderCitiesForProvince('');
         provSel.addEventListener('change', function() {
           renderCitiesForProvince(this.value);
+          renderTableRows();
         });
+
+        // Listen for city checkbox changes (delegated)
+        document.addEventListener('change', function(e) {
+          if (e.target && e.target.classList && e.target.classList.contains('city-checkbox')) {
+            renderTableRows();
+          }
+        });
+
+        // initial table render
+        renderTableRows();
       });
     })();
 
