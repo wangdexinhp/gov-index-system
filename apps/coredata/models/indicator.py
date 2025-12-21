@@ -6,6 +6,21 @@ class Indicator(models.Model):
     指标基础信息表（精简版）
     """
 
+
+    # 指标的省ID
+    province_id = models.CharField(
+        "省id",
+        max_length=128,
+        help_text="指标的省id",
+    )
+
+    # 指标的城市ID
+    city_id = models.CharField(
+        "城市id",
+        max_length=128,
+        help_text="指标的城市id",
+    )
+
     # 英文名：建议唯一，用作代码/接口标识
     name_en = models.CharField(
         "英文名",
