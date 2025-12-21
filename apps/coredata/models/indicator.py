@@ -8,17 +8,17 @@ class Indicator(models.Model):
 
 
     # 指标的省ID
-    province_id = models.CharField(
+    province_id = models.IntegerField(
         "省id",
-        max_length=128,
+        default=0,  # 整数默认值
         help_text="指标的省id",
     )
 
     # 指标的城市ID
-    city_id = models.CharField(
-        "城市id",
-        max_length=128,
-        help_text="指标的城市id",
+    city_id = models.IntegerField(
+    "城市id",
+    default=0,  # 整数默认值
+    help_text="如：110000（北京市代码）"
     )
 
     # 英文名：建议唯一，用作代码/接口标识
