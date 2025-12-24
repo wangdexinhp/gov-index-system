@@ -36,7 +36,7 @@
 <main class="max-w-7xl mx-auto px-6 py-8">
 <!-- 选择区域 -->
 <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8">
-<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6">
 <div>
 <label class="block text-sm font-medium text-yellow-500 mb-2">选择年份</label>
 <div class="relative">
@@ -88,9 +88,9 @@
             </select>
           </div>
         </div>
-        <div>
+        <div class="min-w-0">
           <label class="block text-sm font-medium text-yellow-500 mb-2">选择城市 (多选)</label>
-          <div id="city-list" class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto">
+          <div id="city-list" class="bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto max-w-sm">
             <div class="flex justify-end mb-2 space-x-2">
               <button type="button" id="select-all-cities" class="text-xs text-gray-300 hover:text-white">全选</button>
               <button type="button" id="deselect-all-cities" class="text-xs text-gray-300 hover:text-white">取消全选</button>
@@ -101,7 +101,7 @@
             <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
           </div>
         </div>
-<div>
+<div class="min-w-0 overflow-hidden">
   <label class="block text-sm font-medium text-yellow-500 mb-2">指标组</label>
   <div class="relative">
     <select class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none" id="indicator-filter">
@@ -111,7 +111,7 @@
       <option value="technology">技术创新</option>
       <option value="employment">就业相关</option>
       <option value="budget">预算支出</option> -->
-      <option value="admin">行政区域数据</option>
+  <option value="admin" selected>行政区域数据</option>
       <option value="population">人口数据</option>
       <option value="economy_structure">经济结构数据</option>
       <option value="education_tech">教育科技数据</option>
@@ -135,19 +135,14 @@
   </div>
 </div>
 
-<!-- 二级筛选：仅在选择区域新增一列，初始内容与一级相同（仅 HTML） -->
-<div>
-  <label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标</label>
+<!-- 二级筛选（多选）：仅在选择区域新增一列，初始内容由一级选择填充 -->
+<div class="min-w-0 overflow-hidden">
+  <label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标（多选）</label>
   <div class="relative">
-    <select id="indicator-subfilter" class="w-full bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-      <option value="">全部指标</option>
-      <option value="population">人口相关</option>
-      <option value="enterprise">企业相关</option>
-      <option value="technology">技术创新</option>
-      <option value="employment">就业相关</option>
-      <option value="budget">预算支出</option>
-    </select>
+    <!-- replaced native multi-select with checkbox panel for easier multi-select UX -->
+    <div id="indicator-subfilter" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto"></div>
   </div>
+</div>
 </div>
 </div>
 <p class="text-xs text-gray-400 mt-3">当前日期: 2025年12月11日</p>
@@ -698,6 +693,7 @@
         const tbody = tbodySelector;
         tbody.innerHTML = '';
         const cities = getSelectedCities();
+
           // calculate current number of indicator groups from header
           const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
           const groups = headers ? headers.length : 0;
@@ -708,6 +704,18 @@
             td.colSpan = 1 + groups * 4;
             td.className = 'text-center text-gray-400 p-4';
             td.textContent = '未找到要录入的城市';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+          }
+
+          // If there are cities but no selected indicators, show an instruction row
+          if (groups === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 1; // only city column exists
+            td.className = 'text-left text-gray-400 p-4';
+            td.textContent = '请先在“筛选指标（多选）”中选择一个或多个指标，选中后将显示相应的录入列。';
             tr.appendChild(td);
             tbody.appendChild(tr);
             return;
@@ -949,21 +957,119 @@
       'government_affairs_openness': ['#主动公开政府信息件数', '#依申请公开政府信息件数', '#因公开问题申请行政复议的数量']
     };
 
+    // Populate subfilter options when a category (指标组) is chosen.
+    function populateSubfilter(categoryKey) {
+      const sub = document.getElementById('indicator-subfilter');
+      if (!sub) return;
+      sub.innerHTML = '';
+      if (!categoryKey || categoryKey === '') {
+        // leave empty so user can choose nothing
+        return;
+      }
+      const items = indicatorCategories[categoryKey] || [];
+
+      // control buttons: 全选 / 取消全选
+      const ctrlDiv = document.createElement('div');
+      ctrlDiv.className = 'flex justify-end mb-2 space-x-2';
+      const btnAll = document.createElement('button');
+      btnAll.type = 'button';
+      btnAll.className = 'text-xs text-gray-300 hover:text-white';
+      btnAll.textContent = '全选';
+      const btnNone = document.createElement('button');
+      btnNone.type = 'button';
+      btnNone.className = 'text-xs text-gray-300 hover:text-white';
+      btnNone.textContent = '取消全选';
+      ctrlDiv.appendChild(btnNone);
+      ctrlDiv.appendChild(btnAll);
+      sub.appendChild(ctrlDiv);
+
+  const listDiv = document.createElement('div');
+  // ensure a single vertical column (no auto-wrapping into multiple columns)
+  listDiv.className = 'flex flex-col space-y-2';
+
+      items.forEach((i, idx) => {
+        const label = ('' + i).replace(/^#/, '');
+        const id = 'indicator-' + categoryKey + '-' + idx;
+  const row = document.createElement('div');
+  // full width row so items never wrap into multiple horizontal columns
+  row.className = 'flex items-center w-full';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'indicator-checkbox rounded border-gray-600 text-yellow-500';
+        input.value = label;
+        input.id = id;
+  const lab = document.createElement('label');
+  lab.htmlFor = id;
+  // prevent label text from wrapping; truncate with ellipsis if too long
+  lab.className = 'ml-2 text-white text-sm truncate';
+  lab.textContent = label;
+  lab.title = label;
+        row.appendChild(input);
+        row.appendChild(lab);
+        listDiv.appendChild(row);
+      });
+
+      sub.appendChild(listDiv);
+
+      // attach control actions
+      btnAll.addEventListener('click', function() {
+        sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = true);
+        // trigger header/body rebuild
+        const selected = Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value);
+        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        if (window.renderTableRows) window.renderTableRows();
+      });
+      btnNone.addEventListener('click', function() {
+        sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
+        if (window.buildTableHeaders) window.buildTableHeaders([]);
+        if (window.renderTableRows) window.renderTableRows();
+      });
+    }
+
     indicatorFilter.addEventListener('change', function() {
       const selectedCategory = this.value;
+      const sub = document.getElementById('indicator-subfilter');
+      if (!sub) return;
       if (selectedCategory === '') {
-        // restore initial headers
+        // restore initial headers and clear subfilter
+        sub.innerHTML = '';
         if (window.buildTableHeaders) window.buildTableHeaders(window.initialIndicators || []);
         if (window.renderTableRows) window.renderTableRows();
         return;
       }
 
-      const categoryIndicators = indicatorCategories[selectedCategory] || [];
-      // rebuild headers to show only indicators in the selected category
-      if (window.buildTableHeaders) window.buildTableHeaders(categoryIndicators);
-      // re-render body rows so columns match new headers
+      // Fill the secondary panel but do NOT immediately rebuild headers.
+      populateSubfilter(selectedCategory);
+      // With no subfilter selection, the manual table should not show indicator columns
+      if (window.buildTableHeaders) window.buildTableHeaders([]);
       if (window.renderTableRows) window.renderTableRows();
     });
+
+    // Delegate change events: handle indicator-checkbox changes to rebuild headers
+    document.addEventListener('change', function(e) {
+      if (e.target && e.target.classList && e.target.classList.contains('indicator-checkbox')) {
+        const sub = document.getElementById('indicator-subfilter');
+        const selected = sub ? Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value) : [];
+        if (!selected || selected.length === 0) {
+          if (window.buildTableHeaders) window.buildTableHeaders([]);
+          if (window.renderTableRows) window.renderTableRows();
+          return;
+        }
+        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        if (window.renderTableRows) window.renderTableRows();
+      }
+    });
+
+    // Default: select 'admin' group and populate subfilter, but DO NOT auto-check indicators
+    (function setDefaultIndicatorGroup() {
+      const defaultGroup = 'admin';
+      if (indicatorFilter) indicatorFilter.value = defaultGroup;
+      // populate checkboxes but do not select any — user must choose
+      populateSubfilter(defaultGroup);
+      // leave headers empty until user explicitly checks indicators
+      if (window.buildTableHeaders) window.buildTableHeaders([]);
+      if (window.renderTableRows) window.renderTableRows();
+    })();
   </script>
 </body>
 </html>
