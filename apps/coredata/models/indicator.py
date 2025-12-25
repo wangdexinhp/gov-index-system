@@ -6,10 +6,41 @@ class Indicator(models.Model):
     指标基础信息表（精简版）
     """
 
+
+    # 指标的省ID
+    province_id = models.IntegerField(
+        "省id",
+        default=0,  # 整数默认值
+        help_text="指标的省id",
+    )
+
+    # 指标的城市ID
+    city_id = models.IntegerField(
+        "城市id",
+        default=0,  # 整数默认值
+        help_text="如：110000（北京市代码）"
+    )
+
+    # 数据来源： 数据来源名称或机构
+    source = models.CharField(
+        "数据来源",
+        max_length=50,
+        help_text="指标数据来源名称或机构",
+    )
+
+    # 数值： 指标的数值
+    value = models.DecimalField(
+        "数值",
+        max_digits=10,  
+        decimal_places=2,  
+        help_text="指标的数值"
+    )
+
+
     # 英文名：建议唯一，用作代码/接口标识
     name_en = models.CharField(
         "英文名",
-        max_length=128,
+        max_length=50,
         unique=True,
         help_text="指标英文名/代码，如: pm25, gdp_per_capita",
     )
@@ -17,7 +48,7 @@ class Indicator(models.Model):
     # 中文名：展示名称
     name_zh = models.CharField(
         "中文名",
-        max_length=128,
+        max_length=50,
         help_text="指标中文名，如：人均GDP，PM2.5浓度",
     )
 
