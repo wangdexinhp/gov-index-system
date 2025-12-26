@@ -189,18 +189,6 @@
 <th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
 <th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
 <th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数值</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">备注</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">数据来源</th>
-<th class="border border-gray-600 px-2 py-2 text-left text-gray-300 font-normal text-xs min-w-20">去年参考</th>
 </tr>
 </thead>
 <tbody>
@@ -441,7 +429,9 @@
               const tdRef = document.createElement('td');
               tdRef.className = 'border border-gray-600 px-2 py-2';
               const refName = 'data[' + cityKey + '][' + indKey + '][reference]';
-              tdRef.innerHTML = '<input name="' + refName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="去年参考" type="text"/>';
+              // tdRef.innerHTML = '<input name="' + refName + '" class="w-full bg-gray-600 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="去年参考" type="text"/>';
+              tdRef.innerHTML = '<div class="text-white text-xs px-1">-</div>';
+
               tr.appendChild(tdRef);
             }
 
