@@ -23,6 +23,16 @@
 <h1 class="text-2xl font-bold text-white">数据指标管理系统</h1>
 </div>
 <div class="ml-auto flex items-center space-x-4">
+<div class="flex space-x-3 mr-6">
+  <a href="/dashboard/" 
+      class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
+      指标录入系统
+  </a>
+  <a href="/dashboard/query/" 
+      class="bg-gray-700 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-600 border border-gray-600 transition">
+      指标查询系统
+  </a>
+</div>
 <div class="text-right">
 <p class="text-white text-sm">管理员</p>
 <p class="text-gray-400 text-xs">admin@datasys.com</p>
@@ -171,7 +181,7 @@
 </div>
 <!-- 手工录入区域 -->
 <!-- 手工录入区域 -->
-<form id="manual-form" method="post" action="">
+<form id="manual-form" method="post" action="/dashboard/submit/">
       {% csrf_token %}  
   <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
 <div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
@@ -566,6 +576,42 @@
             const hidden = document.getElementById('rows-json');
             if (hidden) hidden.value = JSON.stringify(rows);
             // allow form to submit normally
+            e.preventDefault();
+            // 获取表单数据
+            const formData = new FormData(this);
+            
+            // 显示加载状态
+            const submitBtn = document.getElementById('submit-button');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '提交中...';
+            submitBtn.disabled = true;
+
+            // 提交表单
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // alert('✅ 提交成功！');
+                    showAutoCloseMessage('✅ 提交成功！', 'success');
+                    setTimeout(() => {
+                        window.location.reload(); // 刷新页面
+                    }, 500);
+                } else {
+                    alert('❌ 提交失败：' + data.message);
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('错误:', error);
+                alert('❌ 网络错误');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+
           });
         }
 
@@ -591,6 +637,65 @@
       attachProgressListeners();
       updateProgress();
     });
+
+    // 提示框
+    // 创建自动消失的提示消息函数
+function showAutoCloseMessage(message, type = 'success') {
+    // 移除已有的消息
+    const existingMsg = document.querySelector('.auto-close-message');
+    if (existingMsg) existingMsg.remove();
+    
+    // 创建消息元素
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'auto-close-message fixed top-6 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-lg shadow-lg z-50';
+    
+    // 根据类型设置样式
+    if (type === 'success') {
+        msgDiv.className += ' bg-green-600 text-white border-l-4 border-green-400';
+    } else {
+        msgDiv.className += ' bg-red-600 text-white border-l-4 border-red-400';
+    }
+    
+    // 添加图标和消息
+    msgDiv.innerHTML = `
+        <div class="flex items-center">
+            <iconify-icon icon="${type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'}" 
+                class="text-2xl mr-3"></iconify-icon>
+            <span class="text-lg font-medium">${message}</span>
+        </div>
+    `;
+    
+    // 初始状态：隐藏在上方
+    msgDiv.style.opacity = '0';
+    msgDiv.style.transform = 'translateX(-50%) translateY(-30px)';
+    msgDiv.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
+    
+    // 添加到页面
+    document.body.appendChild(msgDiv);
+    
+    // 触发入场动画
+    setTimeout(() => {
+        msgDiv.style.opacity = '1';
+        msgDiv.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
+    
+    // 3秒后开始消失动画
+    setTimeout(() => {
+        // 离场动画
+        msgDiv.style.opacity = '0';
+        msgDiv.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
+        
+        // 动画完成后移除元素
+        setTimeout(() => {
+            if (msgDiv.parentNode) {
+                msgDiv.parentNode.removeChild(msgDiv);
+            }
+        }, 400); // 与transition时间匹配
+    }, 3000); // 总共显示3秒（入场+停留）
+}
+
+    
+    
     
     document.getElementById('excel-tab').addEventListener('click', function() {
       document.getElementById('excel-section').classList.remove('hidden');

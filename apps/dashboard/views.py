@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.utils import timezone
+from django.http import JsonResponse, HttpResponse  
+import json
+
 import secrets
 from .models import UserSettings, SubscriptionPlan
 
@@ -10,6 +13,12 @@ from .models import UserSettings, SubscriptionPlan
 @require_http_methods(['GET'])
 def dashboard_home(request):
     return render(request, 'dashboard/home.html')
+
+@login_required
+@require_http_methods(['GET'])
+def dashboard_single_query(request):
+    return render(request, 'dashboard/single_query.html')
+
 
 @login_required
 @require_http_methods(['GET', 'POST'])
@@ -150,3 +159,50 @@ def start_trial(request):
     
     messages.success(request, 'Trial period started successfully.')
     return redirect('dashboard:settings') 
+
+
+
+
+@login_required
+@require_http_methods(['POST'])
+def submit_data(request):
+    """处理表单提交"""
+    try:
+        # 获取表单数据
+        rows_json = request.POST.get('rows_json', '[]')
+        rows_data = json.loads(rows_json)
+        
+        print(f"=== 接收到的数据 ==  {rows_data}")
+        print(f"数据条数: {len(rows_data)}")
+        
+        # 处理每一行数据
+        for row in rows_data:
+            city = row.get('city')
+            groups = row.get('groups', [])
+            
+            print(f"\n城市: {city}")
+            for i, group in enumerate(groups):
+                print(f"  指标{i+1}:")
+                print(f"    数值: {group.get('value')}")
+                print(f"    备注: {group.get('note')}")
+                print(f"    来源: {group.get('source')}")
+                print(f"    参考: {group.get('reference')}")
+        
+        # 这里可以保存到数据库
+        # save_to_database(rows_data)
+        
+        # 返回成功响应
+        return JsonResponse({
+            'success': True,
+            'message': f'成功提交 {len(rows_data)} 条记录',
+            'count': len(rows_data)
+        })
+        
+    except Exception as e:
+        print(f"处理数据时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'处理数据时出错: {str(e)}'
+        }, status=500)
+    
+

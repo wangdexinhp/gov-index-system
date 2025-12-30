@@ -1,0 +1,283 @@
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>单指标历年数据查询界面</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    body { background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    /* 表格明细样式 */
+    .table-detail-row:hover { background-color: #f8fafc; transition: background-color 0.2s; }
+    .indicator-value { color: #2563eb; font-weight: 700; font-family: 'Monaco', 'Consolas', monospace; }
+  </style>
+</head>
+<body class="p-6">
+<div class="max-w-[1440px] mx-auto space-y-6">
+<!-- 标题栏 -->
+<header class="flex items-center space-y-1 py-2">
+<span class="iconify text-3xl text-blue-600 mr-3" data-icon="fluent:database-search-24-filled"></span>
+<h1 class="text-2xl font-bold text-gray-800">指标历史数据查询平台 (2025-12-19)</h1>
+</header>
+<!-- 查询条件区 -->
+<section class="card p-6">
+<div class="grid grid-cols-4 gap-6 items-end">
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择指标</label>
+<select class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="indicatorSelect">
+<option value="常住人口数">常住人口数</option>
+<option value="市数量">市数量</option>
+<option value="区数量">区数量</option>
+<option value="县数量">县数量</option>
+<option value="辖区面积">辖区面积</option>
+<option value="城镇人口数">城镇人口数</option>
+<option value="乡村人口数">乡村人口数</option>
+<option value="年末总人口">年末总人口</option>
+<option value="年末总户数">年末总户数</option>
+<option value="年末私营企业数">年末私营企业数</option>
+<option value="教育支出">教育支出</option>
+<option value="医疗卫生支出">医疗卫生支出</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择省份</label>
+<select class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="provinceSelect" onchange="updateCities()">
+<option value="">请选择省份</option>
+<option value="广东省">广东省</option>
+<option value="江苏省">江苏省</option>
+<option value="浙江省">浙江省</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择城市 (单选)</label>
+<select class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
+<option value="">请先选择省份</option>
+</select>
+</div>
+<div class="flex gap-4 col-span-1">
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-medium text-gray-700">起始年份</label>
+<select class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
+<option value="2016">2016年</option>
+<option value="2017">2017年</option>
+<option value="2018">2018年</option>
+<option value="2019">2019年</option>
+<option value="2020">2020年</option>
+</select>
+</div>
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-medium text-gray-700">终止年份</label>
+<select class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
+<option selected="" value="2025">2025年</option>
+<option value="2024">2024年</option>
+<option value="2023">2023年</option>
+<option value="2022">2022年</option>
+<option value="2021">2021年</option>
+</select>
+</div>
+<button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center justify-center" onclick="handleSearch()">
+<span class="iconify mr-2" data-icon="fluent:search-24-regular"></span>查询
+</button>
+</div>
+</div>
+</section>
+<!-- 数据展示区 -->
+<div class="hidden space-y-6" id="resultContent">
+<!-- 表格卡片 -->
+<section class="card p-6">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">历年数据明细</h2>
+<div class="flex items-center space-x-2">
+<span class="text-sm text-gray-500">数值排序：</span>
+<select class="border border-gray-300 rounded px-2 py-1 text-sm outline-none" id="sortOrder" onchange="renderTable()">
+<option value="year_asc">按年份升序</option>
+<option value="val_asc">按数值升序</option>
+<option value="val_desc">按数值降序</option>
+</select>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-gray-50 border-b border-gray-200">
+<th class="px-6 py-4 font-semibold text-gray-700">年份</th>
+<th class="px-6 py-4 font-semibold text-gray-700" id="indicatorHeader">指标值</th>
+<th class="px-6 py-4 font-semibold text-gray-700">单位</th>
+<th class="px-6 py-4 font-semibold text-gray-700">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100" id="tableBody">
+<!-- JS 填充 -->
+</tbody>
+</table>
+</div>
+</section>
+<!-- 图表卡片 -->
+<section class="card p-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="chartTitle">趋势分析视图</h2>
+<div class="flex bg-gray-100 p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm" id="btnBar" onclick="switchChart('bar')">柱状图</button>
+<button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600" id="btnLine" onclick="switchChart('line')">曲线图</button>
+</div>
+</div>
+<div class="w-full h-[400px]" id="mainChart"></div>
+</section>
+</div>
+<!-- 缺省页 -->
+<div class="card py-20 flex flex-col items-center justify-center text-gray-400" id="emptyState">
+<img alt="No data illustration" class="w-32 h-32 mb-4 opacity-20" id="1" src="https://modao.cc/agent-py/media/generated_images/2025-12-19/cfa70c9f5ea744609279fdbeadddb0f3.jpg"/>
+<p>请选择指标和地区后点击查询按钮</p>
+</div>
+</div>
+<script>
+    const cityData = {
+      "广东省": ["广州市", "深圳市", "珠海市", "佛山市"],
+      "江苏省": ["南京市", "无锡市", "徐州市", "苏州市"],
+      "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市"]
+    };
+
+    let rawData = [];
+    let currentChartType = 'bar';
+    let myChart = null;
+
+    function updateCities() {
+      const province = document.getElementById('provinceSelect').value;
+      const citySelect = document.getElementById('citySelect');
+      citySelect.innerHTML = '<option value="">选择城市</option>';
+      if (cityData[province]) {
+        cityData[province].forEach(city => {
+          const opt = document.createElement('option');
+          opt.value = city;
+          opt.textContent = city;
+          citySelect.appendChild(opt);
+        });
+      }
+    }
+
+    function handleSearch() {
+      const indicator = document.getElementById('indicatorSelect').value;
+      const city = document.getElementById('citySelect').value;
+      const startYear = parseInt(document.getElementById('startYear').value);
+      const endYear = parseInt(document.getElementById('endYear').value);
+      
+      if (!city) {
+        alert("请选择城市");
+        return;
+      }
+      if (startYear > endYear) {
+        alert("起始年份不能大于终止年份");
+        return;
+      }
+
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('resultContent').classList.remove('hidden');
+      
+      // 模拟生成指定年份范围的数据
+      rawData = [];
+      const baseVal = Math.floor(Math.random() * 5000) + 1000;
+      for (let y = startYear; y <= endYear; y++) {
+        rawData.push({
+          year: y + "年",
+          val: baseVal + Math.floor(Math.random() * 500) - 250,
+          unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
+        });
+      }
+
+      document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
+      document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
+      document.getElementById('indicatorHeader').textContent = indicator;
+      
+      renderTable();
+      renderChart();
+    }
+
+    function renderTable() {
+      const sort = document.getElementById('sortOrder').value;
+      let displayData = [...rawData];
+
+      if (sort === 'val_asc') displayData.sort((a, b) => a.val - b.val);
+      else if (sort === 'val_desc') displayData.sort((a, b) => b.val - a.val);
+      else displayData.sort((a, b) => parseInt(a.year) - parseInt(b.year));
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      displayData.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
+        tr.innerHTML = `
+          <td class="px-6 py-4 text-gray-800 font-medium border-b border-gray-100">${item.year}</td>
+          <td class="px-6 py-4 indicator-value border-b border-gray-100">${item.val.toLocaleString()}</td>
+          <td class="px-6 py-4 text-gray-500 border-b border-gray-100">${item.unit}</td>
+          <td class="px-6 py-4">
+            <button class="text-blue-600 hover:text-blue-800 text-sm">详情</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderChart() {
+      if (!myChart) myChart = echarts.init(document.getElementById('mainChart'));
+      
+      const years = rawData.map(d => d.year);
+      const vals = rawData.map(d => d.val);
+      
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { top: '10%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+        series: [{
+          data: vals,
+          type: currentChartType,
+          smooth: true,
+          barWidth: '35%',
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: { width: 3, color: '#3b82f6' },
+          itemStyle: {
+            color: currentChartType === 'bar' 
+              ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: '#3b82f6' },
+                  { offset: 1, color: '#60a5fa' }
+                ])
+              : '#2563eb',
+            borderRadius: [4, 4, 0, 0]
+          },
+          areaStyle: currentChartType === 'line' ? {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(24,144,255,0.3)' },
+              { offset: 1, color: 'rgba(24,144,255,0)' }
+            ])
+          } : null
+        }]
+      };
+      myChart.setOption(option);
+      window.addEventListener('resize', () => myChart.resize());
+    }
+
+    function switchChart(type) {
+      currentChartType = type;
+      const btnBar = document.getElementById('btnBar');
+      const btnLine = document.getElementById('btnLine');
+      
+      if (type === 'bar') {
+        btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm';
+        btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600';
+      } else {
+        btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm';
+        btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600';
+      }
+      renderChart();
+    }
+  </script>
+</body>
+</html>
