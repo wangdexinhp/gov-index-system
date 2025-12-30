@@ -172,6 +172,7 @@
 <!-- 手工录入区域 -->
 <!-- 手工录入区域 -->
 <form id="manual-form" method="post" action="">
+      {% csrf_token %}  
   <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6 mb-8" id="manual-section">
 <div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4">
 <table class="w-full border-collapse">
