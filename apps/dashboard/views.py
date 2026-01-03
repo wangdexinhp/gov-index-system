@@ -274,3 +274,68 @@ def save_to_database(rows_data):
                 input_form=Indicator.InputForm.INPUT,
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
+
+@login_required
+@require_http_methods(['GET'])
+def single_indicator_query(request):
+
+    indicator_en = request.GET.get('name_en')
+    indicator_zh = request.GET.get('name_zh')
+    start_year = request.GET.get('start_year')
+    end_year = request.GET.get('end_year')
+    city_name = request.GET.get('city')
+    province_name = request.GET.get('province')
+
+    # 构建城市名到代码、以及省份名到代码的映射
+    city_name_to_code = {}
+    province_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        pname = prov['province_name']
+        pcode = int(prov['province_code'])
+        province_name_to_code[pname] = pcode
+        if pname.endswith('市'):
+            province_name_to_code[pname.replace('市','')] = pcode
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+
+    city_id = None
+    if city_name:
+        city_key = city_name.replace('市','')
+        city_id = city_name_to_code.get(city_key)
+    province_id = None
+    if province_name:
+        prov_key = province_name.replace('市','')
+        province_id = province_name_to_code.get(prov_key)
+
+    # 构建查询条件
+    filters = {}
+    if indicator_en:
+        filters['name_en'] = indicator_en
+    if indicator_zh:
+        filters['name_zh'] = indicator_zh
+    if start_year:
+        filters['year__gte'] = start_year
+    if end_year:
+        filters['year__lte'] = end_year
+    if city_id:
+        filters['city_id'] = city_id
+    if province_id:
+        filters['province_id'] = province_id
+
+    indicators = Indicator.objects.filter(**filters).order_by('year')
+    data = []
+    for ind in indicators:
+        data.append({
+            'year': ind.year,
+            'value': ind.value,
+            'note': ind.note,
+            'source': ind.source,
+        })
+    return JsonResponse({
+        'success': True,
+        'data': data
+    })
+
+
+
+

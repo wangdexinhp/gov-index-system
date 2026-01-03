@@ -15,4 +15,6 @@ urlpatterns = [
     path('subscription/trial/', views.start_trial, name='start_trial'),
 
     path('submit/', views.submit_data, name='submit_data'),
+    path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
+
 ] 
