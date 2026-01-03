@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
 import json
 from apps.coredata.models.indicator import Indicator
+from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 
 
 import secrets
@@ -230,11 +231,23 @@ def save_to_database(rows_data):
         ...
     ]
     """
+    # 构建城市名到代码的映射
+    city_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+        # 直辖市本身也作为城市
+        if prov['province_name'].endswith('市'):
+            city_name_to_code[prov['province_name'].replace('市','')] = int(prov['province_code'])
+
     for row in rows_data:
-        city_id = row.get('city')
+        city_name = row.get('city')
         province_id = row.get('province')
         year = row.get('year') or None
         groups = row.get('groups', [])
+        # 支持“北京市”/“北京”都能识别
+        city_key = city_name.replace('市','') if city_name else ''
+        city_id = city_name_to_code.get(city_key, 0)
         for group in groups:
             name_en = group.get('indicator_key')
             value = group.get('value')
@@ -243,7 +256,7 @@ def save_to_database(rows_data):
             Indicator.objects.create(
                 year=year,
                 province_id=province_id or 0,
-                city_id=city_id or 0,
+                city_id=city_id,
                 source=source or '',
                 value=value or 0,
                 name_en=name_en or '',
