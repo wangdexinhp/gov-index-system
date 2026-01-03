@@ -223,39 +223,50 @@
 
     function handleSearch() {
       const indicator = document.getElementById('indicatorSelect').value;
+      const group = document.getElementById('indicatorGroupSelect').value;
       const city = document.getElementById('citySelect').value;
-      const startYear = parseInt(document.getElementById('startYear').value);
-      const endYear = parseInt(document.getElementById('endYear').value);
-      
-      if (!city) {
-        alert("请选择城市");
+      const province = document.getElementById('provinceSelect').value;
+      const startYear = document.getElementById('startYear').value;
+      const endYear = document.getElementById('endYear').value;
+
+      if (!indicator || !group || !city || !province) {
+        alert("请完整选择分组、指标、省份和城市");
         return;
       }
-      if (startYear > endYear) {
+      if (parseInt(startYear) > parseInt(endYear)) {
         alert("起始年份不能大于终止年份");
         return;
       }
 
       document.getElementById('emptyState').classList.add('hidden');
       document.getElementById('resultContent').classList.remove('hidden');
-      
-      // 模拟生成指定年份范围的数据
-      rawData = [];
-      const baseVal = Math.floor(Math.random() * 5000) + 1000;
-      for (let y = startYear; y <= endYear; y++) {
-        rawData.push({
-          year: y + "年",
-          val: baseVal + Math.floor(Math.random() * 500) - 250,
-          unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
-        });
-      }
 
-      document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
-      document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
-      document.getElementById('indicatorHeader').textContent = indicator;
-      
-      renderTable();
-      renderChart();
+      // 发起 AJAX 请求到后端接口
+      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}`)
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success || !res.data || res.data.length === 0) {
+            document.getElementById('tableBody').innerHTML = '';
+            if (myChart) myChart.clear();
+            alert('没有查询到数据');
+            return;
+          }
+          rawData = res.data.map(item => ({
+            year: item.year + '年',
+            val: item.value,
+            unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
+          }));
+
+          document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
+          document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
+          document.getElementById('indicatorHeader').textContent = indicator;
+
+          renderTable();
+          renderChart();
+        })
+        .catch(err => {
+          alert('查询失败: ' + err);
+        });
     }
 
     function renderTable() {
