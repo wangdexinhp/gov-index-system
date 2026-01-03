@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
 import json
+from apps.coredata.models.indicator import Indicator
+
 
 import secrets
 from .models import UserSettings, SubscriptionPlan
@@ -188,9 +190,8 @@ def submit_data(request):
                 print(f"    来源: {group.get('source')}")
                 print(f"    参考: {group.get('reference')}")
         
-        # 这里可以保存到数据库
-        # save_to_database(rows_data)
-        
+        # 保存数据到数据库
+        save_to_database(rows_data)
         # 返回成功响应
         return JsonResponse({
             'success': True,
@@ -206,3 +207,47 @@ def submit_data(request):
         }, status=500)
     
 
+# === 数据保存函数 ===
+def save_to_database(rows_data):
+    """
+    将 rows_data 批量保存到 Indicator 表。
+    rows_data: [
+        {
+            'city': '城市ID',
+            'province': '省ID',
+            'year': 2026,
+            'groups': [
+                {
+                    'indicator_key': 'gdp_per_capita',
+                    'value': '123.45',
+                    'note': '备注',
+                    'source': 'CITY_STAT_YB',
+                    'reference': '去年参考',
+                },
+                ...
+            ]
+        },
+        ...
+    ]
+    """
+    for row in rows_data:
+        city_id = row.get('city')
+        province_id = row.get('province')
+        year = row.get('year') or None
+        groups = row.get('groups', [])
+        for group in groups:
+            name_en = group.get('indicator_key')
+            value = group.get('value')
+            source = group.get('source')
+            note = group.get('note')
+            Indicator.objects.create(
+                year=year,
+                province_id=province_id or 0,
+                city_id=city_id or 0,
+                source=source or '',
+                value=value or 0,
+                name_en=name_en or '',
+                name_zh=note or '',  # 备注直接写入 name_zh
+                input_form=Indicator.InputForm.INPUT,
+                indicator_type=Indicator.IndicatorType.OTHER,
+            )
