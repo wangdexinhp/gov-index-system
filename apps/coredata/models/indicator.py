@@ -51,7 +51,6 @@ class Indicator(models.Model):
     name_en = models.CharField(
         "英文名",
         max_length=50,
-        unique=True,
         help_text="指标英文名/代码，如: pm25, gdp_per_capita",
     )
 

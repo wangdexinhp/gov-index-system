@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponse
 import json
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP
 
 
 import secrets
@@ -249,11 +250,12 @@ def save_to_database(rows_data):
         city_key = city_name.replace('市','') if city_name else ''
         city_id = city_name_to_code.get(city_key, 0)
         for group in groups:
-            name_en = group.get('indicator_key')
             value = group.get('value')
             source = group.get('source')
             note = group.get('note')
             name_zh = group.get('name_zh')
+            name_en = INDIMAP.get(name_zh)
+
             Indicator.objects.create(
                 year=year,
                 province_id=province_id or 0,
