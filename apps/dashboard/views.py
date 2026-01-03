@@ -232,23 +232,29 @@ def save_to_database(rows_data):
         ...
     ]
     """
-    # 构建城市名到代码的映射
+    # 构建城市名到代码、以及省份名到代码的映射
     city_name_to_code = {}
+    province_name_to_code = {}
     for prov in CHINA_REGIONS:
+        province_name = prov['province_name']
+        province_code = int(prov['province_code'])
+        province_name_to_code[province_name] = province_code
+        # 兼容“北京市”/“北京”
+        if province_name.endswith('市'):
+            province_name_to_code[province_name.replace('市','')] = province_code
         for city in prov.get('cities', []):
             city_name_to_code[city['name'].replace('市','')] = int(city['code'])
-        # 直辖市本身也作为城市
-        if prov['province_name'].endswith('市'):
-            city_name_to_code[prov['province_name'].replace('市','')] = int(prov['province_code'])
-
+    
     for row in rows_data:
         city_name = row.get('city')
-        province_id = row.get('province')
+        province_name = row.get('province')
         year = row.get('year') or None
         groups = row.get('groups', [])
         # 支持“北京市”/“北京”都能识别
         city_key = city_name.replace('市','') if city_name else ''
         city_id = city_name_to_code.get(city_key, 0)
+        prov_key = province_name.replace('市','') if province_name else ''
+        province_id = province_name_to_code.get(prov_key, 0)
         for group in groups:
             value = group.get('value')
             source = group.get('source')
@@ -258,7 +264,7 @@ def save_to_database(rows_data):
 
             Indicator.objects.create(
                 year=year,
-                province_id=province_id or 0,
+                province_id=province_id,
                 city_id=city_id,
                 source=source or '',
                 value=value or 0,
