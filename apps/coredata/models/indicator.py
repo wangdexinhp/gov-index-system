@@ -1,10 +1,18 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Indicator(models.Model):
     """
     指标基础信息表（精简版）
     """
+    year = models.PositiveIntegerField(
+        "指标年份",
+        default=timezone.now().year,  # 默认为当前年份
+        null=True,                    # 数据库允许NULL
+        blank=True,                   # 表单允许为空
+        help_text="请输入四位数的年份"   # 帮助文本
+    )
 
 
     # 指标的省ID
@@ -25,6 +33,7 @@ class Indicator(models.Model):
     source = models.CharField(
         "数据来源",
         max_length=50,
+        default='未知来源',  
         help_text="指标数据来源名称或机构",
     )
 
@@ -33,6 +42,7 @@ class Indicator(models.Model):
         "数值",
         max_digits=10,  
         decimal_places=2,  
+        default='',
         help_text="指标的数值"
     )
 
