@@ -537,32 +537,44 @@
         const manualForm = document.getElementById('manual-form');
         if (manualForm) {
           manualForm.addEventListener('submit', function(e) {
+
             const rows = (function collectRowsData() {
               const out = [];
               const tbody = document.querySelector('#manual-section table tbody');
               if (!tbody) return out;
+              // 获取年份和省份
+              const yearSel = document.querySelector('select');
+              let year = '';
+              if (yearSel) {
+                const ytxt = yearSel.value || yearSel.options[yearSel.selectedIndex]?.text || '';
+                year = ytxt.replace(/[^\d]/g, '');
+              }
+              const provSel = document.getElementById('province-select');
+              const province = provSel ? provSel.value : '';
+              // 获取所有指标中文名
+              const headerEls = document.querySelectorAll('#manual-section table thead th[data-indicator]');
+              const indicatorNames = Array.from(headerEls).map(h => h.getAttribute('data-indicator'));
               tbody.querySelectorAll('tr').forEach(tr => {
                 const cityCell = tr.children[0];
                 if (!cityCell) return;
                 const city = cityCell.textContent.trim();
-                // if it's the empty-row message, skip
                 if (!city || city === '未找到要录入的城市') return;
-                let cursor = 1; // start after city cell
+                let cursor = 1;
                 const groups = [];
-                const headerCount = document.querySelectorAll('#manual-section table thead th[data-indicator]').length || 0;
-                for (let g = 0; g < headerCount; g++) {
+                for (let g = 0; g < indicatorNames.length; g++) {
                   const valTd = tr.children[cursor];
                   const noteTd = tr.children[cursor+1];
                   const sourceTd = tr.children[cursor+2];
-                    const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
-                    const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
-                    const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
-                    const refTd = tr.children[cursor+3];
-                    const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
-                    groups.push({ value: val, note: note, source: source, reference: reference });
-                    cursor += 4; // skip the last-year reference cell
+                  const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                  const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                  const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                  const refTd = tr.children[cursor+3];
+                  const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
+                  const name_zh = indicatorNames[g] || '';
+                  groups.push({ value: val, note: note, source: source, reference: reference, name_zh: name_zh });
+                  cursor += 4;
                 }
-                out.push({ city: city, groups: groups });
+                out.push({ city: city, province: province, year: year, groups: groups });
               });
               return out;
             })();

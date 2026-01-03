@@ -62,6 +62,14 @@ class Indicator(models.Model):
         help_text="指标中文名，如：人均GDP，PM2.5浓度",
     )
 
+    #备注
+    note = models.CharField(
+        "备注",
+        max_length=50,
+        blank=True,
+        help_text="指标备注信息",
+    )
+
     # 指标输入形式：录入型 / 计算型
     class InputForm(models.TextChoices):
         INPUT = "INPUT", "录入型"   # 直接录入

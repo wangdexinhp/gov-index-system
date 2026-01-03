@@ -253,6 +253,7 @@ def save_to_database(rows_data):
             value = group.get('value')
             source = group.get('source')
             note = group.get('note')
+            name_zh = group.get('name_zh')
             Indicator.objects.create(
                 year=year,
                 province_id=province_id or 0,
@@ -260,7 +261,8 @@ def save_to_database(rows_data):
                 source=source or '',
                 value=value or 0,
                 name_en=name_en or '',
-                name_zh=note or '',  # 备注直接写入 name_zh
+                note=note or '',
+                name_zh= name_zh or '',  # 备注直接写入 name_zh
                 input_form=Indicator.InputForm.INPUT,
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
