@@ -8,6 +8,7 @@ import json
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP
+import pandas as pd
 
 
 import secrets
@@ -338,4 +339,28 @@ def single_indicator_query(request):
 
 
 
+@login_required
+@require_http_methods(['POST'])
+def upload_excel(request):
+    """处理Excel文件上传"""
+    try:
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return JsonResponse({
+                'success': False,
+                'message': '未上传文件'
+            }, status=400)
+        
+        # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
+        df = pd.read_excel(excel_file)
+        
+        print(f"=== 接收到的Excel数据 ===\n{df.head()}")
+        print(f"数据条数: {len(df)}")
+
+    except Exception as e:
+        print(f"处理Excel文件时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'处理Excel文件时出错: {str(e)}'
+        }, status=500)
 
