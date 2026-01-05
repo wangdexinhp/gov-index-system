@@ -345,6 +345,7 @@ def single_indicator_query(request):
 def upload_excel(request):
     """处理Excel文件上传"""
     try:
+        year = request.POST.get('year')
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
             return JsonResponse({
@@ -353,7 +354,7 @@ def upload_excel(request):
             }, status=400)
         # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
         # 创建Excel写入器
-        tmp_excel_file = f'temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
+        tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
         with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
             raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
             print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
@@ -385,7 +386,9 @@ def upload_excel(request):
             # 读取数据
             df = pd.read_excel(excel_file, sheet_name="Sheet1", header=None, skiprows=3)
             df.columns = headers
-            
+            # 保存数据到数据库
+            save_df_to_database(rows_data=df.to_dict(orient='records'))
+
             # 保存到新文件
             df.to_excel(writer, sheet_name="Sheet1", index=False)
 
@@ -402,3 +405,60 @@ def upload_excel(request):
         }, status=500)
 
 
+# === 数据保存函数 ===
+def save_df_to_database(rows_data):
+    """
+    将 rows_data 批量保存到 Indicator 表。
+    rows_data: [
+        {
+            '城市': '城市名',
+            '省份': '省份名',
+            '指标1_数值': '123.45',
+            '指标1_备注': '备注',
+            '指标1_来源': 'CITY_STAT_YB',
+            '指标1_参考': '去年参考',
+            ...
+        },
+        ...
+    ]
+    """
+    print(f"=== 准备保存的数据 ===\n{rows_data[:2]}")  # 打印前两行数据预览
+    # 构建城市名到代码、以及省份名到代码的映射
+    city_name_to_code = {}
+    province_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        province_name = prov['province_name']
+        province_code = int(prov['province_code'])
+        province_name_to_code[province_name] = province_code
+        # 兼容“北京市”/“北京”
+        if province_name.endswith('市'):
+            province_name_to_code[province_name.replace('市','')] = province_code
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+    
+    for row in rows_data:
+        city_name = row.get('城市')
+        province_name = row.get('省份')
+        # 支持“北京市”/“北京”都能识别
+        city_key = city_name.replace('市','') if city_name else ''
+        city_id = city_name_to_code.get(city_key, 0)
+        prov_key = province_name.replace('市','') if province_name else ''
+        province_id = province_name_to_code.get(prov_key, 0)
+
+        # 提取指标数据
+        indicators_dict = {}
+        for key, value in row.items():
+            if key in ['城市', '省份']:
+                continue
+            parts = key.split('_')
+            if len(parts) < 2:
+                continue
+            indicator_name_zh = parts[0]
+            field_type = parts[1]  # 数值、备注、来源、参考
+            
+            if indicator_name_zh not in indicators_dict:
+                indicators_dict[indicator_name_zh] = {}
+            indicators_dict[indicator_name_zh][field_type] = value
+        
+        # 保存每个指标
+  

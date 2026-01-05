@@ -3,10 +3,13 @@
 INDIMAP = {
     "地市名称": "city_name",
     "市数量": "city_num",
+    "市": "city_num",
     "市数量备注": "city_num_remark",
     "区数量": "district_num",
+    "区": "district_num",
     "区数量备注": "district_num_remark",
     "县数量": "county_num",
+    "县": "county_num",
     "县数量备注": "county_num_remark",
     "辖区面积": "area",
     "辖区面积备注": "area_remark",
