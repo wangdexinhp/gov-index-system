@@ -372,14 +372,14 @@ def upload_excel(request):
                     col_name = f'Column_{col_idx+1}'
                 
                 headers.append(col_name)
-            
+            save_df_to_database(rows_data=raw_data.to_dict(orient='records'), year=year)
+
             data_df = raw_data.iloc[3:, :].reset_index(drop=True)
             data_df.columns = headers
             # 保存到新文件
             data_df.to_excel(writer, sheet_name="Sheet1", index=False)
         # 保存数据到数据库
-        tmp_raw_data = pd.read_excel(tmp_excel_file, sheet_name="Sheet1", header=None)
-        save_df_to_database(rows_data=tmp_raw_data.to_dict(orient='records'), year=year)
+        # tmp_raw_data = pd.read_excel(tmp_excel_file, sheet_name="Sheet1", header=None)
 
         return JsonResponse({
             'success': True,
