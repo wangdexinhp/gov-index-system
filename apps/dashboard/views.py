@@ -410,6 +410,7 @@ def save_df_to_database(rows_data, year):
             if col_name in ['城市', 'A']:
                 continue  
             name_zh = col_name
+            print(f"处理指标: {name_zh}，值: {value}")
             name_en = INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
