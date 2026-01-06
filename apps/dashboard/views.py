@@ -430,7 +430,6 @@ def save_df_to_database(rows_data, year):
                 )
             except IntegrityError as e:
                 if 'Duplicate entry' in str(e):
-                    total_skipped += 1
                     print(f"跳过重复记录: {year}-{city_id}-{name_en}")
                     continue
                 else:
