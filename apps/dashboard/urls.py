@@ -5,6 +5,10 @@ app_name = 'dashboard'
 
 urlpatterns = [
     path('', views.dashboard_home, name='home'),
+    path('single-indicator-year-query/', views.dashboard_single_query, name='single_query'),
+    path('single-indicator-city-query/', views.dashboard_single_indicator_city_query, name='single_indicator_query'),
+    path('many-indicator-query/', views.dashboard_many_indicator_query, name='many_indicator_query'),
+
     path('profile/', views.profile, name='profile'),
     path('settings/', views.settings, name='settings'),
     path('settings/generate-api-key/', views.generate_api_key, name='generate_api_key'),
@@ -12,4 +16,9 @@ urlpatterns = [
     path('subscription/plans/<slug:plan_slug>/subscribe/', views.subscribe_to_plan, name='subscribe_to_plan'),
     path('subscription/cancel/', views.cancel_subscription, name='cancel_subscription'),
     path('subscription/trial/', views.start_trial, name='start_trial'),
+
+    path('submit/', views.submit_data, name='submit_data'),
+    path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
+    path('upload_excel/', views.upload_excel, name='upload_excel'),
+
 ] 

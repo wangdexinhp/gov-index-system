@@ -584,6 +584,8 @@ CHINA_REGIONS = [
     },
 ]
 
+PROVINCE_CITY_MAP = {}
+
 
 class Command(BaseCommand):
     help = "导入中国所有省市（省级 + 地级）。支持幂等，多次执行不会重复创建。"

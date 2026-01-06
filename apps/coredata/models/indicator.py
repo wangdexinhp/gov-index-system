@@ -1,10 +1,18 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Indicator(models.Model):
     """
     指标基础信息表（精简版）
     """
+    year = models.PositiveIntegerField(
+        "指标年份",
+        default=timezone.now().year,  # 默认为当前年份
+        null=True,                    # 数据库允许NULL
+        blank=True,                   # 表单允许为空
+        help_text="请输入四位数的年份"   # 帮助文本
+    )
 
 
     # 指标的省ID
@@ -25,6 +33,7 @@ class Indicator(models.Model):
     source = models.CharField(
         "数据来源",
         max_length=50,
+        default='未知来源',  
         help_text="指标数据来源名称或机构",
     )
 
@@ -33,6 +42,7 @@ class Indicator(models.Model):
         "数值",
         max_digits=10,  
         decimal_places=2,  
+        default='',
         help_text="指标的数值"
     )
 
@@ -41,7 +51,6 @@ class Indicator(models.Model):
     name_en = models.CharField(
         "英文名",
         max_length=50,
-        unique=True,
         help_text="指标英文名/代码，如: pm25, gdp_per_capita",
     )
 
@@ -50,6 +59,14 @@ class Indicator(models.Model):
         "中文名",
         max_length=50,
         help_text="指标中文名，如：人均GDP，PM2.5浓度",
+    )
+
+    #备注
+    note = models.CharField(
+        "备注",
+        max_length=50,
+        blank=True,
+        help_text="指标备注信息",
     )
 
     # 指标输入形式：录入型 / 计算型
@@ -84,6 +101,10 @@ class Indicator(models.Model):
         verbose_name = "指标"
         verbose_name_plural = "指标"
         ordering = ["indicator_type", "name_en"]
+        # 定义联合唯一约束（年、城市、英文名）
+        unique_together = [
+            ('year', 'city_id', 'name_en'),
+        ]
 
     def __str__(self):
         return f"{self.name_zh} ({self.name_en})"
