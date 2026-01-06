@@ -8,9 +8,10 @@ import json
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP
+from apps.coredata import city_name_to_code, province_name_to_code,city_code_to_province
+
 import pandas as pd
 from datetime import datetime
-from apps.dashboard import city_name_to_code, province_name_to_code,city_code_to_province
 
 import secrets
 from .models import UserSettings, SubscriptionPlan
