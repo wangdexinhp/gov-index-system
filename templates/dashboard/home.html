@@ -260,24 +260,20 @@
 
 </main>
 <script>
-    // Excel上传表单：自动同步年份字段，并校验必须选择年份
+    // Excel上传表单：自动同步年份字段，并校验必须选择年份，AJAX提交只弹提示不跳转
     document.addEventListener('DOMContentLoaded', function() {
-      // 1. 获取顶部年份选择器和Excel上传表单的年份隐藏域
-      var yearSelect = document.querySelector('select');
+      var yearSelect = document.getElementById('year-select');
       var excelYearInput = document.getElementById('excel-upload-year');
       var excelForm = document.getElementById('excel-upload-form');
       if (yearSelect && excelYearInput) {
-        // 初始化赋值
         var setYear = function() {
           var val = yearSelect.value || '';
-          // 只取数字部分
           var year = val.replace(/[^\d]/g, '');
           excelYearInput.value = year;
         };
         setYear();
         yearSelect.addEventListener('change', setYear);
       }
-      // 2. 表单提交校验
       if (excelForm) {
         excelForm.addEventListener('submit', function(e) {
           if (excelYearInput && (!excelYearInput.value || excelYearInput.value === '')) {
@@ -285,6 +281,38 @@
             alert('请先选择年份再上传Excel！');
             return false;
           }
+          e.preventDefault();
+          var formData = new FormData(excelForm);
+          var submitBtn = excelForm.querySelector('button[type="submit"]');
+          var originalText = submitBtn ? submitBtn.textContent : '';
+          if (submitBtn) {
+            submitBtn.textContent = '上传中...';
+            submitBtn.disabled = true;
+          }
+          fetch(excelForm.action, {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showAutoCloseMessage('✅ Excel上传成功！', 'success');
+              // 不跳转
+            } else {
+              showAutoCloseMessage('❌ 上传失败：' + (data.message || '未知错误'), 'error');
+            }
+            if (submitBtn) {
+              submitBtn.textContent = originalText;
+              submitBtn.disabled = false;
+            }
+          })
+          .catch(error => {
+            showAutoCloseMessage('❌ 网络错误', 'error');
+            if (submitBtn) {
+              submitBtn.textContent = originalText;
+              submitBtn.disabled = false;
+            }
+          });
         });
       }
     });
