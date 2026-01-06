@@ -28,6 +28,16 @@ def dashboard_home(request):
 def dashboard_single_query(request):
     return render(request, 'dashboard/single_query.html')
 
+@login_required
+@require_http_methods(['GET'])
+def dashboard_single_indicator_city_query(request):
+    return render(request, 'dashboard/single_indicator_city_query.html')
+
+@login_required
+@require_http_methods(['GET'])
+def dashboard_many_indicator_query(request):
+    return render(request, 'dashboard/many_indicator_query.html')
+
 
 @login_required
 @require_http_methods(['GET', 'POST'])
