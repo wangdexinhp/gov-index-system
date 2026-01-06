@@ -375,12 +375,10 @@ def upload_excel(request):
             
             data_df = raw_data.iloc[3:, :].reset_index(drop=True)
             data_df.columns = headers
+            save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
+
             # 保存到新文件
             data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-        # 保存数据到数据库
-        tmp_raw_data = pd.read_excel(tmp_excel_file, sheet_name="Sheet1", header=None, skiprows=3)
-        save_df_to_database(rows_data=tmp_raw_data.to_dict(orient='records'), year=year)
-
         return JsonResponse({
             'success': True,
             'message': "成功处理Excel文件"
