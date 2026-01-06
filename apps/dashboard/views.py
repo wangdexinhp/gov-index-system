@@ -375,7 +375,7 @@ def upload_excel(request):
         
         data_df = raw_data.iloc[3:, :].reset_index(drop=True)
         data_df.columns = headers
-        save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
+        # save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
 
         # 保存到新文件
         # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
