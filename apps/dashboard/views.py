@@ -378,7 +378,7 @@ def upload_excel(request):
             save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
 
             # 保存到新文件
-            data_df.to_excel(writer, sheet_name="Sheet1", index=False)
+            # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
         return JsonResponse({
             'success': True,
             'message': "成功处理Excel文件"
