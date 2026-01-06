@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
+from django.db import IntegrityError
+
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
 import json
@@ -413,17 +415,29 @@ def save_df_to_database(rows_data, year):
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
                 continue
-        
-            Indicator.objects.create(
-                year=year,
-                province_id=province_id,
-                city_id=city_id,
-                source='INPUT',
-                value=value or 0,
-                name_en=name_en or '',
-                note= '',
-                name_zh= name_zh or '',  # 备注直接写入 name_zh
-                input_form=Indicator.InputForm.INPUT,
-                indicator_type=Indicator.IndicatorType.OTHER,
-            )
-    
+            try:
+                Indicator.objects.create(
+                    year=year,
+                    province_id=province_id,
+                    city_id=city_id,
+                    source='INPUT',
+                    value=value or 0,
+                    name_en=name_en or '',
+                    note= '',
+                    name_zh= name_zh or '',  # 备注直接写入 name_zh
+                    input_form=Indicator.InputForm.INPUT,
+                    indicator_type=Indicator.IndicatorType.OTHER,
+                )
+            except IntegrityError as e:
+                if 'Duplicate entry' in str(e):
+                    total_skipped += 1
+                    print(f"跳过重复记录: {year}-{city_id}-{name_en}")
+                    continue
+                else:
+                    print(f"保存指标时出错: {name_zh}, 错误: {e}")
+                    continue
+                    
+            except Exception as e:
+                print(f"保存指标时发生未知错误: {name_zh}, 错误: {e}")
+                continue
+            
