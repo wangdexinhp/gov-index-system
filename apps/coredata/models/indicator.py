@@ -101,6 +101,10 @@ class Indicator(models.Model):
         verbose_name = "指标"
         verbose_name_plural = "指标"
         ordering = ["indicator_type", "name_en"]
+        # 定义联合唯一约束（年、城市、英文名）
+        unique_together = [
+            ('year', 'city_id', 'name_en'),
+        ]
 
     def __str__(self):
         return f"{self.name_zh} ({self.name_en})"

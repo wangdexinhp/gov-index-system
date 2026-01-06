@@ -10,7 +10,7 @@ from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP
 import pandas as pd
 from datetime import datetime
-
+from apps.dashboard import city_name_to_code, province_name_to_code,city_code_to_province
 
 import secrets
 from .models import UserSettings, SubscriptionPlan
@@ -235,17 +235,17 @@ def save_to_database(rows_data):
     ]
     """
     # 构建城市名到代码、以及省份名到代码的映射
-    city_name_to_code = {}
-    province_name_to_code = {}
-    for prov in CHINA_REGIONS:
-        province_name = prov['province_name']
-        province_code = int(prov['province_code'])
-        province_name_to_code[province_name] = province_code
-        # 兼容“北京市”/“北京”
-        if province_name.endswith('市'):
-            province_name_to_code[province_name.replace('市','')] = province_code
-        for city in prov.get('cities', []):
-            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+    # city_name_to_code = {}
+    # province_name_to_code = {}
+    # for prov in CHINA_REGIONS:
+    #     province_name = prov['province_name']
+    #     province_code = int(prov['province_code'])
+    #     province_name_to_code[province_name] = province_code
+    #     # 兼容“北京市”/“北京”
+    #     if province_name.endswith('市'):
+    #         province_name_to_code[province_name.replace('市','')] = province_code
+    #     for city in prov.get('cities', []):
+    #         city_name_to_code[city['name'].replace('市','')] = int(city['code'])
     
     for row in rows_data:
         city_name = row.get('city')
@@ -387,7 +387,7 @@ def upload_excel(request):
             df = pd.read_excel(excel_file, sheet_name="Sheet1", header=None, skiprows=3)
             df.columns = headers
             # 保存数据到数据库
-            save_df_to_database(rows_data=df.to_dict(orient='records'))
+            save_df_to_database(rows_data=df.to_dict(orient='records'), year=year)
 
             # 保存到新文件
             df.to_excel(writer, sheet_name="Sheet1", index=False)
@@ -406,59 +406,34 @@ def upload_excel(request):
 
 
 # === 数据保存函数 ===
-def save_df_to_database(rows_data):
-    """
-    将 rows_data 批量保存到 Indicator 表。
-    rows_data: [
-        {
-            '城市': '城市名',
-            '省份': '省份名',
-            '指标1_数值': '123.45',
-            '指标1_备注': '备注',
-            '指标1_来源': 'CITY_STAT_YB',
-            '指标1_参考': '去年参考',
-            ...
-        },
-        ...
-    ]
-    """
+def save_df_to_database(rows_data, year):
     print(f"=== 准备保存的数据 ===\n{rows_data[:2]}")  # 打印前两行数据预览
     # 构建城市名到代码、以及省份名到代码的映射
-    city_name_to_code = {}
-    province_name_to_code = {}
-    for prov in CHINA_REGIONS:
-        province_name = prov['province_name']
-        province_code = int(prov['province_code'])
-        province_name_to_code[province_name] = province_code
-        # 兼容“北京市”/“北京”
-        if province_name.endswith('市'):
-            province_name_to_code[province_name.replace('市','')] = province_code
-        for city in prov.get('cities', []):
-            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
-    
+    # rows_data =  [{'A': '京', '城市': '北京', '所辖市区县个数_市': 0, '区': 14, '县': 2, '城镇户籍人口': 1089.8, '农业人口': 243.6, '年末实有企业数_个体工商户': 653319, '内资企业': 39533, '外资企业': 1657, '私营企业': 838099, '高新技术企业_产值': 'A', '增加值': 'A', '采矿（掘)业就业人员人数': 6.2, '制造业就业人员人数': 129.9, '采矿（掘)业在岗职工人数': 6.09, '制造业在岗职工人数': 97.43, '财政总支出': 4524.67, '一般预算支出_一般公共服务支出': 272.23, '公共安全支出': 'A', '文化体育传媒支出': 163.9, '环保支出': 213.36, '园林绿地面积': 77129, '专利授权量': 74661, '城镇单位职工工资总额': 72933000.0, '社会从业\n人员': 1156.7, '机关单位_工资总额': 'A', '就业人数': 'A', '公共管理和社会组织工资总额': 3434882, '公共管理和社会组织在岗职工人数': 424414, '取缔无照经营个数': 91, '查处取缔无照经营个数': 2037, '参保人数_城镇养老保险参保人数': 1392.6, '城镇医疗保险参保人数': 1604.25, '农村养老保险参保人数': 173.4, '户数统计_总户数': 522.6, '有线电视用户数': 551.57, '互联网用户数': 553, '刑事案件立案件数': 153334, '刑事案件破案件数': 91.7826608669567, '二氧化硫排放总量_2012年': 40347, 'R&D经费数': 1268.8, 'R&D经费与GDP之比': 5.95, '自来水受益村数': 'A', '村委会个数': 3937, '受理信访举报案件数': 1424, '文化馆': 19, '博物馆': 171, '群众艺术馆': 1, '文化艺术团体': 'A', '体育馆': 70, '城镇最低生活保障人数': 89135, '农村最低生活保障人数': 51324, '贪污贿赂人数': 429, '渎职侵权人数': 78, '财政总收入': 7214.5, '财政总收入增长率': 29.6, '固定资产投资总额增长率': 7.5, '全社会消费品零售总额增长率': 8.6, '进出口总额增长率': -3.4, '实际利用外资金额增长率': 6.07, '规模以上工业企业增加值': 3612, '规模以上工业企业产值增加值增长率': 6.2, '国有资产保值增值率': 105.52, '万元GDP综合能源消耗': 0.36, '万元GDP综合能源消耗降低率': 5.29, '城镇化率': 86.4, '城镇家庭居民人均可支配收入增长率': 7.2, '农村家庭居民人均纯收入增长率': 8.6, '居民消费价格指数CPI': 101.6, '工业品出厂价格指数PPI': 99.1, '亿元GDP生产安全事故死亡率': 0.051, '十万人工矿商贸从业人员事故死亡率': 0.94, '食品质量抽样检测合格率': 97.46, '药品安全抽样合格率': 99.88, '工业产品质量抽样合格率': 'A', '查处农资违法案件的数量': 25, '查办各类经济违法案件的数量': 'A', '查办违法广告的件数': 860, '查办商标侵权案件的件数': 472, '消费者维权案件办理率': 100, '出生人口性别比': 'A', '人口出生率': 9.75, '符合政策生育率': 'A', '年末实有社会组织登记数量': 9083, '万人刑事案件发案件数': 114.994750262487, '调处各类矛盾纠纷件数': 194100, '成功调处各类矛盾纠纷数': 188600, '受理各类法律援助案件的数量': 18273, '火灾死亡人数': 51, '接待群众来信来访人次': 39149, '城镇新增就业人数': 42.65, '农村养老保险覆盖率': 71.1822660098522, '新建各类保障性住房面积': 509.5, '农村自来水覆盖率（农村安全饮水覆盖率）': 99.55, '人均拥有道路面积': 7.93, '每万人拥有公交汽车数量': 18.76, '有线电视入户率': 106.85, '高中阶段毛入学率': 'A', '新农合参合率': 'A', '森林覆盖率': 35.84, '水土流失治理面积': 40000, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 87.67, '生活垃圾无害化处理率': 99.6, '城镇生活污水处理率': 86.1, '城市空气质量指数': 46.027397260274, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 'A', '行政复议案件办结率': 'A', '行政复议案件申请量': 1840, '受理行政诉讼的案件数量': 1840, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 181600, '2012年': 225800, '主动公开政府信息增长率': 24.3392070484581, '依申请公开政府信息件数_2013年': 16888, '2014年': 34766, '依申请公开政府信息增长率': 105.862150639507, '因公开问题申请行政复议的数量': 1840}, {'A': '津', '城市': '天津', '所辖市区县个数_市': 0, '区': 13, '县': 3, '城镇户籍人口': 645.05, '农业人口': 371.61, '年末实有企业数_个体工商户': 366, '内资企业': 264994, '外资企业': 11498, '私营企业': 552700, '高新技术企业_产值': 8467.12, '增加值': 331.1, '采矿（掘)业就业人员人数': 6.64, '制造业就业人员人数': 118.99, '采矿（掘)业在岗职工人数': 0.46, '制造业在岗职工人数': 6.52, '财政总支出': 2884.7, '一般预算支出_一般公共服务支出': 158.08, '公共安全支出': 139.31, '文化体育传媒支出': 47.87, '环保支出': 57.93, '园林绿地面积': 25307, '专利授权量': 26351, '城镇单位职工工资总额': 20631400.0, '社会从业\n人员': 877.21, '机关单位_工资总额': 1189400, '就业人数': 139800, '公共管理和社会组织工资总额': 1301800, '公共管理和社会组织在岗职工人数': 144000, '取缔无照经营个数': 6007, '查处取缔无照经营个数': 2126, '参保人数_城镇养老保险参保人数': 657.28, '城镇医疗保险参保人数': 1023.62, '农村养老保险参保人数': 100.5, '户数统计_总户数': 362.63, '有线电视用户数': 313, '互联网用户数': 1014, '刑事案件立案件数': 'A', '刑事案件破案件数': 35.0205575118525, '二氧化硫排放总量_2012年': 195395, 'R&D经费数': 464.69, 'R&D经费与GDP之比': 3, '自来水受益村数': 'A', '村委会个数': 3698, '受理信访举报案件数': 7231, '文化馆': 19, '博物馆': 22, '群众艺术馆': 19, '文化艺术团体': 51, '体育馆': 'A', '城镇最低生活保障人数': 135760, '农村最低生活保障人数': 101447, '贪污贿赂人数': 341, '渎职侵权人数': 56, '财政总收入': 2390.02, '财政总收入增长率': 15.0, '固定资产投资总额增长率': 15.1, '全社会消费品零售总额增长率': 6.0, '进出口总额增长率': 4.2, '实际利用外资金额增长率': 12.1, '规模以上工业企业增加值': 1520.52, '规模以上工业企业产值增加值增长率': 10.1, '国有资产保值增值率': 101.6, '万元GDP综合能源消耗': 0.54, '万元GDP综合能源消耗降低率': 6.0, '城镇化率': 82.3, '城镇家庭居民人均可支配收入增长率': 8.7, '农村家庭居民人均纯收入增长率': 10.8, '居民消费价格指数CPI': 101.9, '工业品出厂价格指数PPI': 96.3, '亿元GDP生产安全事故死亡率': 0.0232721834458473, '十万人工矿商贸从业人员事故死亡率': 'A', '食品质量抽样检测合格率': 98.38, '药品安全抽样合格率': 'A', '工业产品质量抽样合格率': 97.85, '查处农资违法案件的数量': 'A', '查办各类经济违法案件的数量': 250, '查办违法广告的件数': 351, '查办商标侵权案件的件数': 396, '消费者维权案件办理率': 99.64, '出生人口性别比': 'A', '人口出生率': 8.19, '符合政策生育率': 98.45, '年末实有社会组织登记数量': 4729, '万人刑事案件发案件数': nan, '调处各类矛盾纠纷件数': 90028, '成功调处各类矛盾纠纷数': 88230, '受理各类法律援助案件的数量': 4114, '火灾死亡人数': 'A', '接待群众来信来访人次': 13195, '城镇新增就业人数': 48.8, '农村养老保险覆盖率': 27.0444821183499, '新建各类保障性住房面积': '6.1万套', '农村自来水覆盖率（农村安全饮水覆盖率）': 98.98, '人均拥有道路面积': 15.78, '每万人拥有公交汽车数量': 13.41, '有线电视入户率': 88.95, '高中阶段毛入学率': 100, '新农合参合率': 'A', '森林覆盖率': 9.87, '水土流失治理面积': 6400, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 98.91, '生活垃圾无害化处理率': 96.23, '城镇生活污水处理率': 100, '城市空气质量指数': 47.9, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 670, '行政复议案件办结率': 'A', '行政复议案件申请量': 194, '受理行政诉讼的案件数量': 194, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 123888, '2012年': 214499, '主动公开政府信息增长率': 73.1394485341599, '依申请公开政府信息件数_2013年': 5146, '2014年': 11399, '依申请公开政府信息增长率': 121.511853867081, '因公开问题申请行政复议的数量': 1074}]
     for row in rows_data:
         city_name = row.get('城市')
-        province_name = row.get('省份')
-        # 支持“北京市”/“北京”都能识别
-        city_key = city_name.replace('市','') if city_name else ''
-        city_id = city_name_to_code.get(city_key, 0)
-        prov_key = province_name.replace('市','') if province_name else ''
-        province_id = province_name_to_code.get(prov_key, 0)
-
-        # 提取指标数据
-        indicators_dict = {}
-        for key, value in row.items():
-            if key in ['城市', '省份']:
+        city_id = city_name_to_code.get(city_name.replace('市',''), 0) if city_name else 0
+        province_info = city_code_to_province[city_id]
+        province_id = province_info['province_code'] if province_info else 0
+        for col_name, value in row.items():
+            if col_name in ['城市', 'A']:
+                continue  
+            name_zh = col_name
+            name_en = INDIMAP.get(name_zh)
+            if not name_en:
+                print(f"未找到指标英文名映射，跳过: {name_zh}")
                 continue
-            parts = key.split('_')
-            if len(parts) < 2:
-                continue
-            indicator_name_zh = parts[0]
-            field_type = parts[1]  # 数值、备注、来源、参考
-            
-            if indicator_name_zh not in indicators_dict:
-                indicators_dict[indicator_name_zh] = {}
-            indicators_dict[indicator_name_zh][field_type] = value
         
-        # 保存每个指标
-  
+            Indicator.objects.create(
+                year=year,
+                province_id=province_id,
+                city_id=city_id,
+                source='INPUT',
+                value=value or 0,
+                name_en=name_en or '',
+                note= '',
+                name_zh= name_zh or '',  # 备注直接写入 name_zh
+                input_form=Indicator.InputForm.INPUT,
+                indicator_type=Indicator.IndicatorType.OTHER,
+            )
+    
