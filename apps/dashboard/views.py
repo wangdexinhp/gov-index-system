@@ -334,62 +334,62 @@ def single_indicator_query(request):
 @require_http_methods(['POST'])
 def upload_excel(request):
     """处理Excel文件上传"""
-    try:
-        year = request.POST.get('year')
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return JsonResponse({
-                'success': False,
-                'message': '未上传文件'
-            }, status=400)
-        # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
-        # 创建Excel写入器
-        tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
-        with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
-            raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
-            print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
-            print(f"数据条数: {len(raw_data)}")
-
-
-            headers = []
-            for col_idx in range(raw_data.shape[1]):
-                col_headers = []
-                
-                # 第1行
-                level1 = raw_data.iloc[0, col_idx]
-                if pd.notna(level1):
-                    col_headers.append(str(level1).strip())
-                
-                # 第2行
-                level2 = raw_data.iloc[1, col_idx]
-                if pd.notna(level2) and str(level2).strip():
-                    col_headers.append(str(level2).strip())
-                
-                # 创建列名
-                if col_headers:
-                    col_name = '_'.join(col_headers)
-                else:
-                    col_name = f'Column_{col_idx+1}'
-                
-                headers.append(col_name)
-            
-            data_df = raw_data.iloc[3:, :].reset_index(drop=True)
-            data_df.columns = headers
-            save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
-
-            # 保存到新文件
-            # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-        return JsonResponse({
-            'success': True,
-            'message': "成功处理Excel文件"
-        })
-
-    except Exception as e:
-        print(f"处理Excel文件时出错: {str(e)}")
+    
+    year = request.POST.get('year')
+    excel_file = request.FILES.get('excel_file')
+    if not excel_file:
         return JsonResponse({
             'success': False,
-            'message': f'处理Excel文件时出错: {str(e)}'
-        }, status=500)
+            'message': '未上传文件'
+        }, status=400)
+    # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
+    # 创建Excel写入器
+    tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
+    with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
+        raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
+        print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
+        print(f"数据条数: {len(raw_data)}")
+
+
+        headers = []
+        for col_idx in range(raw_data.shape[1]):
+            col_headers = []
+            
+            # 第1行
+            level1 = raw_data.iloc[0, col_idx]
+            if pd.notna(level1):
+                col_headers.append(str(level1).strip())
+            
+            # 第2行
+            level2 = raw_data.iloc[1, col_idx]
+            if pd.notna(level2) and str(level2).strip():
+                col_headers.append(str(level2).strip())
+            
+            # 创建列名
+            if col_headers:
+                col_name = '_'.join(col_headers)
+            else:
+                col_name = f'Column_{col_idx+1}'
+            
+            headers.append(col_name)
+        
+        data_df = raw_data.iloc[3:, :].reset_index(drop=True)
+        data_df.columns = headers
+        save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
+
+        # 保存到新文件
+        # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
+    return JsonResponse({
+        'success': True,
+        'message': "成功处理Excel文件"
+    })
+
+    # except Exception as e:
+    #     print(f"处理Excel文件时出错: {str(e)}")
+    #     return JsonResponse({
+    #         'success': False,
+    #         'message': f'处理Excel文件时出错: {str(e)}'
+    #     }, status=500)
 
 
 # === 数据保存函数 ===
