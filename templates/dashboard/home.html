@@ -214,10 +214,14 @@
             <th class="border border-black px-2 py-2 text-left text-black font-normal text-xs min-w-20">去年参考</th>
           </tr>
         </thead>
+        <tbody></tbody>
       </table>
       <!-- Hidden JSON payload for backend -->
       <input type="hidden" id="rows-json" name="rows_json" value="" />
     </div>
+  </div>
+</form>
+
     <!-- 操作按钮，仅在手工录入区显示 -->
     <div class="flex space-x-4 mt-6">
       <button id="submit-button" type="submit" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-3 px-8 rounded-lg text-lg">
@@ -231,8 +235,6 @@
         保存草稿
       </button>
     </div>
-  </div>
-</form>
 
 <!-- Excel上传区域 -->
 <form id="excel-upload-form" action="/dashboard/upload_excel/" method="post" enctype="multipart/form-data" class="flex items-center space-x-4 justify-center">
@@ -477,15 +479,19 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       function renderTableRows() {
+
         const tbodySelector = document.querySelector('#manual-section table tbody');
         if (!tbodySelector) return;
         const tbody = tbodySelector;
         tbody.innerHTML = '';
         const cities = getSelectedCities();
 
-          // calculate current number of indicator groups from header
-          const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
-          const groups = headers ? headers.length : 0;
+        // calculate current number of indicator groups from header
+        const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
+        const groups = headers ? headers.length : 0;
+
+        // 调试输出
+        console.log('[调试] renderTableRows 被调用，选中城市:', cities, '选中指标数:', groups, '指标名:', Array.from(headers).map(h => h.getAttribute('data-indicator')));
 
           if (!cities || cities.length === 0) {
             const tr = document.createElement('tr');
@@ -527,14 +533,19 @@ document.addEventListener('DOMContentLoaded', function() {
               const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
               const cityKey = sanitize(city);
               const indKey = sanitize(indicatorName);
+
               const valueName = 'data[' + cityKey + '][' + indKey + '][value]';
-              tdVal.innerHTML = '<input name="' + valueName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+              const valueId = 'input-value-' + cityKey + '-' + indKey;
+              tdVal.innerHTML = '<label for="' + valueId + '" class="sr-only">数值</label>' +
+                '<input id="' + valueId + '" name="' + valueName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
               tr.appendChild(tdVal);
 
               const tdNote = document.createElement('td');
               tdNote.className = 'border border-gray-600 px-2 py-2';
               const noteName = 'data[' + cityKey + '][' + indKey + '][note]';
-              tdNote.innerHTML = '<input name="' + noteName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+              const noteId = 'input-note-' + cityKey + '-' + indKey;
+              tdNote.innerHTML = '<label for="' + noteId + '" class="sr-only">备注</label>' +
+                '<input id="' + noteId + '" name="' + noteName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
               tr.appendChild(tdNote);
 
               const tdSource = document.createElement('td');
