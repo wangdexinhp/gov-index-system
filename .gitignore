@@ -1,10 +1,10 @@
 # Python虚拟环境
 venv/
 .venv/
-
+.github
 
 *.sqlite3
 *.db
-
+.DS_Store
 __pycache__/
 *.pyc
