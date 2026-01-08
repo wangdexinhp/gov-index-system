@@ -18,6 +18,128 @@
     /* 表格明细样式 */
     .table-detail-row:hover { background-color: #f8fafc; transition: background-color 0.2s; }
     .indicator-value { color: #2563eb; font-weight: 700; font-family: 'Monaco', 'Consolas', monospace; }
+
+
+
+  /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        /* 两列布局 */
+        .two-columns {
+            display: flex;
+            gap: 20px;
+            height: 350px;
+        }
+        
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .column-header {
+            background: #f8f9fa;
+            padding: 12px;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            text-align: left;
+        }
+        
+        .item:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .item.selected {
+            background-color: #e3f2fd;
+            border-left: 3px solid #3498db;
+        }
+        
+        .no-data {
+            padding: 30px 20px;
+            color: #95a5a6;
+            text-align: center;
+        }
+        
+        .selection-result {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .selection-result p {
+            color: #2c3e50;
+        }
+        
+
+
+
+
+
+
+
 </style>
 </head>
 <!-- <body class="p-6">
@@ -72,7 +194,7 @@
 <!-- 查询条件区 -->
 <section class="card p-6">
 <div class="grid grid-cols-8 gap-6 items-end">
-  <div class="space-y-2">
+  <!-- <div class="space-y-2">
     <label class="block text-sm font-medium text-gray-700">请选择分组</label>
     <select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="indicatorGroupSelect">
       <option value="">请选择分组</option>
@@ -97,12 +219,17 @@
       <option value="law_based_governance">依法行政数据</option>
       <option value="government_affairs_openness">政务公开数据</option>
     </select>
-  </div>
+  </div> -->
   <div class="space-y-2">
     <label class="block text-sm font-medium text-gray-700">请选择指标</label>
-    <select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="indicatorSelect">
-      <option value="">请先选择分组</option>
+    <select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
+      <option value="option2">请选择指标</option>
+      <option value="custom-selector" class="custom-selector-option">
+                    打开指标项
+      </option>
     </select>
+    <!-- 隐藏的输入框，用于存储选择器的值 -->
+    <input type="hidden" id="customSelectorValue" value="">
   </div>
 <div class="space-y-2">
 <label class="block text-sm font-medium text-gray-700">请选择省份</label>
@@ -179,6 +306,50 @@
 </div>
 </div>
 </section>
+
+
+
+<!-- 弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">选择数据</div>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="two-columns">
+                    <!-- 第一列 -->
+                    <div class="column">
+                        <div class="column-header">分类</div>
+                        <div class="column-content" id="firstColumn"></div>
+                    </div>
+                    
+                    <!-- 第二列 -->
+                    <div class="column">
+                        <div class="column-header">对应数据</div>
+                        <div class="column-content" id="secondColumn">
+                            <div class="no-data">请选择左侧分类</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="selection-result" id="modalSelectionResult" style="margin-top: 15px;">
+                    <p id="modalResultContent">请选择分类</p>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="confirmBtn" style="padding: 8px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        确认选择
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
 <!-- 数据展示区 -->
 <div class="hidden space-y-6" id="resultContent">
 <!-- 表格卡片 -->
@@ -229,6 +400,206 @@
 </div>
 </div>
 <script>
+// 两层结构数据示例
+        const dataDict = {
+            "操作系统": ["Windows", "macOS", "Linux", "Android", "iOS"],
+            "编程语言": ["Python", "JavaScript", "Java", "C++", "Go"],
+            "数据库": ["MySQL", "PostgreSQL", "MongoDB", "Redis", "SQLite"],
+            "云服务": ["AWS", "Azure", "Google Cloud", "阿里云", "腾讯云"],
+            "框架": ["React", "Vue", "Spring", "Django", "Flask"]
+        };
+
+        // DOM元素
+        const dataSelect = document.getElementById('dataSelect');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const closeModalBtn = document.getElementById('closeModal');
+        const firstColumn = document.getElementById('firstColumn');
+        const secondColumn = document.getElementById('secondColumn');
+        const modalResultContent = document.getElementById('modalResultContent');
+        const selectionResult = document.getElementById('selectionResult');
+        const resultContent = document.getElementById('resultContent');
+        const customSelectorValue = document.getElementById('customSelectorValue');
+        const confirmBtn = document.getElementById('confirmBtn');
+        
+        // 当前选中的分类和值
+        let selectedCategory = null;
+        let selectedValue = null;
+        
+        // 当选择自定义选择器选项时打开弹窗
+        dataSelect.addEventListener('change', function() {
+            if (this.value === 'custom-selector') {
+                // 打开弹窗
+                modalOverlay.style.display = 'flex';
+                populateFirstColumn();
+            } else if (this.value) {
+                // 普通选项
+                resultContent.textContent = this.options[this.selectedIndex].text;
+                selectionResult.style.display = 'block';
+                customSelectorValue.value = ''; // 清空选择器的值
+            }
+        });
+        
+        // 关闭弹窗
+        closeModalBtn.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
+        });
+        
+        // 点击弹窗外部关闭
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
+        });
+        
+        // // 确认选择
+        // confirmBtn.addEventListener('click', () => {
+        //     if (selectedValue) {
+        //         // 设置隐藏输入框的值
+        //         customSelectorValue.value = selectedValue;
+                
+        //         // 更新显示结果
+        //         const selectedText = `${selectedCategory}: ${selectedValue}`;
+        //         resultContent.textContent = selectedText;
+        //         selectionResult.style.display = 'block';
+                
+        //         // 关闭弹窗
+        //         modalOverlay.style.display = 'none';
+                
+        //         // 为了保持select的选中状态，我们重新设置选择器的选项
+        //         // 注意：实际上select的值还是"custom-selector"，但我们显示的是选择的结果
+        //         dataSelect.selectedIndex = 2; // 保持选择器选项被选中
+        //     } else {
+        //         alert('请先选择一个选项');
+        //     }
+        // });
+        // 确认选择
+        confirmBtn.addEventListener('click', () => {
+            if (selectedValue) {
+                // 1. 关闭弹窗
+                modalOverlay.style.display = 'none';
+                
+                // 2. 直接更新下拉框的选中项显示
+                const dataSelect = document.getElementById('dataSelect');
+                
+                // 创建一个选项来显示选中的值
+                dataSelect.innerHTML = `
+                    <option value="${selectedValue}">${selectedValue}</option>
+                    <option value="custom-selector" class="custom-selector-option">
+                        打开指标项
+                    </option>
+                `;
+                
+                console.log('已选择指标:', selectedValue);
+            } else {
+                alert('请先选择一个选项');
+            }
+        });
+                
+        // 填充第一列数据
+        function populateFirstColumn() {
+            firstColumn.innerHTML = '';
+            
+            Object.keys(dataDict).forEach(category => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = category;
+                
+                itemDiv.addEventListener('click', () => {
+                    selectedCategory = category;
+                    selectedValue = null;
+                    highlightSelectedCategory(category);
+                    populateSecondColumn(category);
+                });
+                
+                firstColumn.appendChild(itemDiv);
+            });
+            
+            // 默认选中第一个
+            const firstCategory = Object.keys(dataDict)[0];
+            if (firstCategory) {
+                selectedCategory = firstCategory;
+                highlightSelectedCategory(firstCategory);
+                populateSecondColumn(firstCategory);
+            }
+        }
+        
+        // 高亮选中的分类
+        function highlightSelectedCategory(category) {
+            // 移除所有选中状态
+            document.querySelectorAll('#firstColumn .item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 添加选中状态到当前选中的分类
+            const items = document.querySelectorAll('#firstColumn .item');
+            for (let item of items) {
+                if (item.textContent === category) {
+                    item.classList.add('selected');
+                    break;
+                }
+            }
+        }
+        
+        // 填充第二列数据
+        function populateSecondColumn(category) {
+            secondColumn.innerHTML = '';
+            
+            if (!category || !dataDict[category]) {
+                secondColumn.innerHTML = '<div class="no-data">无数据</div>';
+                return;
+            }
+            
+            const items = dataDict[category];
+            
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = item;
+                
+                itemDiv.addEventListener('click', () => {
+                    selectedValue = item;
+                    highlightSelectedValue(item);
+                    
+                    // 更新弹窗中的选择状态
+                    modalResultContent.textContent = `已选择: ${category} -> ${item}`;
+                });
+                
+                secondColumn.appendChild(itemDiv);
+            });
+            
+            // 更新弹窗中的选择状态
+            modalResultContent.textContent = `已选择分类: ${category}，请从右侧选择具体选项`;
+        }
+        
+        // 高亮选中的值
+        function highlightSelectedValue(value) {
+            // 移除所有选中状态
+            document.querySelectorAll('#secondColumn .item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 添加选中状态到当前选中的值
+            const items = document.querySelectorAll('#secondColumn .item');
+            for (let item of items) {
+                if (item.textContent === value) {
+                    item.classList.add('selected');
+                    break;
+                }
+            }
+        }
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始显示一些提示信息
+            resultContent.textContent = '无';
+        });
+
+
+
+
+
+
+
     // const cityData = {
     //   "广东省": ["广州市", "深圳市", "珠海市", "佛山市"],
     //   "江苏省": ["南京市", "无锡市", "徐州市", "苏州市"],
@@ -273,26 +644,26 @@
 
     // 指标分组与指标列表，参考 home.html indicatorCategories
     const indicatorCategories = {
-      'admin': ['市数量', '区数量', '县数量', '辖区面积'],
-      'population': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数', '出生人口性别比', '人口出生率'],
-      'economy_structure': ['年末个体工商户数量', '年末内资企业数', '年末外资企业数', '年末私营企业数', '高新技术企业产值', '高新技术企业增加值', '技术合同成交额（交易额）', '技术合同成交额（交易额）增长率', '国有资产保值增值率', '第二产业增加值占GDP（增量）比重', '第三产业增加值占GDP（增量）比重'],
-      'education_tech': ['有效发明专利量（发明专利有效量）', '每万人发明专利拥有量', '专利授权数量', '普通小学专任教师数', '普通中学专任教师数', '普通小学在校学生数', '普通中学在校学生数', '高中学在校学生数', 'R&D经费'],
-      'employment': ['采矿（掘)业就业人员人数', '制造业就业人员人数', '采矿（掘)业在岗职工人数', '制造业在岗职工人数', '城镇单位职工工资总额', '城镇就业人数（城镇单位职工总数（城镇单位就业人数+城镇私营就业人数））', '社会从业人员', '机关单位工资总额', '机关单位就业人数', '公共管理、社会保障和社会组织工资总额', '公共管理、社会保障和社会组织在岗职工人数'],
-      'finance': ['一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出'],
-      'economic_performance': ['城镇居民人均消费支出', '城镇食品支出', '农村居民人均消费支出', '农村食品支出', '城镇恩格尔系数', '农村恩格尔系数', '城镇登记失业人员数', '城镇登记失业率', '能源消耗总量', '万元GDP综合能源消耗', '城镇化率', '城镇居民人均可支配收入', '城镇居民人均可支配收入增长率', '农民居民人均可支配收入', '农民居民人均可支配收入增长率'],
-      'ecology': ['园林绿地面积', '二氧化硫排放总量', '工业二氧化硫排放量', '森林覆盖率', '水土流失治理面积', '工业废水排放总量', '工业固体废弃物综合利用率', '生活垃圾无害化处理率', '城镇生活污水处理率', '城市空气质量指数', '城市区域环境噪音指数', 'PM2.5', 'PM10'],
-      'market_supervision': ['查出不正当竞争案件数', '生产安全事故死亡人数', '工矿商贸死亡人数', '亿元GDP生产安全事故死亡率', '十万人工矿商贸从业人员事故死亡率', '食品质量抽样检测合格率', '药品安全抽样合格率', '工业产品质量抽样合格率', '查处农资违法案件的数量', '查办违法广告的件数', '查办商标侵权案件的件数', '受理消费者维权案件数', '受理消费者投诉案件数', '消费者维权案件办理率'],
-      'social_security': ['城镇职工基本养老保险人数', '城乡居民基本养老保险人数', '城镇职工基本医疗保险人数', '城乡居民基本医疗保险人数', '城镇最低生活保障人数', '农村最低生活保障人数', '年末实有社会组织登记数量', '养老机构床位数', '城镇新增就业人数', '新建保障性住房套数'],
-      'healthcare': ['卫生技术人员数量', '医疗机构病床数'],
-      'infrastructure': ['有线电视用户数', '固定宽带互联网用户数', '自来水受益村数', '村委会个数'],
-      'public_safety': ['刑事案件立案件数', '刑事案件破案件数', '受理信访举报案件数', '调处各类矛盾纠纷件数', '成功调处各类矛盾纠纷数', '受理各类法律援助案件的数量', '火灾死亡人数', '接待群众来信来访人次'],
-      'culture_sports': ['文化馆、群众艺术馆', '博物馆', '艺术表演团体', '体育场馆', '公共图书馆'],
-      'administrative_integrity': ['贪污贿赂人数', '渎职侵权人数', '立案查处违法违纪案件数', '被依法追究责任的领导干部人数'],
-      'economic_growth': ['GDP', '人均GDP', 'GDP增长率', '一般公共预算收入', '财政总收入', '财政总收入增长率', '固定资产投资总额', '固定资产投资总额增长率', '全社会消费品零售总额', '全社会消费品零售总额增长率', '进出口总额', '进出口总额增长率', '实际利用外资金额', '实际利用外资金额增长率', '规模以上工业企业增加值'],
-      'economic_development': ['居民消费价格指数CPI', '工业品出厂价格指数PPI'],
-      'public_service': ['人均城市道路面积', '高中阶段毛入学率'],
-      'law_based_governance': ['行政复议案件办结率', '行政复议案件申请量', '行政案件数'],
-      'government_affairs_openness': ['主动公开政府信息件数','主动公开政府信息件数备注', '依申请公开政府信息件数', '依申请公开政府信息件数备注','因公开问题申请行政复议的数量','因公开问题申请行政复议的数量备注']
+      '行政区域数据': ['市数量', '区数量', '县数量', '辖区面积'],
+      '人口数据': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数', '出生人口性别比', '人口出生率'],
+      '经济结构数据': ['年末个体工商户数量', '年末内资企业数', '年末外资企业数', '年末私营企业数', '高新技术企业产值', '高新技术企业增加值', '技术合同成交额（交易额）', '技术合同成交额（交易额）增长率', '国有资产保值增值率', '第二产业增加值占GDP（增量）比重', '第三产业增加值占GDP（增量）比重'],
+      '教育科技数据': ['有效发明专利量（发明专利有效量）', '每万人发明专利拥有量', '专利授权数量', '普通小学专任教师数', '普通中学专任教师数', '普通小学在校学生数', '普通中学在校学生数', '高中学在校学生数', 'R&D经费'],
+      '就业数据': ['采矿（掘)业就业人员人数', '制造业就业人员人数', '采矿（掘)业在岗职工人数', '制造业在岗职工人数', '城镇单位职工工资总额', '城镇就业人数（城镇单位职工总数（城镇单位就业人数+城镇私营就业人数））', '社会从业人员', '机关单位工资总额', '机关单位就业人数', '公共管理、社会保障和社会组织工资总额', '公共管理、社会保障和社会组织在岗职工人数'],
+      '财政指标数据': ['一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出'],
+      '经济效果数据': ['城镇居民人均消费支出', '城镇食品支出', '农村居民人均消费支出', '农村食品支出', '城镇恩格尔系数', '农村恩格尔系数', '城镇登记失业人员数', '城镇登记失业率', '能源消耗总量', '万元GDP综合能源消耗', '城镇化率', '城镇居民人均可支配收入', '城镇居民人均可支配收入增长率', '农民居民人均可支配收入', '农民居民人均可支配收入增长率'],
+      '生态环保数据': ['园林绿地面积', '二氧化硫排放总量', '工业二氧化硫排放量', '森林覆盖率', '水土流失治理面积', '工业废水排放总量', '工业固体废弃物综合利用率', '生活垃圾无害化处理率', '城镇生活污水处理率', '城市空气质量指数', '城市区域环境噪音指数', 'PM2.5', 'PM10'],
+      '市场监管数据': ['查出不正当竞争案件数', '生产安全事故死亡人数', '工矿商贸死亡人数', '亿元GDP生产安全事故死亡率', '十万人工矿商贸从业人员事故死亡率', '食品质量抽样检测合格率', '药品安全抽样合格率', '工业产品质量抽样合格率', '查处农资违法案件的数量', '查办违法广告的件数', '查办商标侵权案件的件数', '受理消费者维权案件数', '受理消费者投诉案件数', '消费者维权案件办理率'],
+      '社会保障数据': ['城镇职工基本养老保险人数', '城乡居民基本养老保险人数', '城镇职工基本医疗保险人数', '城乡居民基本医疗保险人数', '城镇最低生活保障人数', '农村最低生活保障人数', '年末实有社会组织登记数量', '养老机构床位数', '城镇新增就业人数', '新建保障性住房套数'],
+      '医疗卫生数据': ['卫生技术人员数量', '医疗机构病床数'],
+      '基础设施数据': ['有线电视用户数', '固定宽带互联网用户数', '自来水受益村数', '村委会个数'],
+      '公共安全数据': ['刑事案件立案件数', '刑事案件破案件数', '受理信访举报案件数', '调处各类矛盾纠纷件数', '成功调处各类矛盾纠纷数', '受理各类法律援助案件的数量', '火灾死亡人数', '接待群众来信来访人次'],
+      '文化体育数据': ['文化馆、群众艺术馆', '博物馆', '艺术表演团体', '体育场馆', '公共图书馆'],
+      '行政廉洁数据': ['贪污贿赂人数', '渎职侵权人数', '立案查处违法违纪案件数', '被依法追究责任的领导干部人数'],
+      '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '一般公共预算收入', '财政总收入', '财政总收入增长率', '固定资产投资总额', '固定资产投资总额增长率', '全社会消费品零售总额', '全社会消费品零售总额增长率', '进出口总额', '进出口总额增长率', '实际利用外资金额', '实际利用外资金额增长率', '规模以上工业企业增加值'],
+      '经济发展数据': ['居民消费价格指数CPI', '工业品出厂价格指数PPI'],
+      '公共服务数据': ['人均城市道路面积', '高中阶段毛入学率'],
+      '依法行政数据': ['行政复议案件办结率', '行政复议案件申请量', '行政案件数'],
+      '政务公开数据': ['主动公开政府信息件数','主动公开政府信息件数备注', '依申请公开政府信息件数', '依申请公开政府信息件数备注','因公开问题申请行政复议的数量','因公开问题申请行政复议的数量备注']
     };
 
     let rawData = [];
@@ -334,14 +705,14 @@
     }
 
     function handleSearch() {
-      const indicator = document.getElementById('indicatorSelect').value;
-      const group = document.getElementById('indicatorGroupSelect').value;
+      const indicator = document.getElementById('dataSelect').value;
+      // const group = document.getElementById('indicatorGroupSelect').value;
       const city = document.getElementById('citySelect').value;
       const province = document.getElementById('provinceSelect').value;
       const startYear = document.getElementById('startYear').value;
       const endYear = document.getElementById('endYear').value;
 
-      if (!indicator || !group || !city || !province) {
+      if (!indicator || !city || !province) {
         alert("请完整选择分组、指标、省份和城市");
         return;
       }
