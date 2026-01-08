@@ -431,9 +431,9 @@ const dataDict = {
         const firstColumn = document.getElementById('firstColumn');
         const secondColumn = document.getElementById('secondColumn');
         const modalResultContent = document.getElementById('modalResultContent');
-        const selectionResult = document.getElementById('selectionResult');
-        const resultContent = document.getElementById('resultContent');
-        const customSelectorValue = document.getElementById('customSelectorValue');
+        // const selectionResult = document.getElementById('selectionResult');
+        // const resultContent = document.getElementById('resultContent');
+        // const customSelectorValue = document.getElementById('customSelectorValue');
         const confirmBtn = document.getElementById('confirmBtn');
         
         // 当前选中的分类和值
@@ -466,27 +466,6 @@ const dataDict = {
             }
         });
         
-        // // 确认选择
-        // confirmBtn.addEventListener('click', () => {
-        //     if (selectedValue) {
-        //         // 设置隐藏输入框的值
-        //         customSelectorValue.value = selectedValue;
-                
-        //         // 更新显示结果
-        //         const selectedText = `${selectedCategory}: ${selectedValue}`;
-        //         resultContent.textContent = selectedText;
-        //         selectionResult.style.display = 'block';
-                
-        //         // 关闭弹窗
-        //         modalOverlay.style.display = 'none';
-                
-        //         // 为了保持select的选中状态，我们重新设置选择器的选项
-        //         // 注意：实际上select的值还是"custom-selector"，但我们显示的是选择的结果
-        //         dataSelect.selectedIndex = 2; // 保持选择器选项被选中
-        //     } else {
-        //         alert('请先选择一个选项');
-        //     }
-        // });
         // 确认选择
         confirmBtn.addEventListener('click', () => {
             if (selectedValue) {
@@ -606,7 +585,7 @@ const dataDict = {
         // 初始化页面
         document.addEventListener('DOMContentLoaded', () => {
             // 初始显示一些提示信息
-            resultContent.textContent = '无';
+            // resultContent.textContent = '无';
         });
 
 
