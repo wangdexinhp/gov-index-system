@@ -193,36 +193,10 @@
 </header>
 <!-- 查询条件区 -->
 <section class="card p-6">
-<div class="grid grid-cols-8 gap-6 items-end">
-  <!-- <div class="space-y-2">
-    <label class="block text-sm font-medium text-gray-700">请选择分组</label>
-    <select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="indicatorGroupSelect">
-      <option value="">请选择分组</option>
-      <option value="admin">行政区域数据</option>
-      <option value="population">人口数据</option>
-      <option value="economy_structure">经济结构数据</option>
-      <option value="education_tech">教育科技数据</option>
-      <option value="employment">就业数据</option>
-      <option value="finance">财政指标数据</option>
-      <option value="economic_performance">经济效果数据</option>
-      <option value="ecology">生态环保数据</option>
-      <option value="market_supervision">市场监管数据</option>
-      <option value="social_security">社会保障数据</option>
-      <option value="healthcare">医疗卫生数据</option>
-      <option value="infrastructure">基础设施数据</option>
-      <option value="public_safety">公共安全数据</option>
-      <option value="culture_sports">文化体育数据</option>
-      <option value="administrative_integrity">行政廉洁数据</option>
-      <option value="economic_growth">经济增长数据</option>
-      <option value="economic_development">经济发展数据</option>
-      <option value="public_service">公共服务数据</option>
-      <option value="law_based_governance">依法行政数据</option>
-      <option value="government_affairs_openness">政务公开数据</option>
-    </select>
-  </div> -->
+<div class="grid grid-cols-6 gap-6 items-end">
   <div class="space-y-2">
     <label class="block text-sm font-medium text-gray-700">请选择指标</label>
-    <select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
+    <select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
       <option value="option2">请选择指标</option>
       <option value="custom-selector" class="custom-selector-option">
                     打开指标项
@@ -233,11 +207,8 @@
   </div>
 <div class="space-y-2">
 <label class="block text-sm font-medium text-gray-700">请选择省份</label>
-<select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="provinceSelect" onchange="updateCities()">
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="provinceSelect" onchange="updateCities()">
 <option value="">请选择省份</option>
-<!-- <option value="广东省">广东省</option>
-<option value="江苏省">江苏省</option>
-<option value="浙江省">浙江省</option> -->
 <option value="北京市">北京市</option>
               <option value="天津市">天津市</option>
               <option value="上海市">上海市</option>
@@ -275,14 +246,14 @@
 </div>
 <div class="space-y-2">
 <label class="block text-sm font-medium text-gray-700">请选择城市 (单选)</label>
-<select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
 <option value="">请先选择省份</option>
 </select>
 </div>
 <div class="flex gap-4 col-span-1">
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-medium text-gray-700">起始年份</label>
-<select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
 <option value="2016">2016年</option>
 <option value="2017">2017年</option>
 <option value="2018">2018年</option>
@@ -292,7 +263,7 @@
 </div>
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-medium text-gray-700">终止年份</label>
-<select class="max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
 <option selected="" value="2025">2025年</option>
 <option value="2024">2024年</option>
 <option value="2023">2023年</option>
@@ -327,7 +298,7 @@
                     
                     <!-- 第二列 -->
                     <div class="column">
-                        <div class="column-header">对应数据</div>
+                        <div class="column-header">指标项</div>
                         <div class="column-content" id="secondColumn">
                             <div class="no-data">请选择左侧分类</div>
                         </div>
