@@ -282,8 +282,8 @@ def save_to_database(rows_data):
 @login_required
 @require_http_methods(['GET'])
 def single_indicator_query(request):
-
     indicator_en = request.GET.get('name_en')
+    print("indicator_en=",indicator_en)
     indicator_zh = request.GET.get('name_zh')
     start_year = request.GET.get('start_year')
     end_year = request.GET.get('end_year')
