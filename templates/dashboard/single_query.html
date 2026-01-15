@@ -681,7 +681,8 @@ const dataDict = {
           rawData = res.data.map(item => ({
             year: item.year + '年',
             val: item.value,
-            unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
+            // unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
+            unit: item.unit
           }));
 
           document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;

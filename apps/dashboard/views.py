@@ -9,7 +9,7 @@ from django.http import JsonResponse, HttpResponse
 import json
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
-from apps.coredata.management.commands.indicator_zh_en import INDIMAP
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
 import pandas as pd
@@ -289,7 +289,9 @@ def single_indicator_query(request):
     end_year = request.GET.get('end_year')
     city_name = request.GET.get('city')
     province_name = request.GET.get('province')
-
+    unit = INDIMAP_UNIT.get(indicator_en, "").get('unit', "")
+    if unit is None:
+        unit = ""
     # 构建城市名到代码、以及省份名到代码的映射
     city_name_to_code = {}
     province_name_to_code = {}
@@ -334,6 +336,7 @@ def single_indicator_query(request):
             'value': ind.value,
             'note': ind.note,
             'source': ind.source,
+            'unit' : unit,
         })
     return JsonResponse({
         'success': True,
