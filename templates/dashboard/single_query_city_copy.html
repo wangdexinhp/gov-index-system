@@ -193,7 +193,7 @@
 </header>
 <!-- 查询条件区 -->
 <section class="card p-6">
-<div class="grid grid-cols-6 gap-6 items-end">
+<div class="grid grid-cols-6 gap-6 items-start">
   <div class="space-y-2">
     <label class="block text-sm font-medium text-gray-700">请选择指标</label>
     <select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
@@ -245,12 +245,18 @@
 </select>
 </div>
 <div class="space-y-2">
-<label class="block text-sm font-medium text-gray-700">请选择城市 (单选)</label>
-<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
-<option value="">请先选择省份</option>
-</select>
+  <label class="block text-sm font-medium text-gray-700">选择城市 (多选)</label>
+  <div class="mt-2 border border-gray-300 rounded-md p-2 bg-white" style="width:12rem;">
+    <div class="flex justify-end text-sm text-gray-600 mb-1">
+      <button type="button" class="mr-2" onclick="selectAllCities()">全选</button>
+      <button type="button" onclick="clearAllCities()">取消全选</button>
+    </div>
+    <div id="cityItems" class="max-h-36 overflow-y-auto hide-scrollbar">
+      <div class="text-sm text-gray-400">请先选择省份</div>
+    </div>
+  </div>
 </div>
-<div class="flex gap-4 col-span-1">
+<div class="flex gap-4 col-span-2">
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-medium text-gray-700">起始年份</label>
 <select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
@@ -275,6 +281,13 @@
 <span class="iconify mr-2" data-icon="fluent:search-24-regular"></span>查询
 </button>
 </div>
+  <!-- 右侧已选城市展示列 -->
+  <div class="col-span-1 self-start">
+    <label class="block text-sm font-medium text-gray-700">已选择城市</label>
+    <div id="selectedCitiesList" class="mt-2 border border-gray-300 rounded-md p-3 bg-white min-h-[8rem] max-h-36 overflow-y-auto hide-scrollbar">
+      <div class="text-sm text-gray-400">尚未选择城市</div>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -610,9 +623,11 @@ const dataDict = {
     // 指标分组与指标列表，参考 home.html indicatorCategories
 
 
-    let rawData = [];
-    let currentChartType = 'bar';
-    let myChart = null;
+  let rawData = [];
+  let currentChartType = 'bar';
+  let myChart = null;
+  // 存储跨省份保持的已选城市集合
+  const selectedCities = new Set();
 
     // 分组选择后，动态填充指标下拉框
     document.addEventListener('DOMContentLoaded', function() {
@@ -636,28 +651,64 @@ const dataDict = {
 
     function updateCities() {
       const province = document.getElementById('provinceSelect').value;
-      const citySelect = document.getElementById('citySelect');
-      citySelect.innerHTML = '<option value="">选择城市</option>';
+    // 初始渲染已选城市（若无则显示占位）
+    document.addEventListener('DOMContentLoaded', function() { renderSelectedCities(); });
+      const container = document.getElementById('cityItems');
+      if (!container) return;
+      container.innerHTML = '';
       if (cityData[province]) {
         cityData[province].forEach(city => {
-          const opt = document.createElement('option');
-          opt.value = city;
-          opt.textContent = city;
-          citySelect.appendChild(opt);
+          const id = 'city_cb_' + city.replace(/\s|市/g, '');
+          const wrapper = document.createElement('label');
+          wrapper.className = 'flex items-center space-x-2 px-2 py-1 text-sm hover:bg-gray-50';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'city-checkbox';
+          cb.value = city;
+          cb.id = id;
+          // 保持跨省份的已选状态
+          if (selectedCities.has(city)) cb.checked = true;
+          const span = document.createElement('span');
+          span.className = 'text-gray-800';
+          span.textContent = city;
+          cb.addEventListener('change', function(e) {
+            if (this.checked) selectedCities.add(this.value);
+            else selectedCities.delete(this.value);
+            renderSelectedCities();
+          });
+          wrapper.appendChild(cb);
+          wrapper.appendChild(span);
+          container.appendChild(wrapper);
         });
+      } else {
+        container.innerHTML = '<div class="text-sm text-gray-400">请先选择省份</div>';
       }
+      // 每次填充后同步右侧已选城市显示（若之前选择了其他省的城市）
+      renderSelectedCities();
+    }
+
+    function selectAllCities() {
+      const boxes = document.querySelectorAll('#cityItems .city-checkbox');
+      boxes.forEach(b => { b.checked = true; selectedCities.add(b.value); });
+      renderSelectedCities();
+    }
+
+    function clearAllCities() {
+      const boxes = document.querySelectorAll('#cityItems .city-checkbox');
+      boxes.forEach(b => { b.checked = false; selectedCities.delete(b.value); });
+      renderSelectedCities();
     }
 
     function handleSearch() {
       const indicator = document.getElementById('dataSelect').value;
       // const group = document.getElementById('indicatorGroupSelect').value;
-      const city = document.getElementById('citySelect').value;
       const province = document.getElementById('provinceSelect').value;
       const startYear = document.getElementById('startYear').value;
       const endYear = document.getElementById('endYear').value;
+      const checked = Array.from(selectedCities);
 
-      if (!indicator || !city || !province) {
-        alert("请完整选择分组、指标、省份和城市");
+      if (!indicator || checked.length === 0 || !province) {
+        alert("请完整选择分组、指标、省份和至少一个城市");
         return;
       }
       if (parseInt(startYear) > parseInt(endYear)) {
@@ -668,8 +719,10 @@ const dataDict = {
       document.getElementById('emptyState').classList.add('hidden');
       document.getElementById('resultContent').classList.remove('hidden');
 
-      // 发起 AJAX 请求到后端接口
-      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}`)
+  // 发起 AJAX 请求到后端接口 — 多城市以逗号连接传递，后端需支持解析
+  const cityParam = encodeURIComponent(checked.join(','));
+      // TODO: 若后端只接受单个 city，可改为循环请求每个城市并合并结果
+      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
           if (!res.success || !res.data || res.data.length === 0) {
@@ -685,8 +738,9 @@ const dataDict = {
             unit: item.unit
           }));
 
-          document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
-          document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
+          const cityLabel = checked.join(' / ');
+          document.getElementById('tableTitle').textContent = `${cityLabel} - ${indicator} 历年数据`;
+          document.getElementById('chartTitle').textContent = `${cityLabel} - ${indicator} 变化趋势`;
           document.getElementById('indicatorHeader').textContent = indicator;
 
           renderTable();
@@ -719,6 +773,37 @@ const dataDict = {
           </td>
         `;
         tbody.appendChild(tr);
+      });
+    }
+
+    // 渲染右侧已选择城市列表
+    function renderSelectedCities() {
+      const container = document.getElementById('selectedCitiesList');
+      if (!container) return;
+      container.innerHTML = '';
+      if (selectedCities.size === 0) {
+        container.innerHTML = '<div class="text-sm text-gray-400">尚未选择城市</div>';
+        return;
+      }
+      Array.from(selectedCities).forEach(city => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between py-1';
+        const name = document.createElement('div');
+        name.className = 'text-sm text-gray-800';
+        name.textContent = city;
+        const btn = document.createElement('button');
+        btn.className = 'text-xs text-red-500 ml-2';
+        btn.textContent = '移除';
+        btn.addEventListener('click', () => {
+          // 从集合移除并同步取消当前 DOM 中的 checkbox
+          selectedCities.delete(city);
+          const cb = document.querySelector(`#cityItems input.city-checkbox[value="${city}"]`);
+          if (cb) cb.checked = false;
+          renderSelectedCities();
+        });
+        row.appendChild(name);
+        row.appendChild(btn);
+        container.appendChild(row);
       });
     }
 
