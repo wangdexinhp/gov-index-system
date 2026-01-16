@@ -624,6 +624,8 @@ const dataDict = {
 
 
   let rawData = [];
+  // 支持按城市分组的数据结构：{ cityName: [{year, val, unit}, ...], ... }
+  let rawDataByCity = {};
   let currentChartType = 'bar';
   let myChart = null;
   // 存储跨省份保持的已选城市集合
@@ -725,20 +727,33 @@ const dataDict = {
       fetch(`/dashboard/single_indicator_city_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
-          if (!res.success || !res.data || res.data.length === 0) {
+          // 兼容两种后端返回格式：
+          // 1) 原来的数组： { success: true, data: [ {year, value, unit}, ... ] }
+          // 2) 新的按城市分组的对象： { success: true, data: { "北京市": [ {year, value, ...}, ... ], ... } }
+          if (!res.success || !res.data || (Array.isArray(res.data) && res.data.length === 0) || (typeof res.data === 'object' && Object.keys(res.data).length === 0)) {
             document.getElementById('tableBody').innerHTML = '';
             if (myChart) myChart.clear();
             alert('没有查询到数据');
             return;
           }
-          rawData = res.data.map(item => ({
-            year: item.year + '年',
-            val: item.value,
-            // unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
-            unit: item.unit
-          }));
 
-          const cityLabel = checked.join(' / ');
+          rawDataByCity = {};
+
+          if (Array.isArray(res.data)) {
+            // 旧格式：把结果当作一个匿名城市的数组来处理，城市名取选中列表或默认值
+            const cityLabel = checked.join(' / ') || '数据';
+            rawDataByCity[cityLabel] = res.data.map(item => ({ year: item.year + '年', val: Number(item.value), unit: item.unit }));
+          } else {
+            // 新格式：res.data 为 { cityName: [records...] }
+            Object.keys(res.data).forEach(city => {
+              const arr = Array.isArray(res.data[city]) ? res.data[city] : [];
+              rawDataByCity[city] = arr.map(item => ({ year: item.year + '年', val: item.value === null || item.value === undefined ? null : Number(item.value), unit: item.unit }));
+            });
+          }
+
+          // 更新标题（用选中城市的顺序，如果没有则使用返回的城市键）
+          const cityKeys = checked.length > 0 ? checked : Object.keys(rawDataByCity);
+          const cityLabel = cityKeys.join(' / ');
           document.getElementById('tableTitle').textContent = `${cityLabel} - ${indicator} 历年数据`;
           document.getElementById('chartTitle').textContent = `${cityLabel} - ${indicator} 变化趋势`;
           document.getElementById('indicatorHeader').textContent = indicator;
@@ -752,26 +767,54 @@ const dataDict = {
     }
 
     function renderTable() {
-      const sort = document.getElementById('sortOrder').value;
-      let displayData = [...rawData];
-
-      if (sort === 'val_asc') displayData.sort((a, b) => a.val - b.val);
-      else if (sort === 'val_desc') displayData.sort((a, b) => b.val - a.val);
-      else displayData.sort((a, b) => parseInt(a.year) - parseInt(b.year));
-
+      // 支持多城市：把年份做并集，列出每个城市的值（缺失显示 -）
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
-      displayData.forEach((item, idx) => {
+
+      const cityNames = Object.keys(rawDataByCity);
+      if (cityNames.length === 0) return;
+
+      // 收集所有年份并排序
+      const yearSet = new Set();
+      cityNames.forEach(city => {
+        rawDataByCity[city].forEach(r => yearSet.add(r.year));
+      });
+      const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+
+      // 构建表头
+      const thead = document.querySelector('table thead tr');
+      thead.innerHTML = '';
+      const thYear = document.createElement('th');
+      thYear.className = 'px-6 py-4 font-semibold text-gray-700';
+      thYear.textContent = '年份';
+      thead.appendChild(thYear);
+      cityNames.forEach(city => {
+        const th = document.createElement('th');
+        th.className = 'px-6 py-4 font-semibold text-gray-700';
+        // 在表头显示城市和单位（若有）
+        const unit = (rawDataByCity[city] && rawDataByCity[city][0] && rawDataByCity[city][0].unit) ? rawDataByCity[city][0].unit : '';
+        th.textContent = unit ? `${city} (${unit})` : city;
+        thead.appendChild(th);
+      });
+
+      // 构建表格行
+      years.forEach((year, idx) => {
         const tr = document.createElement('tr');
         tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
-        tr.innerHTML = `
-          <td class="px-6 py-4 text-gray-800 font-medium border-b border-gray-100">${item.year}</td>
-          <td class="px-6 py-4 indicator-value border-b border-gray-100">${item.val.toLocaleString()}</td>
-          <td class="px-6 py-4 text-gray-500 border-b border-gray-100">${item.unit}</td>
-          <td class="px-6 py-4">
-            <button class="text-blue-600 hover:text-blue-800 text-sm">详情</button>
-          </td>
-        `;
+        const tdYear = document.createElement('td');
+        tdYear.className = 'px-6 py-4 text-gray-800 font-medium border-b border-gray-100';
+        tdYear.textContent = year;
+        tr.appendChild(tdYear);
+
+        cityNames.forEach(city => {
+          const td = document.createElement('td');
+          td.className = 'px-6 py-4 indicator-value border-b border-gray-100';
+          const rec = rawDataByCity[city].find(r => r.year === year);
+          if (rec && rec.val !== null && rec.val !== undefined) td.textContent = (Number.isFinite(rec.val) ? rec.val.toLocaleString() : rec.val);
+          else td.textContent = '-';
+          tr.appendChild(td);
+        });
+
         tbody.appendChild(tr);
       });
     }
@@ -809,39 +852,41 @@ const dataDict = {
 
     function renderChart() {
       if (!myChart) myChart = echarts.init(document.getElementById('mainChart'));
-      
-      const years = rawData.map(d => d.year);
-      const vals = rawData.map(d => d.val);
-      
-      const option = {
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { top: '10%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
-        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-        series: [{
-          data: vals,
+
+      // x 轴使用所有年份的并集，按升序排列
+      const cityNames = Object.keys(rawDataByCity);
+      if (cityNames.length === 0) return;
+      const yearSet = new Set();
+      cityNames.forEach(city => rawDataByCity[city].forEach(r => yearSet.add(r.year)));
+      const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+
+      const series = cityNames.map((city, idx) => {
+        // 建立一个以年为键的 map
+        const map = {};
+        rawDataByCity[city].forEach(r => { map[r.year] = (r.val === null || r.val === undefined) ? null : Number(r.val); });
+        const data = years.map(y => (y in map) ? map[y] : null);
+        return {
+          name: city,
+          data: data,
           type: currentChartType,
           smooth: true,
           barWidth: '35%',
           symbol: 'circle',
           symbolSize: 8,
-          lineStyle: { width: 3, color: '#3b82f6' },
-          itemStyle: {
-            color: currentChartType === 'bar' 
-              ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: '#3b82f6' },
-                  { offset: 1, color: '#60a5fa' }
-                ])
-              : '#2563eb',
-            borderRadius: [4, 4, 0, 0]
-          },
-          areaStyle: currentChartType === 'line' ? {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(24,144,255,0.3)' },
-              { offset: 1, color: 'rgba(24,144,255,0)' }
-            ])
-          } : null
-        }]
+          lineStyle: { width: 3 },
+          // 颜色按索引简单区分
+          itemStyle: { color: ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6'][idx % 5] },
+          areaStyle: currentChartType === 'line' ? { opacity: 0.1 } : null
+        };
+      });
+
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { data: cityNames, top: '2%' },
+        grid: { top: '12%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+        series: series
       };
       myChart.setOption(option);
       window.addEventListener('resize', () => myChart.resize());
