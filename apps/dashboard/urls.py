@@ -19,6 +19,8 @@ urlpatterns = [
 
     path('submit/', views.submit_data, name='submit_data'),
     path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
+    path('single_indicator_city_query/', views.single_indicator_city_query, name='single_indicator_city_query'),
+
     path('upload_excel/', views.upload_excel, name='upload_excel'),
 
 ] 
