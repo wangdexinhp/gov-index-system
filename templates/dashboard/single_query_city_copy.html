@@ -722,7 +722,7 @@ const dataDict = {
   // 发起 AJAX 请求到后端接口 — 多城市以逗号连接传递，后端需支持解析
   const cityParam = encodeURIComponent(checked.join(','));
       // TODO: 若后端只接受单个 city，可改为循环请求每个城市并合并结果
-      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
+      fetch(`/dashboard/single_indicator_city_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
           if (!res.success || !res.data || res.data.length === 0) {
