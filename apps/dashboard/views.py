@@ -25,6 +25,12 @@ def dashboard_home(request):
 
 @login_required
 @require_http_methods(['GET'])
+def area_input(request):
+    return render(request, 'dashboard/input_area.html')
+
+
+@login_required
+@require_http_methods(['GET'])
 def dashboard_single_query(request):
     return render(request, 'dashboard/single_query.html')
 
