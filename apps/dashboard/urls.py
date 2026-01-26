@@ -22,6 +22,7 @@ urlpatterns = [
     path('subscription/trial/', views.start_trial, name='start_trial'),
 
     path('submit/', views.submit_data, name='submit_data'),
+    path('submit-area/', views.submit_area_data, name='submit_area_data'),
     path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
     path('single_indicator_city_query/', views.single_indicator_city_query, name='single_indicator_city_query'),
     path('many_indicator_city_query/', views.many_indicator_city_query, name='many_indicator_city_query'),

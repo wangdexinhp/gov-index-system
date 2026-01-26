@@ -292,6 +292,55 @@ def save_to_database(rows_data):
                 input_form=Indicator.InputForm.INPUT,
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
+
+
+# 区县数据提交接口
+@login_required
+@require_http_methods(['POST'])
+def submit_area_data(request):
+    """处理表单提交"""
+    try:
+        # 获取表单数据
+        rows_json = request.POST.get('rows_json', '[]')
+        rows_data = json.loads(rows_json)
+        
+        print(f"=== 接收到的数据 ==  {rows_data}")
+        print(f"数据条数: {len(rows_data)}")
+        
+        # 处理每一行数据
+        for row in rows_data:
+            city = row.get('city')
+            groups = row.get('groups', [])
+            
+            print(f"\n城市: {city}")
+            for i, group in enumerate(groups):
+                print(f"  指标{i+1}:")
+                print(f"    数值: {group.get('value')}")
+                print(f"    备注: {group.get('note')}")
+                print(f"    来源: {group.get('source')}")
+                print(f"    参考: {group.get('reference')}")
+        
+        # 保存数据到数据库
+        save_to_database(rows_data)
+        # 返回成功响应
+        return JsonResponse({
+            'success': True,
+            'message': f'成功提交 {len(rows_data)} 条记录',
+            'count': len(rows_data)
+        })
+        
+    except Exception as e:
+        print(f"处理数据时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'处理数据时出错: {str(e)}'
+        }, status=500)
+    
+
+
+
+
+
 # === 单一指标历年查询接口 ===
 @login_required
 @require_http_methods(['GET'])
