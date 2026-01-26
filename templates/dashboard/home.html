@@ -944,36 +944,61 @@ function showAutoCloseMessage(message, type = 'success') {
       });
     }
 
+    // Initialize global selected indicators across all categories
+    window.globalSelectedIndicators = window.globalSelectedIndicators || [];
+    
     indicatorFilter.addEventListener('change', function() {
       const selectedCategory = this.value;
       const sub = document.getElementById('indicator-subfilter');
       if (!sub) return;
+      
       if (selectedCategory === '') {
-        // restore initial headers and clear subfilter
+        // restore initial headers and clear subfilter, but don't touch the table rows
         sub.innerHTML = '';
-        if (window.buildTableHeaders) window.buildTableHeaders(window.initialIndicators || []);
-        if (window.renderTableRows) window.renderTableRows();
         return;
       }
 
-      // Fill the secondary panel but do NOT immediately rebuild headers.
+      // Fill the secondary panel with new category items - DO NOT rebuild the table
       populateSubfilter(selectedCategory);
-      // With no subfilter selection, the manual table should not show indicator columns
-      if (window.buildTableHeaders) window.buildTableHeaders([]);
-      if (window.renderTableRows) window.renderTableRows();
+      
+      // Mark checkboxes that match indicators already in the global selected list
+      const newCheckboxes = Array.from(sub.querySelectorAll('.indicator-checkbox'));
+      newCheckboxes.forEach(checkbox => {
+        checkbox.checked = window.globalSelectedIndicators.includes(checkbox.value);
+      });
+      
+      // DO NOT call buildTableHeaders or renderTableRows here - only update the checkbox panel
     });
 
+    // Initialize global selected indicators across all categories
+    window.globalSelectedIndicators = window.globalSelectedIndicators || [];
+    
     // Delegate change events: handle indicator-checkbox changes to rebuild headers
     document.addEventListener('change', function(e) {
       if (e.target && e.target.classList && e.target.classList.contains('indicator-checkbox')) {
-        const sub = document.getElementById('indicator-subfilter');
-        const selected = sub ? Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value) : [];
-        if (!selected || selected.length === 0) {
+        const checkboxValue = e.target.value;
+        
+        // Update global list based on checkbox state
+        if (e.target.checked) {
+          // Add to global list if not already there
+          if (!window.globalSelectedIndicators.includes(checkboxValue)) {
+            window.globalSelectedIndicators.push(checkboxValue);
+          }
+        } else {
+          // Remove from global list
+          const idx = window.globalSelectedIndicators.indexOf(checkboxValue);
+          if (idx > -1) {
+            window.globalSelectedIndicators.splice(idx, 1);
+          }
+        }
+        
+        // Rebuild table with all globally selected indicators (from all categories)
+        if (!window.globalSelectedIndicators || window.globalSelectedIndicators.length === 0) {
           if (window.buildTableHeaders) window.buildTableHeaders([]);
           if (window.renderTableRows) window.renderTableRows();
           return;
         }
-        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        if (window.buildTableHeaders) window.buildTableHeaders(window.globalSelectedIndicators);
         if (window.renderTableRows) window.renderTableRows();
       }
     });
