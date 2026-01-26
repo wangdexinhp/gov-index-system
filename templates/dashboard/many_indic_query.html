@@ -258,25 +258,22 @@
 </div>
 <div class="flex gap-4 col-span-2">
 <div class="flex-1 space-y-2">
-<label class="block text-sm font-medium text-gray-700">起始年份</label>
-<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
-<option value="2016">2016年</option>
-<option value="2017">2017年</option>
-<option value="2018">2018年</option>
-<option value="2019">2019年</option>
-<option value="2020">2020年</option>
-</select>
-</div>
-<div class="flex-1 space-y-2">
-<label class="block text-sm font-medium text-gray-700">终止年份</label>
-<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
-<option selected="" value="2025">2025年</option>
+<label class="block text-sm font-medium text-gray-700">查询年份</label>
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="queryYear">
+<option value="2025" selected>2025年</option>
 <option value="2024">2024年</option>
 <option value="2023">2023年</option>
 <option value="2022">2022年</option>
 <option value="2021">2021年</option>
+<option value="2020">2020年</option>
+<option value="2019">2019年</option>
+<option value="2018">2018年</option>
+<option value="2017">2017年</option>
+<option value="2016">2016年</option>
 </select>
 </div>
+<div class="flex-1"></div>
+
 <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center justify-center" onclick="handleSearch()">
 <span class="iconify mr-2" data-icon="fluent:search-24-regular"></span>查询
 </button>
@@ -336,6 +333,9 @@
 
 <!-- 数据展示区 -->
 <div class="hidden space-y-6" id="resultContent">
+
+
+
 <!-- 表格卡片 -->
 <section class="card p-6">
 <div class="flex justify-between items-center mb-4">
@@ -712,16 +712,11 @@ const dataDict = {
       // 如果是多选，用 | 分隔，解析成数组
       const indicators = indicatorStr ? indicatorStr.split('|') : [];
       const province = document.getElementById('provinceSelect').value;
-      const startYear = document.getElementById('startYear').value;
-      const endYear = document.getElementById('endYear').value;
+      const queryYear = document.getElementById('queryYear').value;
       const checked = Array.from(selectedCities);
 
       if (!indicatorStr || checked.length === 0 || !province) {
         alert("请完整选择指标、省份和至少一个城市");
-        return;
-      }
-      if (parseInt(startYear) > parseInt(endYear)) {
-        alert("起始年份不能大于终止年份");
         return;
       }
 
@@ -731,7 +726,7 @@ const dataDict = {
   // 发起 AJAX 请求到后端接口 — 多指标和多城市都以逗号连接传递
   const cityParam = encodeURIComponent(checked.join(','));
       const indicatorParam = encodeURIComponent(indicators.join(','));
-      fetch(`/dashboard/many_indicator_city_query/?name_zh=${indicatorParam}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
+      fetch(`/dashboard/many_indicator_city_query/?name_zh=${indicatorParam}&start_year=${queryYear}&end_year=${queryYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
           // 兼容两种后端返回格式：
