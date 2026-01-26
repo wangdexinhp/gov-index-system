@@ -9,7 +9,7 @@ from django.http import JsonResponse, HttpResponse
 import json
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
-from apps.coredata.management.commands.indicator_zh_en import INDIMAP
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
 import pandas as pd
@@ -28,15 +28,22 @@ def dashboard_home(request):
 def dashboard_single_query(request):
     return render(request, 'dashboard/single_query.html')
 
+# @login_required
+# @require_http_methods(['GET'])
+# def dashboard_single_indicator_city_query(request):
+#     return render(request, 'dashboard/single_indicator_city_query.html')
+
 @login_required
 @require_http_methods(['GET'])
 def dashboard_single_indicator_city_query(request):
-    return render(request, 'dashboard/single_indicator_city_query.html')
+    return render(request, 'dashboard/single_query_city_copy.html')
+
+
 
 @login_required
 @require_http_methods(['GET'])
 def dashboard_many_indicator_query(request):
-    return render(request, 'dashboard/many_indicator_query.html')
+    return render(request, 'dashboard/many_indic_query.html')
 
 
 @login_required
@@ -278,18 +285,21 @@ def save_to_database(rows_data):
                 input_form=Indicator.InputForm.INPUT,
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
-
+# === 单一指标历年查询接口 ===
 @login_required
 @require_http_methods(['GET'])
 def single_indicator_query(request):
-
-    indicator_en = request.GET.get('name_en')
+    # indicator_en = request.GET.get('name_en')
+    # print("indicator_en=",indicator_en)
     indicator_zh = request.GET.get('name_zh')
+    indicator_en = INDIMAP.get(indicator_zh)
     start_year = request.GET.get('start_year')
     end_year = request.GET.get('end_year')
     city_name = request.GET.get('city')
     province_name = request.GET.get('province')
-
+    unit = INDIMAP_UNIT.get(indicator_en, "").get('unit', "")
+    if unit is None:
+        unit = ""
     # 构建城市名到代码、以及省份名到代码的映射
     city_name_to_code = {}
     province_name_to_code = {}
@@ -334,11 +344,92 @@ def single_indicator_query(request):
             'value': ind.value,
             'note': ind.note,
             'source': ind.source,
+            'unit' : unit,
         })
     return JsonResponse({
         'success': True,
         'data': data
     })
+
+# === 单一指标多城市查询接口 ===
+@login_required
+@require_http_methods(['GET'])
+def single_indicator_city_query(request):
+    indicator_zh = request.GET.get('name_zh')
+    indicator_en = INDIMAP.get(indicator_zh)
+    start_year = request.GET.get('start_year')
+    end_year = request.GET.get('end_year')
+    citys_param = request.GET.get('city')
+    print("citys=",citys_param)
+    unit = INDIMAP_UNIT.get(indicator_en, "").get('unit', "")
+    if unit is None:
+        unit = ""
+    # 构建城市名到代码、以及省份名到代码的映射
+    city_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+
+    city_ids= []
+    if citys_param:
+        city_names = [name.strip() for name in citys_param.split(',') if name.strip()]        
+        for city_name in city_names:
+            city_key = city_name.replace('市', '')
+            city_id = city_name_to_code.get(city_key)
+            if city_id:
+                city_ids.append(city_id)
+
+    # 构建查询条件
+    filters = {}
+    if indicator_en:
+        filters['name_en'] = indicator_en
+    if indicator_zh:
+        filters['name_zh'] = indicator_zh
+    if start_year:
+        filters['year__gte'] = start_year
+    if end_year:
+        filters['year__lte'] = end_year
+
+    # 查询数据
+    if city_ids:
+        # 使用 __in 查询多个城市
+        indicators = Indicator.objects.filter(
+            **filters,
+            city_id__in=city_ids
+        ).order_by('city_id', 'year')
+    else:
+        indicators = Indicator.objects.filter(**filters).order_by('year')
+
+    # 按城市组织数据
+    result_data = {}
+    for ind in indicators:
+        city_code = ind.city_id
+        city_name = get_city_name_by_code(city_code)  # 需要实现这个函数
+        
+        if city_name not in result_data:
+            result_data[city_name] = []
+        
+        result_data[city_name].append({
+            'year': ind.year,
+            'value': ind.value,
+            'note': ind.note,
+            'source': ind.source,
+            'unit': unit,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'data': result_data
+    })
+
+def get_city_name_by_code(city_code):
+    """根据城市代码获取城市名"""
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            if int(city['code']) == city_code:
+                return city['name']
+    return f"未知城市({city_code})"
+
 
 
 
@@ -450,3 +541,121 @@ def save_df_to_database(rows_data, year):
                 print(f"保存指标时发生未知错误: {name_zh}, 错误: {e}")
                 continue
             
+
+# === 多指标多城市查询接口 ===
+@login_required
+@require_http_methods(['GET'])
+def many_indicator_city_query(request):
+    # 获取多个指标（用逗号分隔）
+    indicator_zh_param = request.GET.get('name_zh', '')
+    year = request.GET.get('year')
+    citys_param = request.GET.get('city', '')
+    province = request.GET.get('province', '')
+    
+    print("cities=", citys_param)
+    print("indicator_zh_param=", indicator_zh_param)
+    print("year=", year)
+    print("province=", province)
+    
+    # 解析多个指标（用逗号分隔）
+    indicator_zh_list = [ind.strip() for ind in indicator_zh_param.split(',') if ind.strip()]
+    
+    # 构建指标名转换成英文名
+    indicator_en_list = []
+    indicator_zh_to_en = {}  # 保存中英文映射
+    for indicator_zh in indicator_zh_list:
+        indicator_en = INDIMAP.get(indicator_zh)
+        if indicator_en:
+            indicator_en_list.append(indicator_en)
+            indicator_zh_to_en[indicator_en] = indicator_zh
+            print(f"指标映射: {indicator_zh} -> {indicator_en}")
+        else:
+            print(f"未找到指标英文名映射: {indicator_zh}")
+    
+    if not indicator_en_list:
+        return JsonResponse({
+            'success': False,
+            'message': '未找到有效的指标'
+        }, status=400)
+    
+    # 构建城市名到代码的映射
+    city_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市', '')] = int(city['code'])
+    
+    # 解析多个城市（用逗号分隔）
+    city_ids = []
+    city_id_to_name = {}  # 保存城市ID到名字的映射
+    if citys_param:
+        city_names = [name.strip() for name in citys_param.split(',') if name.strip()]        
+        for city_name in city_names:
+            city_key = city_name.replace('市', '')
+            city_id = city_name_to_code.get(city_key)
+            if city_id:
+                city_ids.append(city_id)
+                city_id_to_name[city_id] = city_name
+                print(f"城市映射: {city_name} -> {city_id}")
+            else:
+                print(f"未找到城市代码: {city_name}")
+    
+    if not city_ids:
+        return JsonResponse({
+            'success': False,
+            'message': '未找到有效的城市'
+        }, status=400)
+    
+    # 构建查询条件
+    filters = {
+        'name_en__in': indicator_en_list,
+        'city_id__in': city_ids,
+    }
+    if year:
+        filters['year'] = year
+    
+    # 查询数据
+    indicators = Indicator.objects.filter(**filters).order_by('city_id', 'name_en')
+    
+    # 按指标分组返回数据：{ "指标名": [{ "city": "城市名", "val": 值, "unit": 单位 }, ...] }
+    result_data = {}
+    
+    # 初始化：为所有指标和城市创建条目，默认值为 "-"
+    for indicator_en in indicator_en_list:
+        indicator_zh = indicator_zh_to_en[indicator_en]
+        result_data[indicator_zh] = []
+        # 为每个城市创建一个条目
+        for city_id in city_ids:
+            city_name = city_id_to_name.get(city_id) or get_city_name_by_code(city_id)
+            result_data[indicator_zh].append({
+                'city': city_name,
+                'val': '-',
+                'unit': INDIMAP_UNIT.get(indicator_en, {}).get('unit', ''),
+                'note': '',
+                'source': '',
+            })
+    
+    # 填充查询到的数据
+    for ind in indicators:
+        city_code = ind.city_id
+        city_name = city_id_to_name.get(city_code) or get_city_name_by_code(city_code)
+        indicator_zh = indicator_zh_to_en.get(ind.name_en, ind.name_zh)
+        
+        # 获取单位
+        unit = INDIMAP_UNIT.get(ind.name_en, {}).get('unit', '')
+        
+        # 找到对应的条目并更新
+        for i, record in enumerate(result_data[indicator_zh]):
+            if record['city'] == city_name:
+                result_data[indicator_zh][i] = {
+                    'city': city_name,
+                    'val': ind.value,
+                    'unit': unit or '',
+                    'note': ind.note or '',
+                    'source': ind.source or '',
+                }
+                break
+    
+    return JsonResponse({
+        'success': True,
+        'data': result_data
+    })

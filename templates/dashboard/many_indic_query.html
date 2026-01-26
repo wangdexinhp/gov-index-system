@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>单指标历年数据查询界面</title>
+<title>多城市多指标查询界面</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
 <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
@@ -159,7 +159,7 @@
       指标录入
   </a>
   <a href="/dashboard/single-indicator-year-query/" 
-      class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
+      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
       单指标历年查询
   </a>
   <a href="/dashboard/single-indicator-city-query/" 
@@ -167,7 +167,7 @@
       单指标多城市查询
   </a>
   <a href="/dashboard/many-indicator-query/" 
-      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+      class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
       多城市多指标查询
   </a>
 </div>
@@ -189,11 +189,11 @@
 
 <header class="flex items-center space-y-1 py-2">
 <span class="iconify text-3xl text-blue-600 mr-3" data-icon="fluent:database-search-24-filled"></span>
-<h1 class="text-2xl font-bold text-gray-800">单指标历史数据查询</h1>
+<h1 class="text-2xl font-bold text-gray-800">多城市多指标查询</h1>
 </header>
 <!-- 查询条件区 -->
 <section class="card p-6">
-<div class="grid grid-cols-6 gap-6 items-end">
+<div class="grid grid-cols-6 gap-6 items-start">
   <div class="space-y-2">
     <label class="block text-sm font-medium text-gray-700">请选择指标</label>
     <select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
@@ -245,36 +245,46 @@
 </select>
 </div>
 <div class="space-y-2">
-<label class="block text-sm font-medium text-gray-700">请选择城市 (单选)</label>
-<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
-<option value="">请先选择省份</option>
-</select>
+  <label class="block text-sm font-medium text-gray-700">选择城市 (多选)</label>
+  <div class="mt-2 border border-gray-300 rounded-md p-2 bg-white" style="width:12rem;">
+    <div class="flex justify-end text-sm text-gray-600 mb-1">
+      <button type="button" class="mr-2" onclick="selectAllCities()">全选</button>
+      <button type="button" onclick="clearAllCities()">取消全选</button>
+    </div>
+    <div id="cityItems" class="max-h-36 overflow-y-auto hide-scrollbar">
+      <div class="text-sm text-gray-400">请先选择省份</div>
+    </div>
+  </div>
 </div>
-<div class="flex gap-4 col-span-1">
+<div class="flex gap-4 col-span-2">
 <div class="flex-1 space-y-2">
-<label class="block text-sm font-medium text-gray-700">起始年份</label>
-<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
-<option value="2016">2016年</option>
-<option value="2017">2017年</option>
-<option value="2018">2018年</option>
-<option value="2019">2019年</option>
-<option value="2020">2020年</option>
-</select>
-</div>
-<div class="flex-1 space-y-2">
-<label class="block text-sm font-medium text-gray-700">终止年份</label>
-<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
-<option selected="" value="2025">2025年</option>
+<label class="block text-sm font-medium text-gray-700">查询年份</label>
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="queryYear">
+<option value="2025" selected>2025年</option>
 <option value="2024">2024年</option>
 <option value="2023">2023年</option>
 <option value="2022">2022年</option>
 <option value="2021">2021年</option>
+<option value="2020">2020年</option>
+<option value="2019">2019年</option>
+<option value="2018">2018年</option>
+<option value="2017">2017年</option>
+<option value="2016">2016年</option>
 </select>
 </div>
+<div class="flex-1"></div>
+
 <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center justify-center" onclick="handleSearch()">
 <span class="iconify mr-2" data-icon="fluent:search-24-regular"></span>查询
 </button>
 </div>
+  <!-- 右侧已选城市展示列 -->
+  <div class="col-span-1 self-start">
+    <label class="block text-sm font-medium text-gray-700">已选择城市</label>
+    <div id="selectedCitiesList" class="mt-2 border border-gray-300 rounded-md p-3 bg-white min-h-[8rem] max-h-36 overflow-y-auto hide-scrollbar">
+      <div class="text-sm text-gray-400">尚未选择城市</div>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -323,27 +333,16 @@
 
 <!-- 数据展示区 -->
 <div class="hidden space-y-6" id="resultContent">
+
 <!-- 表格卡片 -->
 <section class="card p-6">
 <div class="flex justify-between items-center mb-4">
-<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">历年数据明细</h2>
-<div class="flex items-center space-x-2">
-<span class="text-sm text-gray-500">数值排序：</span>
-<select class="border border-gray-300 rounded px-2 py-1 text-sm outline-none" id="sortOrder" onchange="renderTable()">
-<option value="year_asc">按年份升序</option>
-<option value="val_asc">按数值升序</option>
-<option value="val_desc">按数值降序</option>
-</select>
-</div>
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">多指标对比数据</h2>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
-<thead>
+<thead id="tableHead">
 <tr class="bg-gray-50 border-b border-gray-200">
-<th class="px-6 py-4 font-semibold text-gray-700">年份</th>
-<th class="px-6 py-4 font-semibold text-gray-700" id="indicatorHeader">指标值</th>
-<th class="px-6 py-4 font-semibold text-gray-700">单位</th>
-<th class="px-6 py-4 font-semibold text-gray-700">操作</th>
 </tr>
 </thead>
 <tbody class="divide-y divide-gray-100" id="tableBody">
@@ -355,7 +354,7 @@
 <!-- 图表卡片 -->
 <section class="card p-6">
 <div class="flex justify-between items-center mb-6">
-<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="chartTitle">趋势分析视图</h2>
+<!-- <h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="chartTitle">趋势分析视图</h2> -->
 <div class="flex bg-gray-100 p-1 rounded-lg">
 <button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm" id="btnBar" onclick="switchChart('bar')">柱状图</button>
 <button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600" id="btnLine" onclick="switchChart('line')">曲线图</button>
@@ -409,7 +408,7 @@ const dataDict = {
         
         // 当前选中的分类和值
         let selectedCategory = null;
-        let selectedValue = null;
+        let selectedValues = new Set(); // 改为 Set 支持多选
         
         // 当选择自定义选择器选项时打开弹窗
         dataSelect.addEventListener('change', function() {
@@ -437,27 +436,30 @@ const dataDict = {
             }
         });
         
-        // 确认选择
+        // 确认选择 - 支持多个指标
         confirmBtn.addEventListener('click', () => {
-            if (selectedValue) {
-                // 1. 关闭弹窗
-                modalOverlay.style.display = 'none';
-                
-                // 2. 直接更新下拉框的选中项显示
-                const dataSelect = document.getElementById('dataSelect');
-                
-                // 创建一个选项来显示选中的值
-                dataSelect.innerHTML = `
-                    <option value="${selectedValue}">${selectedValue}</option>
-                    <option value="custom-selector" class="custom-selector-option">
-                        打开指标项
-                    </option>
-                `;
-                
-                console.log('已选择指标:', selectedValue);
-            } else {
-                alert('请先选择一个选项');
+            if (selectedValues.size === 0) {
+                alert('请至少选择一个指标');
+                return;
             }
+            
+            // 1. 关闭弹窗
+            modalOverlay.style.display = 'none';
+            
+            // 2. 直接更新下拉框的选中项显示
+            const dataSelect = document.getElementById('dataSelect');
+            const selectedList = Array.from(selectedValues).join(', ');
+            const selectedArray = Array.from(selectedValues);
+            
+            // 创建选项来显示选中的值，用 | 分隔存储多个值
+            dataSelect.innerHTML = `
+                <option value="${selectedArray.join('|')}" selected>${selectedList}</option>
+                <option value="custom-selector" class="custom-selector-option">
+                    打开指标项
+                </option>
+            `;
+            
+            console.log('已选择指标:', selectedArray);
         });
                 
         // 填充第一列数据
@@ -471,7 +473,6 @@ const dataDict = {
                 
                 itemDiv.addEventListener('click', () => {
                     selectedCategory = category;
-                    selectedValue = null;
                     highlightSelectedCategory(category);
                     populateSecondColumn(category);
                 });
@@ -505,7 +506,7 @@ const dataDict = {
             }
         }
         
-        // 填充第二列数据
+        // 填充第二列数据 - 支持多选
         function populateSecondColumn(category) {
             secondColumn.innerHTML = '';
             
@@ -521,35 +522,39 @@ const dataDict = {
                 itemDiv.className = 'item';
                 itemDiv.textContent = item;
                 
+                // 如果已选，添加 selected 样式
+                if (selectedValues.has(item)) {
+                    itemDiv.classList.add('selected');
+                }
+                
                 itemDiv.addEventListener('click', () => {
-                    selectedValue = item;
-                    highlightSelectedValue(item);
+                    // 切换选择状态
+                    if (selectedValues.has(item)) {
+                        selectedValues.delete(item);
+                        itemDiv.classList.remove('selected');
+                    } else {
+                        selectedValues.add(item);
+                        itemDiv.classList.add('selected');
+                    }
                     
                     // 更新弹窗中的选择状态
-                    modalResultContent.textContent = `已选择: ${category} -> ${item}`;
+                    updateModalResult();
                 });
                 
                 secondColumn.appendChild(itemDiv);
             });
             
             // 更新弹窗中的选择状态
-            modalResultContent.textContent = `已选择分类: ${category}，请从右侧选择具体选项`;
+            updateModalResult();
         }
         
-        // 高亮选中的值
-        function highlightSelectedValue(value) {
-            // 移除所有选中状态
-            document.querySelectorAll('#secondColumn .item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // 添加选中状态到当前选中的值
-            const items = document.querySelectorAll('#secondColumn .item');
-            for (let item of items) {
-                if (item.textContent === value) {
-                    item.classList.add('selected');
-                    break;
-                }
+        // 更新弹窗中的选择结果显示
+        function updateModalResult() {
+            if (selectedValues.size === 0) {
+                modalResultContent.textContent = `已选择分类: ${selectedCategory}，请从右侧选择具体选项`;
+            } else {
+                const list = Array.from(selectedValues).join('、');
+                modalResultContent.textContent = `已选择 (${selectedValues.size}): ${list}`;
             }
         }
         
@@ -610,9 +615,13 @@ const dataDict = {
     // 指标分组与指标列表，参考 home.html indicatorCategories
 
 
-    let rawData = [];
-    let currentChartType = 'bar';
-    let myChart = null;
+  let rawData = [];
+  // 支持按城市分组的数据结构：{ cityName: [{year, val, unit}, ...], ... }
+  let rawDataByCity = {};
+  let currentChartType = 'bar';
+  let myChart = null;
+  // 存储跨省份保持的已选城市集合
+  const selectedCities = new Set();
 
     // 分组选择后，动态填充指标下拉框
     document.addEventListener('DOMContentLoaded', function() {
@@ -636,61 +645,123 @@ const dataDict = {
 
     function updateCities() {
       const province = document.getElementById('provinceSelect').value;
-      const citySelect = document.getElementById('citySelect');
-      citySelect.innerHTML = '<option value="">选择城市</option>';
+    // 初始渲染已选城市（若无则显示占位）
+    document.addEventListener('DOMContentLoaded', function() { renderSelectedCities(); });
+      const container = document.getElementById('cityItems');
+      if (!container) return;
+      container.innerHTML = '';
       if (cityData[province]) {
         cityData[province].forEach(city => {
-          const opt = document.createElement('option');
-          opt.value = city;
-          opt.textContent = city;
-          citySelect.appendChild(opt);
+          const id = 'city_cb_' + city.replace(/\s|市/g, '');
+          const wrapper = document.createElement('label');
+          wrapper.className = 'flex items-center space-x-2 px-2 py-1 text-sm hover:bg-gray-50';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'city-checkbox';
+          cb.value = city;
+          cb.id = id;
+          // 保持跨省份的已选状态
+          if (selectedCities.has(city)) cb.checked = true;
+          const span = document.createElement('span');
+          span.className = 'text-gray-800';
+          span.textContent = city;
+          cb.addEventListener('change', function(e) {
+            if (this.checked) selectedCities.add(this.value);
+            else selectedCities.delete(this.value);
+            renderSelectedCities();
+          });
+          wrapper.appendChild(cb);
+          wrapper.appendChild(span);
+          container.appendChild(wrapper);
         });
+      } else {
+        container.innerHTML = '<div class="text-sm text-gray-400">请先选择省份</div>';
       }
+      // 每次填充后同步右侧已选城市显示（若之前选择了其他省的城市）
+      renderSelectedCities();
+    }
+
+    function selectAllCities() {
+      const boxes = document.querySelectorAll('#cityItems .city-checkbox');
+      boxes.forEach(b => { b.checked = true; selectedCities.add(b.value); });
+      renderSelectedCities();
+    }
+
+    function clearAllCities() {
+      const boxes = document.querySelectorAll('#cityItems .city-checkbox');
+      boxes.forEach(b => { b.checked = false; selectedCities.delete(b.value); });
+      renderSelectedCities();
     }
 
     function handleSearch() {
-      const indicator = document.getElementById('dataSelect').value;
-      // const group = document.getElementById('indicatorGroupSelect').value;
-      const city = document.getElementById('citySelect').value;
+      const indicatorStr = document.getElementById('dataSelect').value;
+      // 如果是多选，用 | 分隔，解析成数组
+      const indicators = indicatorStr ? indicatorStr.split('|') : [];
       const province = document.getElementById('provinceSelect').value;
-      const startYear = document.getElementById('startYear').value;
-      const endYear = document.getElementById('endYear').value;
+      const queryYear = document.getElementById('queryYear').value;
+      const checked = Array.from(selectedCities);
 
-      if (!indicator || !city || !province) {
-        alert("请完整选择分组、指标、省份和城市");
-        return;
-      }
-      if (parseInt(startYear) > parseInt(endYear)) {
-        alert("起始年份不能大于终止年份");
+      if (!indicatorStr || checked.length === 0 || !province) {
+        alert("请完整选择指标、省份和至少一个城市");
         return;
       }
 
       document.getElementById('emptyState').classList.add('hidden');
       document.getElementById('resultContent').classList.remove('hidden');
 
-      // 发起 AJAX 请求到后端接口
-      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}`)
+  // 发起 AJAX 请求到后端接口 — 多指标和多城市都以逗号连接传递
+  const cityParam = encodeURIComponent(checked.join(','));
+      const indicatorParam = encodeURIComponent(indicators.join(','));
+      fetch(`/dashboard/many_indicator_city_query/?name_zh=${indicatorParam}&year=${queryYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
-          if (!res.success || !res.data || res.data.length === 0) {
+          // 兼容两种后端返回格式：
+          // 1) 原来的数组： { success: true, data: [ {year, value, unit}, ... ] }
+          // 2) 新的按城市分组的对象： { success: true, data: { "北京市": [ {year, value, ...}, ... ], ... } }
+          if (!res.success || !res.data || (Array.isArray(res.data) && res.data.length === 0) || (typeof res.data === 'object' && Object.keys(res.data).length === 0)) {
             document.getElementById('tableBody').innerHTML = '';
             if (myChart) myChart.clear();
             alert('没有查询到数据');
             return;
           }
-          rawData = res.data.map(item => ({
-            year: item.year + '年',
-            val: item.value,
-            // unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
-            unit: item.unit
-          }));
 
-          document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
-          document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
-          document.getElementById('indicatorHeader').textContent = indicator;
+          rawDataByCity = {};
+
+          if (Array.isArray(res.data)) {
+            // 旧格式：把结果当作一个匿名城市的数组来处理
+            const cityLabel = checked.join(' / ') || '数据';
+            rawDataByCity[cityLabel] = res.data.map(item => ({ year: item.year + '年', val: Number(item.value), unit: item.unit }));
+          } else {
+            // 新格式（多指标）：res.data 为 { "指标名": [{ city, val, unit, ... }, ...] }
+            // 转换为 { "城市": { "指标1": { val, unit }, "指标2": { val, unit } }, ... }
+            const cityDataMap = {};
+            
+            Object.keys(res.data).forEach(indicatorName => {
+              const records = Array.isArray(res.data[indicatorName]) ? res.data[indicatorName] : [];
+              records.forEach(record => {
+                const cityName = record.city;
+                const val = record.val === null || record.val === undefined ? null : Number(record.val);
+                const unit = record.unit || '';
+                
+                if (!cityDataMap[cityName]) {
+                  cityDataMap[cityName] = {};
+                }
+                cityDataMap[cityName][indicatorName] = { val, unit };
+              });
+            });
+            
+            rawDataByCity = cityDataMap;
+            console.log('转换后的数据:', rawDataByCity);
+          }
+
+          // 更新标题
+          // const cityKeys = Object.keys(rawDataByCity);
+          // const cityLabel = cityKeys.join(' / ');
+          document.getElementById('tableTitle').textContent = `多指标对比数据`;
+          // document.getElementById('chartTitle').textContent = `多指标对比数据`;
 
           renderTable();
-          renderChart();
+          // renderChart(); // 暂时禁用图表，因为数据结构改变了
         })
         .catch(err => {
           alert('查询失败: ' + err);
@@ -698,65 +769,143 @@ const dataDict = {
     }
 
     function renderTable() {
-      const sort = document.getElementById('sortOrder').value;
-      let displayData = [...rawData];
-
-      if (sort === 'val_asc') displayData.sort((a, b) => a.val - b.val);
-      else if (sort === 'val_desc') displayData.sort((a, b) => b.val - a.val);
-      else displayData.sort((a, b) => parseInt(a.year) - parseInt(b.year));
-
+      // 多指标、多城市横表显示：城市在第一列，多个指标在后续列
       const tbody = document.getElementById('tableBody');
+      const thead = document.querySelector('#tableHead tr');
       tbody.innerHTML = '';
-      displayData.forEach((item, idx) => {
+      thead.innerHTML = '';
+
+      const cities = Object.keys(rawDataByCity);
+      if (cities.length === 0) return;
+
+      // 收集所有指标名（从所有城市的数据中）
+      const indicatorsSet = new Set();
+      cities.forEach(city => {
+        Object.keys(rawDataByCity[city]).forEach(indicator => {
+          indicatorsSet.add(indicator);
+        });
+      });
+      const indicators = Array.from(indicatorsSet).sort();
+
+      // 构建表头 - 城市 + 所有指标
+      const thCity = document.createElement('th');
+      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50 border-b border-gray-200';
+      thCity.textContent = '城市';
+      thead.appendChild(thCity);
+      
+      // 添加指标表头
+      indicators.forEach(indicator => {
+        const th = document.createElement('th');
+        th.className = 'px-6 py-4 font-semibold text-gray-700 text-center bg-gray-50 border-b border-gray-200';
+        th.textContent = indicator;
+        thead.appendChild(th);
+      });
+
+      // 构建表格行 - 按城市行显示
+      cities.sort().forEach((city, idx) => {
         const tr = document.createElement('tr');
-        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
-        tr.innerHTML = `
-          <td class="px-6 py-4 text-gray-800 font-medium border-b border-gray-100">${item.year}</td>
-          <td class="px-6 py-4 indicator-value border-b border-gray-100">${item.val.toLocaleString()}</td>
-          <td class="px-6 py-4 text-gray-500 border-b border-gray-100">${item.unit}</td>
-          <td class="px-6 py-4">
-            <button class="text-blue-600 hover:text-blue-800 text-sm">详情</button>
-          </td>
-        `;
+        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30') + ' table-detail-row hover:bg-blue-50/50 transition';
+        
+        // 城市列
+        const tdCity = document.createElement('td');
+        tdCity.className = 'px-6 py-4 font-medium text-gray-900 border-b border-gray-200 whitespace-nowrap';
+        tdCity.textContent = city;
+        tr.appendChild(tdCity);
+        
+        // 指标值列
+        indicators.forEach(indicator => {
+          const td = document.createElement('td');
+          td.className = 'px-6 py-4 text-gray-700 border-b border-gray-200 text-center';
+          
+          const indicatorData = rawDataByCity[city][indicator];
+          if (indicatorData && indicatorData.val !== null && indicatorData.val !== undefined && indicatorData.val !== '-') {
+            const val = Number(indicatorData.val);
+            if (Number.isFinite(val)) {
+              td.textContent = val.toLocaleString();
+            } else {
+              td.textContent = '-';
+              td.className += ' text-gray-400';
+            }
+            td.title = indicatorData.unit ? `单位: ${indicatorData.unit}` : '';
+          } else {
+            td.textContent = '-';
+            td.className += ' text-gray-400';
+          }
+          tr.appendChild(td);
+        });
+        
         tbody.appendChild(tr);
+      });
+    }
+
+    // 渲染右侧已选择城市列表
+    function renderSelectedCities() {
+      const container = document.getElementById('selectedCitiesList');
+      if (!container) return;
+      container.innerHTML = '';
+      if (selectedCities.size === 0) {
+        container.innerHTML = '<div class="text-sm text-gray-400">尚未选择城市</div>';
+        return;
+      }
+      Array.from(selectedCities).forEach(city => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between py-1';
+        const name = document.createElement('div');
+        name.className = 'text-sm text-gray-800';
+        name.textContent = city;
+        const btn = document.createElement('button');
+        btn.className = 'text-xs text-red-500 ml-2';
+        btn.textContent = '移除';
+        btn.addEventListener('click', () => {
+          // 从集合移除并同步取消当前 DOM 中的 checkbox
+          selectedCities.delete(city);
+          const cb = document.querySelector(`#cityItems input.city-checkbox[value="${city}"]`);
+          if (cb) cb.checked = false;
+          renderSelectedCities();
+        });
+        row.appendChild(name);
+        row.appendChild(btn);
+        container.appendChild(row);
       });
     }
 
     function renderChart() {
       if (!myChart) myChart = echarts.init(document.getElementById('mainChart'));
-      
-      const years = rawData.map(d => d.year);
-      const vals = rawData.map(d => d.val);
-      
-      const option = {
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { top: '10%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
-        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-        series: [{
-          data: vals,
+
+      // x 轴使用所有年份的并集，按升序排列
+      const cityNames = Object.keys(rawDataByCity);
+      if (cityNames.length === 0) return;
+      const yearSet = new Set();
+      cityNames.forEach(city => rawDataByCity[city].forEach(r => yearSet.add(r.year)));
+      const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+
+      const series = cityNames.map((city, idx) => {
+        // 建立一个以年为键的 map
+        const map = {};
+        rawDataByCity[city].forEach(r => { map[r.year] = (r.val === null || r.val === undefined) ? null : Number(r.val); });
+        const data = years.map(y => (y in map) ? map[y] : null);
+        return {
+          name: city,
+          data: data,
           type: currentChartType,
           smooth: true,
           barWidth: '35%',
           symbol: 'circle',
           symbolSize: 8,
-          lineStyle: { width: 3, color: '#3b82f6' },
-          itemStyle: {
-            color: currentChartType === 'bar' 
-              ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: '#3b82f6' },
-                  { offset: 1, color: '#60a5fa' }
-                ])
-              : '#2563eb',
-            borderRadius: [4, 4, 0, 0]
-          },
-          areaStyle: currentChartType === 'line' ? {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(24,144,255,0.3)' },
-              { offset: 1, color: 'rgba(24,144,255,0)' }
-            ])
-          } : null
-        }]
+          lineStyle: { width: 3 },
+          // 颜色按索引简单区分
+          itemStyle: { color: ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6'][idx % 5] },
+          areaStyle: currentChartType === 'line' ? { opacity: 0.1 } : null
+        };
+      });
+
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { data: cityNames, top: '2%' },
+        grid: { top: '12%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+        series: series
       };
       myChart.setOption(option);
       window.addEventListener('resize', () => myChart.resize());
