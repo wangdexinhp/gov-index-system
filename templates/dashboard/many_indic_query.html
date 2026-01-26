@@ -341,11 +341,8 @@
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
-<thead>
+<thead id="tableHead">
 <tr class="bg-gray-50 border-b border-gray-200">
-<th class="px-6 py-4 font-semibold text-gray-700 text-left">城市</th>
-<th class="px-6 py-4 font-semibold text-gray-700 text-left" id="indicatorHeader">指标值</th>
-<th class="px-6 py-4 font-semibold text-gray-700 text-right">数据可信度</th>
 </tr>
 </thead>
 <tbody class="divide-y divide-gray-100" id="tableBody">
@@ -774,7 +771,9 @@ const dataDict = {
     function renderTable() {
       // 多指标、多城市横表显示：城市在第一列，多个指标在后续列
       const tbody = document.getElementById('tableBody');
+      const thead = document.querySelector('#tableHead tr');
       tbody.innerHTML = '';
+      thead.innerHTML = '';
 
       const cities = Object.keys(rawDataByCity);
       if (cities.length === 0) return;
@@ -788,37 +787,28 @@ const dataDict = {
       });
       const indicators = Array.from(indicatorsSet).sort();
 
-      // 构建表头
-      const thead = document.querySelector('table thead tr');
-      thead.innerHTML = '';
-      
+      // 构建表头 - 城市 + 所有指标
       const thCity = document.createElement('th');
-      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50';
+      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50 border-b border-gray-200';
       thCity.textContent = '城市';
       thead.appendChild(thCity);
       
       // 添加指标表头
       indicators.forEach(indicator => {
         const th = document.createElement('th');
-        th.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50';
+        th.className = 'px-6 py-4 font-semibold text-gray-700 text-center bg-gray-50 border-b border-gray-200';
         th.textContent = indicator;
         thead.appendChild(th);
       });
-      
-      // 添加数据可信度列
-      const thTrust = document.createElement('th');
-      thTrust.className = 'px-6 py-4 font-semibold text-gray-700 text-right bg-gray-50';
-      thTrust.textContent = '数据可信度';
-      thead.appendChild(thTrust);
 
       // 构建表格行 - 按城市行显示
       cities.sort().forEach((city, idx) => {
         const tr = document.createElement('tr');
-        tr.className = (idx % 2 === 0 ? 'bg-gray-50/30' : 'bg-white') + ' table-detail-row hover:bg-blue-50/30 transition';
+        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30') + ' table-detail-row hover:bg-blue-50/50 transition';
         
         // 城市列
         const tdCity = document.createElement('td');
-        tdCity.className = 'px-6 py-4 font-medium text-gray-800 border-b border-gray-200 sticky left-0 bg-inherit';
+        tdCity.className = 'px-6 py-4 font-medium text-gray-900 border-b border-gray-200 whitespace-nowrap';
         tdCity.textContent = city;
         tr.appendChild(tdCity);
         
@@ -838,24 +828,6 @@ const dataDict = {
           }
           tr.appendChild(td);
         });
-        
-        // 数据可信度列
-        const tdTrust = document.createElement('td');
-        tdTrust.className = 'px-6 py-4 text-right border-b border-gray-200';
-        const trustBadge = document.createElement('span');
-        trustBadge.className = 'inline-block px-2 py-1 rounded text-sm font-medium';
-        
-        // 简单判断可信度
-        const trustLevel = Math.random() > 0.5 ? 'High' : 'Medium';
-        if (trustLevel === 'High') {
-          trustBadge.className += ' bg-green-100/50 text-green-700';
-          trustBadge.textContent = 'High';
-        } else {
-          trustBadge.className += ' bg-amber-100/50 text-amber-700';
-          trustBadge.textContent = 'Medium';
-        }
-        tdTrust.appendChild(trustBadge);
-        tr.appendChild(tdTrust);
         
         tbody.appendChild(tr);
       });
