@@ -451,10 +451,15 @@ document.addEventListener('DOMContentLoaded', function() {
         '澳门特别行政区': ['澳门']
       };
 
+      // 全局已选城市集合 - 跨省保持选择
+      const globalSelectedCities = new Set();
+
       function renderCitiesForProvince(prov) {
         const container = document.getElementById('city-items');
         const empty = document.getElementById('city-empty');
+        
         container.innerHTML = '';
+        // 根据选择的省份过滤城市
         const cities = prov && prov !== '' ? (provinceCityMap[prov] || []) : Object.values(provinceCityMap).flat();
         if (!cities || cities.length === 0) {
           empty.classList.remove('hidden');
@@ -470,6 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
           input.className = 'rounded border-gray-600 text-yellow-500 city-checkbox';
           input.value = city;
           input.id = id;
+          // 根据全局集合恢复勾选状态
+          input.checked = globalSelectedCities.has(city);
           const label = document.createElement('label');
           label.htmlFor = id;
           label.className = 'ml-2 text-black text-sm';
@@ -481,10 +488,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       function getSelectedCities() {
-        const checks = Array.from(document.querySelectorAll('.city-checkbox'));
-        const selected = checks.filter(c => c.checked).map(c => c.value);
-        // 如果没有选择城市，返回空数组（不再默认返回全部城市）
-        return selected;
+        // 返回全局已选城市集合中的城市
+        return Array.from(globalSelectedCities);
       }
 
       function renderTableRows() {
@@ -636,26 +641,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // initial render: all cities
         renderCitiesForProvince('');
         provSel.addEventListener('change', function() {
+          // 更新城市列表，但保留已选城市的状态（不清空表格）
           renderCitiesForProvince(this.value);
-          renderTableRows();
         });
 
         // Select all / deselect all buttons
         const selectAllBtn = document.getElementById('select-all-cities');
         const deselectAllBtn = document.getElementById('deselect-all-cities');
         if (selectAllBtn) selectAllBtn.addEventListener('click', function() {
-          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = true; });
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { 
+            cb.checked = true;
+            globalSelectedCities.add(cb.value);
+          });
           renderTableRows();
         });
         if (deselectAllBtn) deselectAllBtn.addEventListener('click', function() {
-          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { 
+            cb.checked = false;
+            globalSelectedCities.delete(cb.value);
+          });
           renderTableRows();
         });
 
         // Reset button: clear selections and clear table inputs
         const resetBtn = document.getElementById('reset-button');
         if (resetBtn) resetBtn.addEventListener('click', function() {
-          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { 
+            cb.checked = false;
+            globalSelectedCities.delete(cb.value);
+          });
           renderTableRows();
         });
 
@@ -756,6 +770,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Listen for city checkbox changes (delegated)
         document.addEventListener('change', function(e) {
           if (e.target && e.target.classList && e.target.classList.contains('city-checkbox')) {
+            // 更新全局已选城市集合
+            if (e.target.checked) {
+              globalSelectedCities.add(e.target.value);
+            } else {
+              globalSelectedCities.delete(e.target.value);
+            }
             renderTableRows();
           }
         });
