@@ -755,10 +755,10 @@ const dataDict = {
           }
 
           // 更新标题
-          const cityKeys = Object.keys(rawDataByCity);
-          const cityLabel = cityKeys.join(' / ');
-          document.getElementById('tableTitle').textContent = `${cityLabel} - 多指标对比数据`;
-          document.getElementById('chartTitle').textContent = `${cityLabel} - 数据对比`;
+          // const cityKeys = Object.keys(rawDataByCity);
+          // const cityLabel = cityKeys.join(' / ');
+          document.getElementById('tableTitle').textContent = `多指标对比数据`;
+          // document.getElementById('chartTitle').textContent = `多指标对比数据`;
 
           renderTable();
           // renderChart(); // 暂时禁用图表，因为数据结构改变了
