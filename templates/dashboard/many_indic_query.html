@@ -818,9 +818,14 @@ const dataDict = {
           td.className = 'px-6 py-4 text-gray-700 border-b border-gray-200 text-center';
           
           const indicatorData = rawDataByCity[city][indicator];
-          if (indicatorData && indicatorData.val !== null && indicatorData.val !== undefined) {
+          if (indicatorData && indicatorData.val !== null && indicatorData.val !== undefined && indicatorData.val !== '-') {
             const val = Number(indicatorData.val);
-            td.textContent = Number.isFinite(val) ? val.toLocaleString() : indicatorData.val;
+            if (Number.isFinite(val)) {
+              td.textContent = val.toLocaleString();
+            } else {
+              td.textContent = '-';
+              td.className += ' text-gray-400';
+            }
             td.title = indicatorData.unit ? `单位: ${indicatorData.unit}` : '';
           } else {
             td.textContent = '-';
