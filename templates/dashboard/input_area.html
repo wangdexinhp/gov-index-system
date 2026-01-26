@@ -933,7 +933,7 @@ function showAutoCloseMessage(message, type = 'success') {
 
     // Default: select 'admin' group and populate subfilter, but DO NOT auto-check indicators
     (function setDefaultIndicatorGroup() {
-      const defaultGroup = 'admin';
+      const defaultGroup = 'population';
       if (indicatorFilter) indicatorFilter.value = defaultGroup;
       // populate checkboxes but do not select any — user must choose
       populateSubfilter(defaultGroup);
