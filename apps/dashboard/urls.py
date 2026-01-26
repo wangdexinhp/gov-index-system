@@ -5,9 +5,13 @@ app_name = 'dashboard'
 
 urlpatterns = [
     path('', views.dashboard_home, name='home'),
+    path('area_input', views.area_input, name='area_input'),
     path('single-indicator-year-query/', views.dashboard_single_query, name='single_query'),
     path('single-indicator-city-query/', views.dashboard_single_indicator_city_query, name='single_indicator_query'),
     path('many-indicator-query/', views.dashboard_many_indicator_query, name='many_indicator_query'),
+
+
+
 
     path('profile/', views.profile, name='profile'),
     path('settings/', views.settings, name='settings'),
