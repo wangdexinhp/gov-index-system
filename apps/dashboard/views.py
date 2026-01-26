@@ -43,7 +43,7 @@ def dashboard_single_indicator_city_query(request):
 @login_required
 @require_http_methods(['GET'])
 def dashboard_many_indicator_query(request):
-    return render(request, 'dashboard/many_indicator_query.html')
+    return render(request, 'dashboard/many_indic_query.html')
 
 
 @login_required
@@ -541,3 +541,118 @@ def save_df_to_database(rows_data, year):
                 print(f"保存指标时发生未知错误: {name_zh}, 错误: {e}")
                 continue
             
+
+# === 多指标多城市查询接口 ===
+@login_required
+@require_http_methods(['GET'])
+def many_indicator_city_query(request):
+    indicator_zh_list = request.GET.get('name_zh')
+    start_year = request.GET.get('start_year')
+    end_year = request.GET.get('end_year')
+    citys_param = request.GET.get('city')
+    print("cities=",citys_param)
+    print("indicator_zh_list=",indicator_zh_list)
+    # 构建城市名到代码、以及省份名到代码的映射
+    city_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+
+    city_ids= []
+    if citys_param:
+        city_names = [name.strip() for name in citys_param.split(',') if name.strip()]        
+        for city_name in city_names:
+            city_key = city_name.replace('市', '')
+            city_id = city_name_to_code.get(city_key)
+            if city_id:
+                city_ids.append(city_id)
+
+    # 构建查询条件
+    filters = {}
+    if indicator_zh_list:
+        indicator_zh_list = [name.strip() for name in indicator_zh_list.split(',') if name.strip()]
+        indicator_en_list = [INDIMAP.get(name) for name in indicator_zh_list]
+        filters['name_en__in'] = [en for en in indicator_en_list if en]
+    
+    if start_year:
+        filters['year__gte'] = start_year
+    if end_year:
+        filters['year__lte'] = end_year
+
+    # 查询数据
+    if city_ids:
+        # 使用 __in 查询多个城市
+        indicators = Indicator.objects.filter(
+            **filters,
+            city_id__in=city_ids
+        ).order_by('city_id', 'year')
+    else:
+        indicators = Indicator.objects.filter(**filters).order_by('year')
+
+    # 按城市组织数据
+    result_data = {}
+    
+    start_year = request.GET.get('start_year')
+    end_year = request.GET.get('end_year')
+    citys_param = request.GET.get('city')
+    print("citys=",citys_param)
+    unit = INDIMAP_UNIT.get(indicator_en, "").get('unit', "")
+    if unit is None:
+        unit = ""
+    # 构建城市名到代码、以及省份名到代码的映射
+    city_name_to_code = {}
+    for prov in CHINA_REGIONS:
+        for city in prov.get('cities', []):
+            city_name_to_code[city['name'].replace('市','')] = int(city['code'])
+
+    city_ids= []
+    if citys_param:
+        city_names = [name.strip() for name in citys_param.split(',') if name.strip()]        
+        for city_name in city_names:
+            city_key = city_name.replace('市', '')
+            city_id = city_name_to_code.get(city_key)
+            if city_id:
+                city_ids.append(city_id)
+
+    # 构建查询条件
+    filters = {}
+    if indicator_en:
+        filters['name_en'] = indicator_en
+    if indicator_zh:
+        filters['name_zh'] = indicator_zh
+    if start_year:
+        filters['year__gte'] = start_year
+    if end_year:
+        filters['year__lte'] = end_year
+
+    # 查询数据
+    if city_ids:
+        # 使用 __in 查询多个城市
+        indicators = Indicator.objects.filter(
+            **filters,
+            city_id__in=city_ids
+        ).order_by('city_id', 'year')
+    else:
+        indicators = Indicator.objects.filter(**filters).order_by('year')
+
+    # 按城市组织数据
+    result_data = {}
+    for ind in indicators:
+        city_code = ind.city_id
+        city_name = get_city_name_by_code(city_code)  # 需要实现这个函数
+        
+        if city_name not in result_data:
+            result_data[city_name] = []
+        
+        result_data[city_name].append({
+            'year': ind.year,
+            'value': ind.value,
+            'note': ind.note,
+            'source': ind.source,
+            'unit': unit,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'data': result_data
+    })
