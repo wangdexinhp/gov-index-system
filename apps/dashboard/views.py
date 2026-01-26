@@ -547,11 +547,11 @@ def save_df_to_database(rows_data, year):
 @require_http_methods(['GET'])
 def many_indicator_city_query(request):
     indicator_zh_list = request.GET.get('name_zh')
-    start_year = request.GET.get('start_year')
-    end_year = request.GET.get('end_year')
+    year = request.GET.get('year')
     citys_param = request.GET.get('city')
     print("cities=",citys_param)
     print("indicator_zh_list=",indicator_zh_list)
+    print("year=",year)
     # 构建城市名到代码、以及省份名到代码的映射
     city_name_to_code = {}
     for prov in CHINA_REGIONS:

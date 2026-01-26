@@ -726,7 +726,7 @@ const dataDict = {
   // 发起 AJAX 请求到后端接口 — 多指标和多城市都以逗号连接传递
   const cityParam = encodeURIComponent(checked.join(','));
       const indicatorParam = encodeURIComponent(indicators.join(','));
-      fetch(`/dashboard/many_indicator_city_query/?name_zh=${indicatorParam}&start_year=${queryYear}&end_year=${queryYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
+      fetch(`/dashboard/many_indicator_city_query/?name_zh=${indicatorParam}&year=${queryYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
         .then(res => res.json())
         .then(res => {
           // 兼容两种后端返回格式：
