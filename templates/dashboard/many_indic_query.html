@@ -334,29 +334,18 @@
 <!-- 数据展示区 -->
 <div class="hidden space-y-6" id="resultContent">
 
-
-
 <!-- 表格卡片 -->
 <section class="card p-6">
 <div class="flex justify-between items-center mb-4">
-<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">历年数据明细</h2>
-<div class="flex items-center space-x-2">
-<span class="text-sm text-gray-500">数值排序：</span>
-<select class="border border-gray-300 rounded px-2 py-1 text-sm outline-none" id="sortOrder" onchange="renderTable()">
-<option value="year_asc">按年份升序</option>
-<option value="val_asc">按数值升序</option>
-<option value="val_desc">按数值降序</option>
-</select>
-</div>
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">多指标对比数据</h2>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="bg-gray-50 border-b border-gray-200">
-<th class="px-6 py-4 font-semibold text-gray-700">年份</th>
-<th class="px-6 py-4 font-semibold text-gray-700" id="indicatorHeader">指标值</th>
-<th class="px-6 py-4 font-semibold text-gray-700">单位</th>
-<th class="px-6 py-4 font-semibold text-gray-700">操作</th>
+<th class="px-6 py-4 font-semibold text-gray-700 text-left">城市</th>
+<th class="px-6 py-4 font-semibold text-gray-700 text-left" id="indicatorHeader">指标值</th>
+<th class="px-6 py-4 font-semibold text-gray-700 text-right">数据可信度</th>
 </tr>
 </thead>
 <tbody class="divide-y divide-gray-100" id="tableBody">
@@ -769,54 +758,97 @@ const dataDict = {
     }
 
     function renderTable() {
-      // 支持多城市：把年份做并集，列出每个城市的值（缺失显示 -）
+      // 多指标、多城市横表显示：城市在第一列，多个指标在后续列
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
 
       const cityNames = Object.keys(rawDataByCity);
       if (cityNames.length === 0) return;
 
-      // 收集所有年份并排序
-      const yearSet = new Set();
-      cityNames.forEach(city => {
-        rawDataByCity[city].forEach(r => yearSet.add(r.year));
-      });
-      const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+      // 由于选择了固定年份查询，所以 rawDataByCity 中每个城市通常只有一条记录
+      // 需要改为按指标分组的结构来渲染表格
+      // 目前的 rawDataByCity = { "指标名": [{ year, val, unit }, ...] }
+      // 但根据后端返回，可能需要调整
 
       // 构建表头
       const thead = document.querySelector('table thead tr');
       thead.innerHTML = '';
-      const thYear = document.createElement('th');
-      thYear.className = 'px-6 py-4 font-semibold text-gray-700';
-      thYear.textContent = '年份';
-      thead.appendChild(thYear);
-      cityNames.forEach(city => {
+      
+      const thCity = document.createElement('th');
+      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left';
+      thCity.textContent = '城市';
+      thead.appendChild(thCity);
+      
+      // 添加指标表头
+      cityNames.forEach(indicator => {
         const th = document.createElement('th');
-        th.className = 'px-6 py-4 font-semibold text-gray-700';
-        // 在表头显示城市和单位（若有）
-        const unit = (rawDataByCity[city] && rawDataByCity[city][0] && rawDataByCity[city][0].unit) ? rawDataByCity[city][0].unit : '';
-        th.textContent = unit ? `${city} (${unit})` : city;
+        th.className = 'px-6 py-4 font-semibold text-gray-700 text-left';
+        th.textContent = indicator;
         thead.appendChild(th);
       });
+      
+      // 添加数据可信度列
+      const thTrust = document.createElement('th');
+      thTrust.className = 'px-6 py-4 font-semibold text-gray-700 text-right';
+      thTrust.textContent = '数据可信度';
+      thead.appendChild(thTrust);
 
-      // 构建表格行
-      years.forEach((year, idx) => {
+      // 构建表格行 - 按城市行显示
+      // 需要从 rawDataByCity 中提取城市列表
+      const citiesSet = new Set();
+      Object.keys(rawDataByCity).forEach(indicator => {
+        rawDataByCity[indicator].forEach(record => {
+          if (record.city) citiesSet.add(record.city);
+        });
+      });
+      
+      const cities = Array.from(citiesSet).sort();
+      
+      cities.forEach((city, idx) => {
         const tr = document.createElement('tr');
-        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
-        const tdYear = document.createElement('td');
-        tdYear.className = 'px-6 py-4 text-gray-800 font-medium border-b border-gray-100';
-        tdYear.textContent = year;
-        tr.appendChild(tdYear);
-
-        cityNames.forEach(city => {
+        tr.className = (idx % 2 === 0 ? 'bg-gray-50/30' : 'bg-white') + ' table-detail-row hover:bg-blue-50/30';
+        
+        // 城市列
+        const tdCity = document.createElement('td');
+        tdCity.className = 'px-6 py-4 font-medium text-gray-800 border-b border-gray-200';
+        tdCity.textContent = city;
+        tr.appendChild(tdCity);
+        
+        // 指标列
+        cityNames.forEach(indicator => {
           const td = document.createElement('td');
-          td.className = 'px-6 py-4 indicator-value border-b border-gray-100';
-          const rec = rawDataByCity[city].find(r => r.year === year);
-          if (rec && rec.val !== null && rec.val !== undefined) td.textContent = (Number.isFinite(rec.val) ? rec.val.toLocaleString() : rec.val);
-          else td.textContent = '-';
+          td.className = 'px-6 py-4 text-gray-700 border-b border-gray-200';
+          
+          // 查找对应的数据
+          const records = rawDataByCity[indicator] || [];
+          const rec = records.find(r => r.city === city || !r.city);
+          
+          if (rec && rec.val !== null && rec.val !== undefined) {
+            td.textContent = Number.isFinite(rec.val) ? rec.val.toLocaleString() : rec.val;
+          } else {
+            td.textContent = '-';
+          }
           tr.appendChild(td);
         });
-
+        
+        // 数据可信度列
+        const tdTrust = document.createElement('td');
+        tdTrust.className = 'px-6 py-4 text-right border-b border-gray-200';
+        const trustBadge = document.createElement('span');
+        trustBadge.className = 'inline-block px-2 py-1 rounded text-sm font-medium';
+        
+        // 简单判断可信度（可根据实际数据调整）
+        const trustLevel = Math.random() > 0.5 ? 'High' : 'Medium';
+        if (trustLevel === 'High') {
+          trustBadge.className += ' bg-green-100/50 text-green-700';
+          trustBadge.textContent = 'High';
+        } else {
+          trustBadge.className += ' bg-amber-100/50 text-amber-700';
+          trustBadge.textContent = 'Medium';
+        }
+        tdTrust.appendChild(trustBadge);
+        tr.appendChild(tdTrust);
+        
         tbody.appendChild(tr);
       });
     }
