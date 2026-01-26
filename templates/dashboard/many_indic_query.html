@@ -797,11 +797,21 @@ const dataDict = {
       thCity.textContent = '城市';
       thead.appendChild(thCity);
       
-      // 添加指标表头
+      // 添加指标表头 - 包含单位信息
       indicators.forEach(indicator => {
         const th = document.createElement('th');
         th.className = 'px-6 py-4 font-semibold text-gray-700 text-center bg-gray-50 border-b border-gray-200';
-        th.textContent = indicator;
+        
+        // 获取该指标的单位（从任意一个有数据的城市中获取）
+        let unit = '';
+        for (let city of cities) {
+          if (rawDataByCity[city][indicator] && rawDataByCity[city][indicator].unit) {
+            unit = rawDataByCity[city][indicator].unit;
+            break;
+          }
+        }
+        
+        th.textContent = unit ? `${indicator}(${unit})` : indicator;
         thead.appendChild(th);
       });
 
@@ -825,7 +835,9 @@ const dataDict = {
           if (indicatorData && indicatorData.val !== null && indicatorData.val !== undefined && indicatorData.val !== '-') {
             const val = Number(indicatorData.val);
             if (Number.isFinite(val)) {
-              td.textContent = val.toLocaleString();
+              const displayText = val.toLocaleString();
+              const unit = indicatorData.unit ? indicatorData.unit : '';
+              td.textContent = unit ? `${displayText}${unit}` : displayText;
             } else {
               td.textContent = '-';
               td.className += ' text-gray-400';
