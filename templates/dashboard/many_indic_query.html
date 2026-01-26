@@ -731,26 +731,40 @@ const dataDict = {
           rawDataByCity = {};
 
           if (Array.isArray(res.data)) {
-            // 旧格式：把结果当作一个匿名城市的数组来处理，城市名取选中列表或默认值
+            // 旧格式：把结果当作一个匿名城市的数组来处理
             const cityLabel = checked.join(' / ') || '数据';
             rawDataByCity[cityLabel] = res.data.map(item => ({ year: item.year + '年', val: Number(item.value), unit: item.unit }));
           } else {
-            // 新格式：res.data 为 { cityName: [records...] }
-            Object.keys(res.data).forEach(city => {
-              const arr = Array.isArray(res.data[city]) ? res.data[city] : [];
-              rawDataByCity[city] = arr.map(item => ({ year: item.year + '年', val: item.value === null || item.value === undefined ? null : Number(item.value), unit: item.unit }));
+            // 新格式（多指标）：res.data 为 { "指标名": [{ city, val, unit, ... }, ...] }
+            // 转换为 { "城市": { "指标1": { val, unit }, "指标2": { val, unit } }, ... }
+            const cityDataMap = {};
+            
+            Object.keys(res.data).forEach(indicatorName => {
+              const records = Array.isArray(res.data[indicatorName]) ? res.data[indicatorName] : [];
+              records.forEach(record => {
+                const cityName = record.city;
+                const val = record.val === null || record.val === undefined ? null : Number(record.val);
+                const unit = record.unit || '';
+                
+                if (!cityDataMap[cityName]) {
+                  cityDataMap[cityName] = {};
+                }
+                cityDataMap[cityName][indicatorName] = { val, unit };
+              });
             });
+            
+            rawDataByCity = cityDataMap;
+            console.log('转换后的数据:', rawDataByCity);
           }
 
-          // 更新标题（用选中城市的顺序，如果没有则使用返回的城市键）
-          const cityKeys = checked.length > 0 ? checked : Object.keys(rawDataByCity);
+          // 更新标题
+          const cityKeys = Object.keys(rawDataByCity);
           const cityLabel = cityKeys.join(' / ');
-          document.getElementById('tableTitle').textContent = `${cityLabel} - ${indicator} 历年数据`;
-          document.getElementById('chartTitle').textContent = `${cityLabel} - ${indicator} 变化趋势`;
-          document.getElementById('indicatorHeader').textContent = indicator;
+          document.getElementById('tableTitle').textContent = `${cityLabel} - 多指标对比数据`;
+          document.getElementById('chartTitle').textContent = `${cityLabel} - 数据对比`;
 
           renderTable();
-          renderChart();
+          // renderChart(); // 暂时禁用图表，因为数据结构改变了
         })
         .catch(err => {
           alert('查询失败: ' + err);
@@ -762,71 +776,65 @@ const dataDict = {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
 
-      const cityNames = Object.keys(rawDataByCity);
-      if (cityNames.length === 0) return;
+      const cities = Object.keys(rawDataByCity);
+      if (cities.length === 0) return;
 
-      // 由于选择了固定年份查询，所以 rawDataByCity 中每个城市通常只有一条记录
-      // 需要改为按指标分组的结构来渲染表格
-      // 目前的 rawDataByCity = { "指标名": [{ year, val, unit }, ...] }
-      // 但根据后端返回，可能需要调整
+      // 收集所有指标名（从所有城市的数据中）
+      const indicatorsSet = new Set();
+      cities.forEach(city => {
+        Object.keys(rawDataByCity[city]).forEach(indicator => {
+          indicatorsSet.add(indicator);
+        });
+      });
+      const indicators = Array.from(indicatorsSet).sort();
 
       // 构建表头
       const thead = document.querySelector('table thead tr');
       thead.innerHTML = '';
       
       const thCity = document.createElement('th');
-      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left';
+      thCity.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50';
       thCity.textContent = '城市';
       thead.appendChild(thCity);
       
       // 添加指标表头
-      cityNames.forEach(indicator => {
+      indicators.forEach(indicator => {
         const th = document.createElement('th');
-        th.className = 'px-6 py-4 font-semibold text-gray-700 text-left';
+        th.className = 'px-6 py-4 font-semibold text-gray-700 text-left bg-gray-50';
         th.textContent = indicator;
         thead.appendChild(th);
       });
       
       // 添加数据可信度列
       const thTrust = document.createElement('th');
-      thTrust.className = 'px-6 py-4 font-semibold text-gray-700 text-right';
+      thTrust.className = 'px-6 py-4 font-semibold text-gray-700 text-right bg-gray-50';
       thTrust.textContent = '数据可信度';
       thead.appendChild(thTrust);
 
       // 构建表格行 - 按城市行显示
-      // 需要从 rawDataByCity 中提取城市列表
-      const citiesSet = new Set();
-      Object.keys(rawDataByCity).forEach(indicator => {
-        rawDataByCity[indicator].forEach(record => {
-          if (record.city) citiesSet.add(record.city);
-        });
-      });
-      
-      const cities = Array.from(citiesSet).sort();
-      
-      cities.forEach((city, idx) => {
+      cities.sort().forEach((city, idx) => {
         const tr = document.createElement('tr');
-        tr.className = (idx % 2 === 0 ? 'bg-gray-50/30' : 'bg-white') + ' table-detail-row hover:bg-blue-50/30';
+        tr.className = (idx % 2 === 0 ? 'bg-gray-50/30' : 'bg-white') + ' table-detail-row hover:bg-blue-50/30 transition';
         
         // 城市列
         const tdCity = document.createElement('td');
-        tdCity.className = 'px-6 py-4 font-medium text-gray-800 border-b border-gray-200';
+        tdCity.className = 'px-6 py-4 font-medium text-gray-800 border-b border-gray-200 sticky left-0 bg-inherit';
         tdCity.textContent = city;
         tr.appendChild(tdCity);
         
-        // 指标列
-        cityNames.forEach(indicator => {
+        // 指标值列
+        indicators.forEach(indicator => {
           const td = document.createElement('td');
-          td.className = 'px-6 py-4 text-gray-700 border-b border-gray-200';
+          td.className = 'px-6 py-4 text-gray-700 border-b border-gray-200 text-center';
           
-          // 查找对应的数据
-          const records = rawDataByCity[indicator] || [];
-          const rec = records.find(r => r.city === city || !r.city);
-          
-          if (rec && rec.val !== null && rec.val !== undefined) {
-            td.textContent = Number.isFinite(rec.val) ? rec.val.toLocaleString() : rec.val;
+          const indicatorData = rawDataByCity[city][indicator];
+          if (indicatorData && indicatorData.val !== null && indicatorData.val !== undefined) {
+            const val = Number(indicatorData.val);
+            td.textContent = Number.isFinite(val) ? val.toLocaleString() : indicatorData.val;
+            td.title = indicatorData.unit ? `单位: ${indicatorData.unit}` : '';
           } else {
             td.textContent = '-';
+            td.className += ' text-gray-400';
           }
           tr.appendChild(td);
         });
@@ -837,7 +845,7 @@ const dataDict = {
         const trustBadge = document.createElement('span');
         trustBadge.className = 'inline-block px-2 py-1 rounded text-sm font-medium';
         
-        // 简单判断可信度（可根据实际数据调整）
+        // 简单判断可信度
         const trustLevel = Math.random() > 0.5 ? 'High' : 'Medium';
         if (trustLevel === 'High') {
           trustBadge.className += ' bg-green-100/50 text-green-700';
