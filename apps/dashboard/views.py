@@ -6,7 +6,7 @@ from django.db import IntegrityError
 
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
-import json
+import json,re
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
@@ -277,6 +277,7 @@ def save_to_database(rows_data):
             source = group.get('source')
             note = group.get('note')
             name_zh = group.get('name_zh')
+            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
             name_en = INDIMAP.get(name_zh)
 
             Indicator.objects.create(
@@ -287,7 +288,7 @@ def save_to_database(rows_data):
                 value=value or 0,
                 name_en=name_en or '',
                 note=note or '',
-                name_zh= name_zh or '',  # 备注直接写入 name_zh
+                name_zh= name_zh or '',  
                 input_form=Indicator.InputForm.INPUT,
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
