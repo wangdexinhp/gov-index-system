@@ -562,10 +562,12 @@ def many_indicator_city_query(request):
     
     # 构建指标名转换成英文名
     indicator_en_list = []
+    indicator_zh_to_en = {}  # 保存中英文映射
     for indicator_zh in indicator_zh_list:
         indicator_en = INDIMAP.get(indicator_zh)
         if indicator_en:
             indicator_en_list.append(indicator_en)
+            indicator_zh_to_en[indicator_en] = indicator_zh
             print(f"指标映射: {indicator_zh} -> {indicator_en}")
         else:
             print(f"未找到指标英文名映射: {indicator_zh}")
@@ -584,6 +586,7 @@ def many_indicator_city_query(request):
     
     # 解析多个城市（用逗号分隔）
     city_ids = []
+    city_id_to_name = {}  # 保存城市ID到名字的映射
     if citys_param:
         city_names = [name.strip() for name in citys_param.split(',') if name.strip()]        
         for city_name in city_names:
@@ -591,6 +594,7 @@ def many_indicator_city_query(request):
             city_id = city_name_to_code.get(city_key)
             if city_id:
                 city_ids.append(city_id)
+                city_id_to_name[city_id] = city_name
                 print(f"城市映射: {city_name} -> {city_id}")
             else:
                 print(f"未找到城市代码: {city_name}")
@@ -615,24 +619,41 @@ def many_indicator_city_query(request):
     # 按指标分组返回数据：{ "指标名": [{ "city": "城市名", "val": 值, "unit": 单位 }, ...] }
     result_data = {}
     
+    # 初始化：为所有指标和城市创建条目，默认值为 "-"
+    for indicator_en in indicator_en_list:
+        indicator_zh = indicator_zh_to_en[indicator_en]
+        result_data[indicator_zh] = []
+        # 为每个城市创建一个条目
+        for city_id in city_ids:
+            city_name = city_id_to_name.get(city_id) or get_city_name_by_code(city_id)
+            result_data[indicator_zh].append({
+                'city': city_name,
+                'val': '-',
+                'unit': INDIMAP_UNIT.get(indicator_en, {}).get('unit', ''),
+                'note': '',
+                'source': '',
+            })
+    
+    # 填充查询到的数据
     for ind in indicators:
         city_code = ind.city_id
-        city_name = get_city_name_by_code(city_code)
-        indicator_name = ind.name_zh  # 用中文名作为 key
+        city_name = city_id_to_name.get(city_code) or get_city_name_by_code(city_code)
+        indicator_zh = indicator_zh_to_en.get(ind.name_en, ind.name_zh)
         
         # 获取单位
         unit = INDIMAP_UNIT.get(ind.name_en, {}).get('unit', '')
         
-        if indicator_name not in result_data:
-            result_data[indicator_name] = []
-        
-        result_data[indicator_name].append({
-            'city': city_name,
-            'val': ind.value,
-            'unit': unit or '',
-            'note': ind.note or '',
-            'source': ind.source or '',
-        })
+        # 找到对应的条目并更新
+        for i, record in enumerate(result_data[indicator_zh]):
+            if record['city'] == city_name:
+                result_data[indicator_zh][i] = {
+                    'city': city_name,
+                    'val': ind.value,
+                    'unit': unit or '',
+                    'note': ind.note or '',
+                    'source': ind.source or '',
+                }
+                break
     
     return JsonResponse({
         'success': True,
