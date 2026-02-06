@@ -681,11 +681,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button: clear selections and clear table inputs
         const resetBtn = document.getElementById('reset-button');
         if (resetBtn) resetBtn.addEventListener('click', function() {
-          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { 
-            cb.checked = false;
-            globalSelectedCities.delete(cb.value);
+          const inputs = document.querySelectorAll('#manual-section table tbody input[type="text"]');
+          const selects = document.querySelectorAll('#manual-section table tbody select');
+          
+          console.log('[重置] 找到输入框数量:', inputs.length, '下拉框数量:', selects.length);
+            // 清空所有数值和备注输入框
+          inputs.forEach(input => {
+            input.value = '';
           });
-          renderTableRows();
+          
+          // 重置所有下拉框到默认值
+          selects.forEach(select => {
+            select.selectedIndex = 0;
+          });
+          
+          // 更新进度条
+          updateProgress();
+
+
+          // document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { 
+          //   cb.checked = false;
+          //   globalSelectedCities.delete(cb.value);
+          // });
+          // renderTableRows();
         });
 
         // Form submit: serialize table rows into hidden input as JSON
