@@ -10,9 +10,6 @@ urlpatterns = [
     path('single-indicator-city-query/', views.dashboard_single_indicator_city_query, name='single_indicator_query'),
     path('many-indicator-query/', views.dashboard_many_indicator_query, name='many_indicator_query'),
 
-
-
-
     path('profile/', views.profile, name='profile'),
     path('settings/', views.settings, name='settings'),
     path('settings/generate-api-key/', views.generate_api_key, name='generate_api_key'),
@@ -28,5 +25,4 @@ urlpatterns = [
     path('many_indicator_city_query/', views.many_indicator_city_query, name='many_indicator_city_query'),
     
     path('upload_excel/', views.upload_excel, name='upload_excel'),
-
 ] 

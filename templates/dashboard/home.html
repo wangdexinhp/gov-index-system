@@ -115,8 +115,11 @@
           </div>
         </div>
         <div class="min-w-0">
-          <label class="block text-sm font-medium text-yellow-600 mb-2">选择城市 (多选)</label>
-          <div id="city-list" class="bg-white border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto max-w-sm">
+          <label id="city-label" class="block text-sm font-medium text-yellow-600 mb-2 cursor-pointer flex items-center">
+            <iconify-icon id="city-toggle-icon" class="text-lg mr-2" icon="mdi:chevron-right"></iconify-icon>
+            选择城市 (多选)
+          </label>
+          <div id="city-list" class="bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300" style="max-height: 48px;">
             <div class="flex justify-end mb-2 space-x-2">
               <button type="button" id="select-all-cities" class="text-xs text-black hover:text-black">全选</button>
               <button type="button" id="deselect-all-cities" class="text-xs text-black hover:text-black">取消全选</button>
@@ -163,10 +166,13 @@
 
 <!-- 二级筛选（多选）：仅在选择区域新增一列，初始内容由一级选择填充 -->
 <div class="min-w-0 overflow-hidden">
-  <label class="block text-sm font-medium text-yellow-500 mb-2">筛选指标（多选）</label>
+  <label id="indicator-label" class="block text-sm font-medium text-yellow-500 mb-2 cursor-pointer flex items-center">
+    <iconify-icon id="indicator-toggle-icon" class="text-lg mr-2" icon="mdi:chevron-right"></iconify-icon>
+    筛选指标（多选）
+  </label>
   <div class="relative">
     <!-- replaced native multi-select with checkbox panel for easier multi-select UX -->
-    <div id="indicator-subfilter" class="w-full bg-white border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto"></div>
+    <div id="indicator-subfilter" class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300" style="max-height: 48px;"></div>
   </div>
 </div>
 </div>
@@ -375,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 计算总指标数和更新进度的函数
       function updateProgress() {
       // 只统计“数值”和“备注”字段（通过 placeholder 选择，避免把“去年参考”计入）
-      const allInputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"], #manual-section table tbody input[placeholder="备注"]');
+      const allInputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"]');
       const totalIndicators = allInputs.length;
 
       // 统计有值的输入框
@@ -532,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
           cities.forEach(city => {
             const tr = document.createElement('tr');
-            tr.className = 'border-b border-gray-600 hover:bg-gray-300 transition';
+            tr.className = 'border-b border-gray-600 hover:bg-white transition';
             const tdCity = document.createElement('td');
             tdCity.className = 'border border-gray-600 px-4 py-3 text-black font-medium bg-gray-750';
             tdCity.textContent = city;
@@ -551,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
               const valueName = 'data[' + cityKey + '][' + indKey + '][value]';
               const valueId = 'input-value-' + cityKey + '-' + indKey;
               tdVal.innerHTML = '<label for="' + valueId + '" class="sr-only">数值</label>' +
-                '<input id="' + valueId + '" name="' + valueName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
+                '<input id="' + valueId + '" name="' + valueName + '" class="w-full bg-white border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="数值" type="text"/>';
               tr.appendChild(tdVal);
 
               const tdNote = document.createElement('td');
@@ -559,13 +565,13 @@ document.addEventListener('DOMContentLoaded', function() {
               const noteName = 'data[' + cityKey + '][' + indKey + '][note]';
               const noteId = 'input-note-' + cityKey + '-' + indKey;
               tdNote.innerHTML = '<label for="' + noteId + '" class="sr-only">备注</label>' +
-                '<input id="' + noteId + '" name="' + noteName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
+                '<input id="' + noteId + '" name="' + noteName + '" class="w-full bg-white border border-gray-500 rounded px-1 py-1 text-white text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none" placeholder="备注" type="text"/>';
               tr.appendChild(tdNote);
 
               const tdSource = document.createElement('td');
               tdSource.className = 'border border-gray-600 px-2 py-2';
               const sourceName = 'data[' + cityKey + '][' + indKey + '][source]';
-              tdSource.innerHTML = '<select name="' + sourceName + '" class="w-full bg-gray-300 border border-gray-500 rounded px-1 py-1 text-gray-500 text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="CITY_STAT_YB">地市统计年鉴</option>\n<option value="CITY_YB">地市年鉴</option>\n<option value="CITY_DEV_BUL">地市级发展公报</option>\n<option value="CITY_GOV_RPT">地市级政府工作报告</option>\n<option value="PROV_STAT_YB">省级统计年鉴</option>\n<option value="PROV_YB">省级年鉴</option>\n<option value="PROF_YB">专业年鉴</option>\n<option value="SPECIAL_RPT">专项报告</option>\n<option value="GOV_INFO_RPT">政府信息公开报告</option>\n</select>';
+              tdSource.innerHTML = '<select name="' + sourceName + '" class="w-full bg-white border border-gray-500 rounded px-1 py-1 text-gray-500 text-xs focus:border-yellow-500 focus:ring-1 focus:ring-yellow-900 outline-none">\n<option value="">选择来源</option>\n<option value="CITY_STAT_YB">地市统计年鉴</option>\n<option value="CITY_YB">地市年鉴</option>\n<option value="CITY_DEV_BUL">地市级发展公报</option>\n<option value="CITY_GOV_RPT">地市级政府工作报告</option>\n<option value="PROV_STAT_YB">省级统计年鉴</option>\n<option value="PROV_YB">省级年鉴</option>\n<option value="PROF_YB">专业年鉴</option>\n<option value="SPECIAL_RPT">专项报告</option>\n<option value="GOV_INFO_RPT">政府信息公开报告</option>\n</select>';
               tr.appendChild(tdSource)
 
               const tdRef = document.createElement('td');
@@ -643,6 +649,15 @@ document.addEventListener('DOMContentLoaded', function() {
         provSel.addEventListener('change', function() {
           // 更新城市列表，但保留已选城市的状态（不清空表格）
           renderCitiesForProvince(this.value);
+          // Auto-open city list when province is selected
+          const cityList = document.getElementById('city-list');
+          const cityToggleIcon = document.getElementById('city-toggle-icon');
+          if (cityList && this.value !== '') {
+            cityList.style.maxHeight = '160px';
+            cityList.style.overflowY = 'auto';
+            if (cityToggleIcon) cityToggleIcon.setAttribute('icon', 'mdi:chevron-down');
+            window.cityPanelExpanded = true;
+          }
         });
 
         // Select all / deselect all buttons
@@ -987,6 +1002,12 @@ function showAutoCloseMessage(message, type = 'success') {
         checkbox.checked = window.globalSelectedIndicators.includes(checkbox.value);
       });
       
+      // Auto-open the indicator subfilter when category is selected
+      const toggleIcon = document.getElementById('indicator-toggle-icon');
+      sub.style.maxHeight = '160px';
+      sub.style.overflowY = 'auto';
+      if (toggleIcon) toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+      window.indicatorPanelExpanded = true;
       // DO NOT call buildTableHeaders or renderTableRows here - only update the checkbox panel
     });
 
@@ -1023,15 +1044,62 @@ function showAutoCloseMessage(message, type = 'success') {
       }
     });
 
-    // Default: select 'admin' group and populate subfilter, but DO NOT auto-check indicators
+    // Default: select 'admin' group and populate subfilter, but keep it closed initially
     (function setDefaultIndicatorGroup() {
       const defaultGroup = 'admin';
       if (indicatorFilter) indicatorFilter.value = defaultGroup;
-      // populate checkboxes but do not select any — user must choose
+      // populate checkboxes but keep panel closed
       populateSubfilter(defaultGroup);
       // leave headers empty until user explicitly checks indicators
       if (window.buildTableHeaders) window.buildTableHeaders([]);
       if (window.renderTableRows) window.renderTableRows();
+      window.indicatorPanelExpanded = false;
+    })();
+
+    // Toggle indicator subfilter panel on label click
+    (function setupIndicatorToggle() {
+      const label = document.getElementById('indicator-label');
+      const subfilter = document.getElementById('indicator-subfilter');
+      const toggleIcon = document.getElementById('indicator-toggle-icon');
+      
+      if (label && subfilter) {
+        label.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.indicatorPanelExpanded = !window.indicatorPanelExpanded;
+          if (window.indicatorPanelExpanded) {
+            subfilter.style.maxHeight = '160px';
+            subfilter.style.overflowY = 'auto';
+            toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+          } else {
+            subfilter.style.maxHeight = '48px';
+            subfilter.style.overflowY = 'hidden';
+            toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+          }
+        });
+      }
+    })();
+
+    // Toggle city list panel on label click
+    (function setupCityToggle() {
+      const label = document.getElementById('city-label');
+      const cityList = document.getElementById('city-list');
+      const toggleIcon = document.getElementById('city-toggle-icon');
+      
+      if (label && cityList) {
+        label.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.cityPanelExpanded = !window.cityPanelExpanded;
+          if (window.cityPanelExpanded) {
+            cityList.style.maxHeight = '160px';
+            cityList.style.overflowY = 'auto';
+            toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+          } else {
+            cityList.style.maxHeight = '48px';
+            cityList.style.overflowY = 'hidden';
+            toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+          }
+        });
+      }
     })();
   </script>
 </body>
