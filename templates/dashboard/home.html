@@ -66,7 +66,7 @@
 <div>
 <label class="block text-sm font-medium text-yellow-600 mb-2">选择年份</label>
 <div class="relative">
-<select id="year-select" class="w-full bg-white border border-gray-400 rounded-lg py-3 px-4 text-black focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 outline-none">
+<select id="year-select" class="w-full bg-white border border-gray-400 rounded-lg py-3 px-4 text-black text-center focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 outline-none">
 <option>选择年份</option>
 <!-- <option>2024年</option>
 <option>2023年</option> -->
@@ -76,8 +76,8 @@
         <div>
           <label class="block text-sm font-medium text-yellow-600 mb-2">选择省份</label>
           <div class="relative">
-            <select id="province-select" class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 text-black focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
-              <option value="">-- 请选择省份 --</option>
+            <select id="province-select" class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 text-black text-center focus:border-yellow-500 focus:ring-2 focus:ring-yellow-900 outline-none">
+              <option value="">请选择省份</option>
               <option value="北京市">北京市</option>
               <option value="天津市">天津市</option>
               <option value="上海市">上海市</option>
@@ -119,21 +119,24 @@
             <iconify-icon id="city-toggle-icon" class="text-lg mr-2" icon="mdi:chevron-right"></iconify-icon>
             选择城市 (多选)
           </label>
-          <div id="city-list" class="bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300" style="max-height: 48px;">
-            <div class="flex justify-end mb-2 space-x-2">
-              <button type="button" id="select-all-cities" class="text-xs text-black hover:text-black">全选</button>
-              <button type="button" id="deselect-all-cities" class="text-xs text-black hover:text-black">取消全选</button>
+          <div id="city-list" class="bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300 cursor-pointer" style="height: 52px;">
+            <div id="city-placeholder" class="text-black text-base text-center">请选择城市</div>
+            <div id="city-content" class="hidden">
+              <div class="flex justify-end mb-2 space-x-2">
+                <button type="button" id="select-all-cities" class="text-xs text-black hover:text-black">全选</button>
+                <button type="button" id="deselect-all-cities" class="text-xs text-black hover:text-black">取消全选</button>
+              </div>
+              <div class="space-y-2" id="city-items">
+                <!-- 城市项由前端渲染 -->
+              </div>
+              <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
             </div>
-            <div class="space-y-2" id="city-items">
-              <!-- 城市项由前端渲染 -->
-            </div>
-            <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
           </div>
         </div>
 <div class="min-w-0 overflow-hidden">
   <label class="block text-sm font-medium text-yellow-500 mb-2">指标组</label>
   <div class="relative">
-    <select class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 text-black focus:ring-2  outline-none" id="indicator-filter">
+    <select class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 text-black text-center focus:ring-2  outline-none" id="indicator-filter">
       <!-- <option value="">全部指标</option>
       <option value="population">人口相关</option>
       <option value="enterprise">企业相关</option>
@@ -172,7 +175,10 @@
   </label>
   <div class="relative">
     <!-- replaced native multi-select with checkbox panel for easier multi-select UX -->
-    <div id="indicator-subfilter" class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300" style="max-height: 48px;"></div>
+    <div id="indicator-subfilter" class="w-full bg-white border border-gray-600 rounded-lg py-3 px-4 overflow-hidden transition-all duration-300 cursor-pointer" style="height: 52px;">
+      <div id="indicator-placeholder" class="text-black text-base text-center">请筛选指标</div>
+      <div id="indicator-content" class="hidden"></div>
+    </div>
   </div>
 </div>
 </div>
@@ -652,9 +658,14 @@ document.addEventListener('DOMContentLoaded', function() {
           // Auto-open city list when province is selected
           const cityList = document.getElementById('city-list');
           const cityToggleIcon = document.getElementById('city-toggle-icon');
+          const placeholder = document.getElementById('city-placeholder');
+          const content = document.getElementById('city-content');
           if (cityList && this.value !== '') {
-            cityList.style.maxHeight = '160px';
+            placeholder.classList.add('hidden');
+            content.classList.remove('hidden');
+            cityList.style.height = '200px';
             cityList.style.overflowY = 'auto';
+            cityList.style.cursor = 'default';
             if (cityToggleIcon) cityToggleIcon.setAttribute('icon', 'mdi:chevron-down');
             window.cityPanelExpanded = true;
           }
@@ -930,9 +941,9 @@ function showAutoCloseMessage(message, type = 'success') {
 
     // Populate subfilter options when a category (指标组) is chosen.
     function populateSubfilter(categoryKey) {
-      const sub = document.getElementById('indicator-subfilter');
-      if (!sub) return;
-      sub.innerHTML = '';
+      const content = document.getElementById('indicator-content');
+      if (!content) return;
+      content.innerHTML = '';
       if (!categoryKey || categoryKey === '') {
         // leave empty so user can choose nothing
         return;
@@ -944,15 +955,15 @@ function showAutoCloseMessage(message, type = 'success') {
       ctrlDiv.className = 'flex justify-end mb-2 space-x-2';
       const btnAll = document.createElement('button');
       btnAll.type = 'button';
-      btnAll.className = 'text-xs text-black hover:text-white';
+      btnAll.className = 'text-xs text-black hover:text-black';
       btnAll.textContent = '全选';
       const btnNone = document.createElement('button');
       btnNone.type = 'button';
-      btnNone.className = 'text-xs text-black hover:text-white';
+      btnNone.className = 'text-xs text-black hover:text-black';
       btnNone.textContent = '取消全选';
   ctrlDiv.appendChild(btnAll);
   ctrlDiv.appendChild(btnNone);
-      sub.appendChild(ctrlDiv);
+      content.appendChild(ctrlDiv);
 
   const listDiv = document.createElement('div');
   // ensure a single vertical column (no auto-wrapping into multiple columns)
@@ -980,18 +991,18 @@ function showAutoCloseMessage(message, type = 'success') {
         listDiv.appendChild(row);
       });
 
-      sub.appendChild(listDiv);
+      content.appendChild(listDiv);
 
       // attach control actions
       btnAll.addEventListener('click', function() {
-        sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = true);
+        content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = true);
         // trigger header/body rebuild
-        const selected = Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value);
+        const selected = Array.from(content.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value);
         if (window.buildTableHeaders) window.buildTableHeaders(selected);
         if (window.renderTableRows) window.renderTableRows();
       });
       btnNone.addEventListener('click', function() {
-        sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
+        content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
         if (window.buildTableHeaders) window.buildTableHeaders([]);
         if (window.renderTableRows) window.renderTableRows();
       });
@@ -1002,12 +1013,12 @@ function showAutoCloseMessage(message, type = 'success') {
     
     indicatorFilter.addEventListener('change', function() {
       const selectedCategory = this.value;
-      const sub = document.getElementById('indicator-subfilter');
-      if (!sub) return;
+      const content = document.getElementById('indicator-content');
+      if (!content) return;
       
       if (selectedCategory === '') {
         // restore initial headers and clear subfilter, but don't touch the table rows
-        sub.innerHTML = '';
+        content.innerHTML = '';
         return;
       }
 
@@ -1015,17 +1026,24 @@ function showAutoCloseMessage(message, type = 'success') {
       populateSubfilter(selectedCategory);
       
       // Mark checkboxes that match indicators already in the global selected list
-      const newCheckboxes = Array.from(sub.querySelectorAll('.indicator-checkbox'));
+      const newCheckboxes = Array.from(content.querySelectorAll('.indicator-checkbox'));
       newCheckboxes.forEach(checkbox => {
         checkbox.checked = window.globalSelectedIndicators.includes(checkbox.value);
       });
       
       // Auto-open the indicator subfilter when category is selected
       const toggleIcon = document.getElementById('indicator-toggle-icon');
-      sub.style.maxHeight = '160px';
-      sub.style.overflowY = 'auto';
-      if (toggleIcon) toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-      window.indicatorPanelExpanded = true;
+      const subfilter = document.getElementById('indicator-subfilter');
+      const placeholder = document.getElementById('indicator-placeholder');
+      if (placeholder && content && subfilter && toggleIcon) {
+        placeholder.classList.add('hidden');
+        content.classList.remove('hidden');
+        subfilter.style.height = '200px';
+        subfilter.style.overflowY = 'auto';
+        subfilter.style.cursor = 'default';
+        toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+        window.indicatorPanelExpanded = true;
+      }
       // DO NOT call buildTableHeaders or renderTableRows here - only update the checkbox panel
     });
 
@@ -1072,6 +1090,13 @@ function showAutoCloseMessage(message, type = 'success') {
       if (window.buildTableHeaders) window.buildTableHeaders([]);
       if (window.renderTableRows) window.renderTableRows();
       window.indicatorPanelExpanded = false;
+      // keep placeholder visible initially
+      const placeholder = document.getElementById('indicator-placeholder');
+      const content = document.getElementById('indicator-content');
+      if (placeholder && content) {
+        placeholder.classList.remove('hidden');
+        content.classList.add('hidden');
+      }
     })();
 
     // Toggle indicator subfilter panel on label click
@@ -1079,42 +1104,76 @@ function showAutoCloseMessage(message, type = 'success') {
       const label = document.getElementById('indicator-label');
       const subfilter = document.getElementById('indicator-subfilter');
       const toggleIcon = document.getElementById('indicator-toggle-icon');
+      const placeholder = document.getElementById('indicator-placeholder');
+      const content = document.getElementById('indicator-content');
+      
+      function toggleIndicatorPanel(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.indicatorPanelExpanded = !window.indicatorPanelExpanded;
+        if (window.indicatorPanelExpanded) {
+          placeholder.classList.add('hidden');
+          content.classList.remove('hidden');
+          subfilter.style.height = '200px';
+          subfilter.style.overflowY = 'auto';
+          subfilter.style.cursor = 'default';
+          toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+        } else {
+          placeholder.classList.remove('hidden');
+          content.classList.add('hidden');
+          subfilter.style.height = '52px';
+          subfilter.style.overflowY = 'hidden';
+          subfilter.style.cursor = 'pointer';
+          toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+        }
+      }
       
       if (label && subfilter) {
-        label.addEventListener('click', function(e) {
-          e.preventDefault();
-          window.indicatorPanelExpanded = !window.indicatorPanelExpanded;
-          if (window.indicatorPanelExpanded) {
-            subfilter.style.maxHeight = '160px';
-            subfilter.style.overflowY = 'auto';
-            toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-          } else {
-            subfilter.style.maxHeight = '48px';
-            subfilter.style.overflowY = 'hidden';
-            toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+        label.addEventListener('click', toggleIndicatorPanel);
+        subfilter.addEventListener('click', function(e) {
+          // 只有在未展开状态下才响应点击
+          if (!window.indicatorPanelExpanded) {
+            toggleIndicatorPanel(e);
           }
         });
       }
     })();
 
-    // Toggle city list panel on label click
+    // Toggle city list panel on label or placeholder click
     (function setupCityToggle() {
       const label = document.getElementById('city-label');
       const cityList = document.getElementById('city-list');
       const toggleIcon = document.getElementById('city-toggle-icon');
+      const placeholder = document.getElementById('city-placeholder');
+      const content = document.getElementById('city-content');
+      
+      function toggleCityPanel(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.cityPanelExpanded = !window.cityPanelExpanded;
+        if (window.cityPanelExpanded) {
+          placeholder.classList.add('hidden');
+          content.classList.remove('hidden');
+          cityList.style.height = '200px';
+          cityList.style.overflowY = 'auto';
+          cityList.style.cursor = 'default';
+          toggleIcon.setAttribute('icon', 'mdi:chevron-down');
+        } else {
+          placeholder.classList.remove('hidden');
+          content.classList.add('hidden');
+          cityList.style.height = '52px';
+          cityList.style.overflowY = 'hidden';
+          cityList.style.cursor = 'pointer';
+          toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+        }
+      }
       
       if (label && cityList) {
-        label.addEventListener('click', function(e) {
-          e.preventDefault();
-          window.cityPanelExpanded = !window.cityPanelExpanded;
-          if (window.cityPanelExpanded) {
-            cityList.style.maxHeight = '160px';
-            cityList.style.overflowY = 'auto';
-            toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-          } else {
-            cityList.style.maxHeight = '48px';
-            cityList.style.overflowY = 'hidden';
-            toggleIcon.setAttribute('icon', 'mdi:chevron-right');
+        label.addEventListener('click', toggleCityPanel);
+        cityList.addEventListener('click', function(e) {
+          // 只有在未展开状态下才响应点击
+          if (!window.cityPanelExpanded) {
+            toggleCityPanel(e);
           }
         });
       }
