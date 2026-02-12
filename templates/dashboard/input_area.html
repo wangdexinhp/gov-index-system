@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const groups = headers ? headers.length : 0;
 
         // 调试输出
-        console.log('[调试] renderTableRows 被调用，选中城市:', cities, '选中指标数:', groups, '指标名:', Array.from(headers).map(h => h.getAttribute('data-indicator')));
+        console.log('[调试] renderTableRows 被调用，选中区县:', areas, '选中指标数:', groups, '指标名:', Array.from(headers).map(h => h.getAttribute('data-indicator')));
 
           if (!areas || areas.length === 0) {
             const tr = document.createElement('tr');
