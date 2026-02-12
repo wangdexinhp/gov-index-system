@@ -27,7 +27,7 @@
 <div class="flex space-x-3 mr-6">
   <a href="/dashboard/" 
       class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
-      指标录入
+      地市指标录入
   </a>
   <a href="/dashboard/area_input" 
       class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
@@ -427,41 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 省份->城市联动：前端渲染城市列表并根据省份过滤（不依赖后端）
     (function() {
-      const provinceCityMap = {
-        '北京市': ['北京市'],
-        '天津市': ['天津市'],
-        '上海市': ['上海市'],
-        '重庆市': ['重庆市'],
-        '河北省': ['石家庄','唐山','秦皇岛','邯郸','保定'],
-        '山西省': ['太原','大同','运城','临汾'],
-        '辽宁省': ['沈阳','大连','鞍山','营口','锦州'],
-        '吉林省': ['长春','吉林','四平','辽源'],
-        '黑龙江省': ['哈尔滨','齐齐哈尔','牡丹江','佳木斯'],
-        '江苏省': ['南京','苏州','无锡','常州','南通'],
-        '浙江省': ['杭州','宁波','温州','绍兴','金华'],
-        '安徽省': ['合肥','芜湖','蚌埠','阜阳'],
-        '福建省': ['福州','厦门','泉州','漳州'],
-        '江西省': ['南昌','赣州','九江','上饶'],
-        '山东省': ['济南','青岛','烟台','淄博','潍坊'],
-        '河南省': ['郑州','洛阳','开封','南阳'],
-        '湖北省': ['武汉','宜昌','襄阳','黄石'],
-        '湖南省': ['长沙','株洲','湘潭','衡阳'],
-        '广东省': ['广州市','深圳市','珠海','佛山','东莞'],
-        '海南省': ['海口','三亚'],
-        '四川省': ['成都','绵阳','德阳','南充'],
-        '贵州省': ['贵阳','遵义','安顺'],
-        '云南省': ['昆明','大理','玉溪'],
-        '陕西省': ['西安','咸阳','宝鸡'],
-        '甘肃省': ['兰州','天水','酒泉'],
-        '青海省': ['西宁'],
-        '内蒙古自治区': ['呼和浩特','包头','鄂尔多斯'],
-        '广西壮族自治区': ['南宁','桂林','柳州','北海'],
-        '西藏自治区': ['拉萨'],
-        '宁夏回族自治区': ['银川'],
-        '新疆维吾尔自治区': ['乌鲁木齐','克拉玛依'],
-        '香港特别行政区': ['香港'],
-        '澳门特别行政区': ['澳门']
-      };
+      let provinceCityMap = {};
 
       // 全局已选城市集合 - 跨省保持选择
       const globalSelectedCities = new Set();
@@ -643,6 +609,22 @@ document.addEventListener('DOMContentLoaded', function() {
       window.buildTableHeaders = buildTableHeaders;
       window.renderTableRows = renderTableRows;
 
+      function loadProvinceCityMap() {
+        return fetch('/dashboard/get-city-map/', {
+          method: 'GET',
+          credentials: 'same-origin'
+        })
+          .then(response => response.json())
+          .then(data => {
+            provinceCityMap = data || {};
+            return provinceCityMap;
+          })
+          .catch(() => {
+            provinceCityMap = {};
+            return provinceCityMap;
+          });
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
         // capture the initial indicators from the static header so we can restore later
         const existingHeaders = Array.from(document.querySelectorAll('#manual-section table thead th[data-indicator]')).map(h => h.getAttribute('data-indicator'));
@@ -650,8 +632,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const provSel = document.getElementById('province-select');
         if (!provSel) return;
-        // initial render: all cities
-        renderCitiesForProvince('');
+        loadProvinceCityMap().then(function() {
+          renderCitiesForProvince('');
+          renderTableRows();
+        });
         provSel.addEventListener('change', function() {
           // 更新城市列表，但保留已选城市的状态（不清空表格）
           renderCitiesForProvince(this.value);
@@ -824,8 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
 
-        // initial table render
-        renderTableRows();
+        // initial table render happens after map load
       });
     })();
 
