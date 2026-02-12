@@ -8,8 +8,8 @@ from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
 import json,re
 from apps.coredata.models.indicator import Indicator
-from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map
-
+from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map,html_area_Map
+    
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
@@ -57,6 +57,26 @@ def dashboard_many_indicator_query(request):
 @require_http_methods(['GET', 'POST'])
 def get_city_map(request):
     return JsonResponse(html_city_Map, safe=False)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def get_area_map(request):
+    city_name = request.GET.get('city') or request.POST.get('city') or ''
+    city_name = city_name.strip()
+    if not city_name:
+        return JsonResponse([], safe=False)
+
+    areas = html_area_Map.get(city_name)
+    if areas is None:
+        if city_name.endswith('市'):
+            areas = html_area_Map.get(city_name.replace('市', ''))
+        else:
+            areas = html_area_Map.get(f"{city_name}市")
+
+    return JsonResponse(areas or [], safe=False)
+
+
 
 
 @login_required
