@@ -14,6 +14,17 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Keep the first column visible while horizontal scrolling */
+    #manual-section table th:first-child,
+    #manual-section table td:first-child {
+      position: sticky;
+      left: 0;
+      background: #ffffff;
+      z-index: 2;
+    }
+    #manual-section table thead th:first-child {
+      z-index: 3;
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -163,21 +174,7 @@
 </div>
 <!-- <p class="text-xs text-gray-400 mt-3">当前日期: 2025年12月11日</p> -->
 </div>
-<!-- 录入进度显示 -->
-<div class="bg-gradient-to-r border border-yellow-500 rounded-xl p-4 mb-8">
-<div class="flex items-center justify-between">
-<div class="flex items-center space-x-3">
-<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
-<div>
-<p class="text-sm text-black">数据录入进度</p>
-<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
-</div>
-</div>
-<div class="w-64 h-3 bg-gray-300 rounded-full overflow-hidden">
-<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
-</div>
-</div>
-</div>
+
 <!-- 功能选项卡 -->
 <div class="mb-6 border-b border-gray-700">
 <div class="flex space-x-8">
@@ -270,6 +267,21 @@
 
 </form>
 
+<!-- 录入进度显示 -->
+<div class="bg-gradient-to-r border border-yellow-500 rounded-xl p-4 mb-8">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
+<div>
+<p class="text-sm text-black">数据录入进度</p>
+<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
+</div>
+</div>
+<div class="w-64 h-3 bg-gray-300 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+</div>
+</div>
+</div>
 
 </main>
 <script>
