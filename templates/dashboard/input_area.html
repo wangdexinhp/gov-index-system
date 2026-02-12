@@ -445,7 +445,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       function getSelectedAreas() {
-        return Array.from(globalSelectedAreas);
+        return Array.from(globalSelectedAreas).map(key => {
+          const parts = String(key).split('||');
+          const city = parts[0] || '';
+          const area = parts.slice(1).join('||');
+          return { key: key, city: city, area: area };
+        }).filter(item => item.city || item.area);
+      }
+
+      function makeAreaKey(city, area) {
+        return String(city || '') + '||' + String(area || '');
       }
 
       function loadAreasForCities(cities) {
@@ -469,11 +478,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         return Promise.all(tasks).then(results => {
-          const merged = new Set();
-          results.forEach(list => {
-            (list || []).forEach(name => merged.add(name));
+          const entries = [];
+          results.forEach((list, idx) => {
+            const city = cities[idx];
+            (list || []).forEach(area => {
+              entries.push({ city: city, area: area });
+            });
           });
-          return Array.from(merged);
+          return entries;
         });
       }
 
@@ -493,26 +505,28 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           empty.classList.add('hidden');
-          const areaSet = new Set(areas);
-          Array.from(globalSelectedAreas).forEach(area => {
-            if (!areaSet.has(area)) {
-              globalSelectedAreas.delete(area);
+          const areaKeySet = new Set(areas.map(item => makeAreaKey(item.city, item.area)));
+          Array.from(globalSelectedAreas).forEach(key => {
+            if (!areaKeySet.has(key)) {
+              globalSelectedAreas.delete(key);
             }
           });
-          areas.forEach(area => {
-            const id = 'area-' + area.replace(/\s|区|县|市/g, '');
+          areas.forEach(item => {
+            const key = makeAreaKey(item.city, item.area);
+            const labelText = String(item.city || '') + '-' + String(item.area || '');
+            const id = 'area-' + labelText.replace(/\s|区|县|市/g, '');
             const div = document.createElement('div');
             div.className = 'flex items-center';
             const input = document.createElement('input');
             input.type = 'checkbox';
             input.className = 'rounded border-gray-600 text-yellow-500 area-checkbox';
-            input.value = area;
+            input.value = key;
             input.id = id;
-            input.checked = globalSelectedAreas.has(area);
+            input.checked = globalSelectedAreas.has(key);
             const label = document.createElement('label');
             label.htmlFor = id;
             label.className = 'ml-2 text-black text-sm';
-            label.textContent = area;
+            label.textContent = labelText;
             div.appendChild(input);
             div.appendChild(label);
             container.appendChild(div);
@@ -558,12 +572,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
 
-          areas.forEach(area => {
+          areas.forEach(item => {
             const tr = document.createElement('tr');
             tr.className = 'border-b border-gray-600 hover:bg-gray-300 transition';
             const tdCity = document.createElement('td');
             tdCity.className = 'border border-gray-600 px-4 py-3 text-black font-medium bg-gray-750';
-            tdCity.textContent = area;
+            tr.dataset.city = item.city || '';
+            tr.dataset.area = item.area || '';
+            tdCity.textContent = String(item.city || '') + '-' + String(item.area || '');
             tr.appendChild(tdCity);
 
             // For each indicator group render: value, note, source, last-year reference (4 cells per group)
@@ -573,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
               // sanitize city and indicator to build safe names
               const indicatorName = headers[group] ? headers[group].getAttribute('data-indicator') || ('indicator' + group) : ('indicator' + group);
               const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
-              const cityKey = sanitize(area);
+              const cityKey = sanitize((item.city || '') + '_' + (item.area || ''));
               const indKey = sanitize(indicatorName);
 
               const valueName = 'data[' + cityKey + '][' + indKey + '][value]';
@@ -753,13 +769,12 @@ document.addEventListener('DOMContentLoaded', function() {
               const province = provSel ? provSel.value : '';
               // 获取所有指标中文名
               const headerEls = document.querySelectorAll('#manual-section table thead th[data-indicator]');
-              const selectedCities = getSelectedCities();
-              const singleCity = selectedCities.length === 1 ? selectedCities[0] : '';
               const indicatorNames = Array.from(headerEls).map(h => h.getAttribute('data-indicator'));
               tbody.querySelectorAll('tr').forEach(tr => {
                 const cityCell = tr.children[0];
                 if (!cityCell) return;
-                const area = cityCell.textContent.trim();
+                const area = tr.dataset.area || '';
+                const city = tr.dataset.city || '';
                 if (!area || area === '未找到要录入的区县') return;
                 let cursor = 1;
                 const groups = [];
@@ -776,7 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   groups.push({ value: val, note: note, source: source, reference: reference, name_zh: name_zh });
                   cursor += 4;
                 }
-                out.push({ city: singleCity, area: area, province: province, year: year, groups: groups });
+                out.push({ city: city, area: area, province: province, year: year, groups: groups });
               });
               return out;
             })();
