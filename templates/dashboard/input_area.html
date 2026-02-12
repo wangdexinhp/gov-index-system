@@ -14,6 +14,18 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Keep the first column visible while horizontal scrolling */
+    #manual-section table th:first-child,
+    #manual-section table td:first-child {
+      position: sticky;
+      left: 0;
+      background: #ffffff;
+      z-index: 2;
+      box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.25);
+    }
+    #manual-section table thead th:first-child {
+      z-index: 3;
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -27,7 +39,7 @@
 <div class="flex space-x-3 mr-6">
   <a href="/dashboard/" 
       class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
-      指标录入
+      地市指标录入
   </a>
   <a href="/dashboard/area_input" 
       class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
@@ -127,6 +139,19 @@
             <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
           </div>
         </div>
+        <div class="min-w-0">
+          <label class="block text-sm font-medium text-yellow-600 mb-2">选择区县 (多选)</label>
+          <div id="area-list" class="bg-white border border-gray-600 rounded-lg p-2 max-h-40 overflow-y-auto max-w-sm">
+            <div class="flex justify-end mb-2 space-x-2">
+              <button type="button" id="select-all-areas" class="text-xs text-black hover:text-black">全选</button>
+              <button type="button" id="deselect-all-areas" class="text-xs text-black hover:text-black">取消全选</button>
+            </div>
+            <div class="space-y-2" id="area-items">
+              <!-- 区县项由前端渲染 -->
+            </div>
+            <div id="area-empty" class="text-gray-400 text-sm p-2 hidden">无可选区县</div>
+          </div>
+        </div>
 <div class="min-w-0 overflow-hidden">
   <label class="block text-sm font-medium text-yellow-500 mb-2">指标组</label>
   <div class="relative">
@@ -150,21 +175,7 @@
 </div>
 <!-- <p class="text-xs text-gray-400 mt-3">当前日期: 2025年12月11日</p> -->
 </div>
-<!-- 录入进度显示 -->
-<div class="bg-gradient-to-r border border-yellow-500 rounded-xl p-4 mb-8">
-<div class="flex items-center justify-between">
-<div class="flex items-center space-x-3">
-<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
-<div>
-<p class="text-sm text-black">数据录入进度</p>
-<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
-</div>
-</div>
-<div class="w-64 h-3 bg-gray-300 rounded-full overflow-hidden">
-<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
-</div>
-</div>
-</div>
+
 <!-- 功能选项卡 -->
 <div class="mb-6 border-b border-gray-700">
 <div class="flex space-x-8">
@@ -257,6 +268,21 @@
 
 </form>
 
+<!-- 录入进度显示 -->
+<div class="bg-gradient-to-r border border-yellow-500 rounded-xl p-4 mb-8">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<iconify-icon class="text-yellow-500 text-2xl" icon="mdi:progress-clock"></iconify-icon>
+<div>
+<p class="text-sm text-black">数据录入进度</p>
+<p class="text-lg font-bold text-yellow-400" id="progress-text">进度：已完成0/48指标</p>
+</div>
+</div>
+<div class="w-64 h-3 bg-gray-300 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+</div>
+</div>
+</div>
 
 </main>
 <script>
@@ -392,41 +418,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 省份->城市联动：前端渲染城市列表并根据省份过滤（不依赖后端）
     (function() {
-      const provinceCityMap = {
-        '北京市': ['北京市'],
-        '天津市': ['天津市'],
-        '上海市': ['上海市'],
-        '重庆市': ['重庆市'],
-        '河北省': ['石家庄','唐山','秦皇岛','邯郸','保定'],
-        '山西省': ['太原','大同','运城','临汾'],
-        '辽宁省': ['沈阳','大连','鞍山','营口','锦州'],
-        '吉林省': ['长春','吉林','四平','辽源'],
-        '黑龙江省': ['哈尔滨','齐齐哈尔','牡丹江','佳木斯'],
-        '江苏省': ['南京','苏州','无锡','常州','南通'],
-        '浙江省': ['杭州','宁波','温州','绍兴','金华'],
-        '安徽省': ['合肥','芜湖','蚌埠','阜阳'],
-        '福建省': ['福州','厦门','泉州','漳州'],
-        '江西省': ['南昌','赣州','九江','上饶'],
-        '山东省': ['济南','青岛','烟台','淄博','潍坊'],
-        '河南省': ['郑州','洛阳','开封','南阳'],
-        '湖北省': ['武汉','宜昌','襄阳','黄石'],
-        '湖南省': ['长沙','株洲','湘潭','衡阳'],
-        '广东省': ['广州市','深圳市','珠海','佛山','东莞'],
-        '海南省': ['海口','三亚'],
-        '四川省': ['成都','绵阳','德阳','南充'],
-        '贵州省': ['贵阳','遵义','安顺'],
-        '云南省': ['昆明','大理','玉溪'],
-        '陕西省': ['西安','咸阳','宝鸡'],
-        '甘肃省': ['兰州','天水','酒泉'],
-        '青海省': ['西宁'],
-        '内蒙古自治区': ['呼和浩特','包头','鄂尔多斯'],
-        '广西壮族自治区': ['南宁','桂林','柳州','北海'],
-        '西藏自治区': ['拉萨'],
-        '宁夏回族自治区': ['银川'],
-        '新疆维吾尔自治区': ['乌鲁木齐','克拉玛依'],
-        '香港特别行政区': ['香港'],
-        '澳门特别行政区': ['澳门']
-      };
+      let provinceCityMap = {};
+      const areaCache = {};
+      const globalSelectedCities = new Set();
+      const globalSelectedAreas = new Set();
 
       function renderCitiesForProvince(prov) {
         const container = document.getElementById('city-items');
@@ -447,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
           input.className = 'rounded border-gray-600 text-yellow-500 city-checkbox';
           input.value = city;
           input.id = id;
+          input.checked = globalSelectedCities.has(city);
           const label = document.createElement('label');
           label.htmlFor = id;
           label.className = 'ml-2 text-black text-sm';
@@ -458,10 +454,97 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       function getSelectedCities() {
-        const checks = Array.from(document.querySelectorAll('.city-checkbox'));
-        const selected = checks.filter(c => c.checked).map(c => c.value);
-        // 如果没有选择城市，返回空数组（不再默认返回全部城市）
-        return selected;
+        return Array.from(globalSelectedCities);
+      }
+
+      function getSelectedAreas() {
+        return Array.from(globalSelectedAreas).map(key => {
+          const parts = String(key).split('||');
+          const city = parts[0] || '';
+          const area = parts.slice(1).join('||');
+          return { key: key, city: city, area: area };
+        }).filter(item => item.city || item.area);
+      }
+
+      function makeAreaKey(city, area) {
+        return String(city || '') + '||' + String(area || '');
+      }
+
+      function loadAreasForCities(cities) {
+        if (!cities || cities.length === 0) {
+          return Promise.resolve([]);
+        }
+        const tasks = cities.map(city => {
+          if (areaCache[city]) {
+            return Promise.resolve(areaCache[city]);
+          }
+          const url = '/dashboard/get-area-map/?city=' + encodeURIComponent(city);
+          return fetch(url, { method: 'GET', credentials: 'same-origin' })
+            .then(response => response.json())
+            .then(data => {
+              areaCache[city] = Array.isArray(data) ? data : [];
+              return areaCache[city];
+            })
+            .catch(() => {
+              areaCache[city] = [];
+              return [];
+            });
+        });
+        return Promise.all(tasks).then(results => {
+          const entries = [];
+          results.forEach((list, idx) => {
+            const city = cities[idx];
+            (list || []).forEach(area => {
+              entries.push({ city: city, area: area });
+            });
+          });
+          return entries;
+        });
+      }
+
+      function renderAreasForCities(cities) {
+        const container = document.getElementById('area-items');
+        const empty = document.getElementById('area-empty');
+        if (!container || !empty) return;
+        container.innerHTML = '';
+        if (!cities || cities.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+        loadAreasForCities(cities).then(areas => {
+          container.innerHTML = '';
+          if (!areas || areas.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+          }
+          empty.classList.add('hidden');
+          const areaKeySet = new Set(areas.map(item => makeAreaKey(item.city, item.area)));
+          Array.from(globalSelectedAreas).forEach(key => {
+            if (!areaKeySet.has(key)) {
+              globalSelectedAreas.delete(key);
+            }
+          });
+          areas.forEach(item => {
+            const key = makeAreaKey(item.city, item.area);
+            const labelText = String(item.city || '') + '-' + String(item.area || '');
+            const id = 'area-' + labelText.replace(/\s|区|县|市/g, '');
+            const div = document.createElement('div');
+            div.className = 'flex items-center';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'rounded border-gray-600 text-yellow-500 area-checkbox';
+            input.value = key;
+            input.id = id;
+            input.checked = globalSelectedAreas.has(key);
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.className = 'ml-2 text-black text-sm';
+            label.textContent = labelText;
+            div.appendChild(input);
+            div.appendChild(label);
+            container.appendChild(div);
+          });
+        });
       }
 
       function renderTableRows() {
@@ -470,21 +553,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!tbodySelector) return;
         const tbody = tbodySelector;
         tbody.innerHTML = '';
-        const cities = getSelectedCities();
+        const areas = getSelectedAreas();
 
         // calculate current number of indicator groups from header
         const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
         const groups = headers ? headers.length : 0;
 
         // 调试输出
-        console.log('[调试] renderTableRows 被调用，选中城市:', cities, '选中指标数:', groups, '指标名:', Array.from(headers).map(h => h.getAttribute('data-indicator')));
+        console.log('[调试] renderTableRows 被调用，选中区县:', areas, '选中指标数:', groups, '指标名:', Array.from(headers).map(h => h.getAttribute('data-indicator')));
 
-          if (!cities || cities.length === 0) {
+          if (!areas || areas.length === 0) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
             td.colSpan = 1 + groups * 4;
             td.className = 'text-center text-gray-400 p-4';
-            td.textContent = '未找到要录入的城市';
+            td.textContent = '未找到要录入的区县';
             tr.appendChild(td);
             tbody.appendChild(tr);
             return;
@@ -502,12 +585,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
 
-          cities.forEach(city => {
+          areas.forEach(item => {
             const tr = document.createElement('tr');
             tr.className = 'border-b border-gray-600 hover:bg-gray-300 transition';
             const tdCity = document.createElement('td');
             tdCity.className = 'border border-gray-600 px-4 py-3 text-black font-medium bg-gray-750';
-            tdCity.textContent = city;
+            tr.dataset.city = item.city || '';
+            tr.dataset.area = item.area || '';
+            tdCity.textContent = String(item.city || '') + '-' + String(item.area || '');
             tr.appendChild(tdCity);
 
             // For each indicator group render: value, note, source, last-year reference (4 cells per group)
@@ -517,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
               // sanitize city and indicator to build safe names
               const indicatorName = headers[group] ? headers[group].getAttribute('data-indicator') || ('indicator' + group) : ('indicator' + group);
               const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
-              const cityKey = sanitize(city);
+              const cityKey = sanitize((item.city || '') + '_' + (item.area || ''));
               const indKey = sanitize(indicatorName);
 
               const valueName = 'data[' + cityKey + '][' + indKey + '][value]';
@@ -558,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Enable/disable submit button depending on whether there are rows
         const submitBtn = document.getElementById('submit-button');
-        if (submitBtn) submitBtn.disabled = !(cities && cities.length > 0);
+        if (submitBtn) submitBtn.disabled = !(areas && areas.length > 0);
       }
 
       // Build table headers dynamically given an array of indicator names
@@ -572,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
         firstRow.innerHTML = '';
         const thCity = document.createElement('th');
         thCity.className = 'border border-gray-600 px-4 py-3 text-left text-yellow-500 font-medium min-w-24';
-        thCity.textContent = '城市';
+        thCity.textContent = '区县';
         firstRow.appendChild(thCity);
 
         indicators.forEach(ind => {
@@ -603,6 +688,22 @@ document.addEventListener('DOMContentLoaded', function() {
       window.buildTableHeaders = buildTableHeaders;
       window.renderTableRows = renderTableRows;
 
+      function loadProvinceCityMap() {
+        return fetch('/dashboard/get-city-map/', {
+          method: 'GET',
+          credentials: 'same-origin'
+        })
+          .then(response => response.json())
+          .then(data => {
+            provinceCityMap = data || {};
+            return provinceCityMap;
+          })
+          .catch(() => {
+            provinceCityMap = {};
+            return provinceCityMap;
+          });
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
         // capture the initial indicators from the static header so we can restore later
         const existingHeaders = Array.from(document.querySelectorAll('#manual-section table thead th[data-indicator]')).map(h => h.getAttribute('data-indicator'));
@@ -610,10 +711,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const provSel = document.getElementById('province-select');
         if (!provSel) return;
-        // initial render: all cities
-        renderCitiesForProvince('');
+        loadProvinceCityMap().then(function() {
+          renderCitiesForProvince('');
+          renderTableRows();
+        });
         provSel.addEventListener('change', function() {
           renderCitiesForProvince(this.value);
+          renderAreasForCities(getSelectedCities());
           renderTableRows();
         });
 
@@ -622,10 +726,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const deselectAllBtn = document.getElementById('deselect-all-cities');
         if (selectAllBtn) selectAllBtn.addEventListener('click', function() {
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = true; });
+          document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { globalSelectedCities.add(cb.value); });
+          renderAreasForCities(getSelectedCities());
           renderTableRows();
         });
         if (deselectAllBtn) deselectAllBtn.addEventListener('click', function() {
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          globalSelectedCities.clear();
+          renderAreasForCities(getSelectedCities());
+          renderTableRows();
+        });
+
+        const selectAllAreasBtn = document.getElementById('select-all-areas');
+        const deselectAllAreasBtn = document.getElementById('deselect-all-areas');
+        if (selectAllAreasBtn) selectAllAreasBtn.addEventListener('click', function() {
+          document.querySelectorAll('#area-items .area-checkbox').forEach(cb => {
+            cb.checked = true;
+            globalSelectedAreas.add(cb.value);
+          });
+          renderTableRows();
+        });
+        if (deselectAllAreasBtn) deselectAllAreasBtn.addEventListener('click', function() {
+          document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = false; });
+          globalSelectedAreas.clear();
           renderTableRows();
         });
 
@@ -633,6 +756,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const resetBtn = document.getElementById('reset-button');
         if (resetBtn) resetBtn.addEventListener('click', function() {
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+          document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = false; });
+          globalSelectedCities.clear();
+          globalSelectedAreas.clear();
           renderTableRows();
         });
 
@@ -660,8 +786,9 @@ document.addEventListener('DOMContentLoaded', function() {
               tbody.querySelectorAll('tr').forEach(tr => {
                 const cityCell = tr.children[0];
                 if (!cityCell) return;
-                const city = cityCell.textContent.trim();
-                if (!city || city === '未找到要录入的城市') return;
+                const area = tr.dataset.area || '';
+                const city = tr.dataset.city || '';
+                if (!area || area === '未找到要录入的区县') return;
                 let cursor = 1;
                 const groups = [];
                 for (let g = 0; g < indicatorNames.length; g++) {
@@ -677,14 +804,14 @@ document.addEventListener('DOMContentLoaded', function() {
                   groups.push({ value: val, note: note, source: source, reference: reference, name_zh: name_zh });
                   cursor += 4;
                 }
-                out.push({ city: city, province: province, year: year, groups: groups });
+                out.push({ city: city, area: area, province: province, year: year, groups: groups });
               });
               return out;
             })();
 
             if (!rows || rows.length === 0) {
               e.preventDefault();
-              alert('请先选择一个或多个城市，再提交数据。');
+              alert('请先选择一个或多个区县，再提交数据。');
               return false;
             }
 
@@ -733,12 +860,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Listen for city checkbox changes (delegated)
         document.addEventListener('change', function(e) {
           if (e.target && e.target.classList && e.target.classList.contains('city-checkbox')) {
+            if (e.target.checked) {
+              globalSelectedCities.add(e.target.value);
+            } else {
+              globalSelectedCities.delete(e.target.value);
+            }
+            renderAreasForCities(getSelectedCities());
+            renderTableRows();
+          }
+          if (e.target && e.target.classList && e.target.classList.contains('area-checkbox')) {
+            if (e.target.checked) {
+              globalSelectedAreas.add(e.target.value);
+            } else {
+              globalSelectedAreas.delete(e.target.value);
+            }
             renderTableRows();
           }
         });
 
-        // initial table render
-        renderTableRows();
+        // initial table render happens after map load
       });
     })();
 
