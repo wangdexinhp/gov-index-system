@@ -421,6 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let provinceCityMap = {};
       const areaCache = {};
       const globalSelectedCities = new Set();
+      const globalSelectedCityOrder = [];
       const globalSelectedAreas = new Set();
 
       function renderCitiesForProvince(prov) {
@@ -454,7 +455,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       function getSelectedCities() {
-        return Array.from(globalSelectedCities);
+        const ordered = globalSelectedCityOrder.filter(city => globalSelectedCities.has(city));
+        const extras = Array.from(globalSelectedCities).filter(city => !globalSelectedCityOrder.includes(city));
+        return ordered.concat(extras);
       }
 
       function getSelectedAreas() {
@@ -725,14 +728,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectAllBtn = document.getElementById('select-all-cities');
         const deselectAllBtn = document.getElementById('deselect-all-cities');
         if (selectAllBtn) selectAllBtn.addEventListener('click', function() {
+          const ordered = Array.from(document.querySelectorAll('#city-items .city-checkbox')).map(cb => cb.value);
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = true; });
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { globalSelectedCities.add(cb.value); });
+          globalSelectedCityOrder.length = 0;
+          globalSelectedCityOrder.push.apply(globalSelectedCityOrder, ordered);
           renderAreasForCities(getSelectedCities());
           renderTableRows();
         });
         if (deselectAllBtn) deselectAllBtn.addEventListener('click', function() {
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
           globalSelectedCities.clear();
+          globalSelectedCityOrder.length = 0;
           renderAreasForCities(getSelectedCities());
           renderTableRows();
         });
@@ -758,6 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
           document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
           document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = false; });
           globalSelectedCities.clear();
+          globalSelectedCityOrder.length = 0;
           globalSelectedAreas.clear();
           renderTableRows();
         });
@@ -862,8 +870,17 @@ document.addEventListener('DOMContentLoaded', function() {
           if (e.target && e.target.classList && e.target.classList.contains('city-checkbox')) {
             if (e.target.checked) {
               globalSelectedCities.add(e.target.value);
+              const existingIndex = globalSelectedCityOrder.indexOf(e.target.value);
+              if (existingIndex > -1) {
+                globalSelectedCityOrder.splice(existingIndex, 1);
+              }
+              globalSelectedCityOrder.unshift(e.target.value);
             } else {
               globalSelectedCities.delete(e.target.value);
+              const existingIndex = globalSelectedCityOrder.indexOf(e.target.value);
+              if (existingIndex > -1) {
+                globalSelectedCityOrder.splice(existingIndex, 1);
+              }
             }
             renderAreasForCities(getSelectedCities());
             renderTableRows();
@@ -968,6 +985,9 @@ function showAutoCloseMessage(message, type = 'success') {
       'economic_growth': ['#GDP', '#人均GDP', '#GDP增长率', '#一般公共预算收入', '一般公共预算收入增长率', '人均一般公共预算收入', '#城镇居民人均可支配收入', '农民居民人均纯收入'],
     };
 
+    // Keep selected indicators across groups
+    window.globalSelectedIndicators = window.globalSelectedIndicators || [];
+
     // Populate subfilter options when a category (指标组) is chosen.
     function populateSubfilter(categoryKey) {
       const sub = document.getElementById('indicator-subfilter');
@@ -1024,15 +1044,23 @@ function showAutoCloseMessage(message, type = 'success') {
 
       // attach control actions
       btnAll.addEventListener('click', function() {
-        sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = true);
-        // trigger header/body rebuild
-        const selected = Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value);
-        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        const globalList = window.globalSelectedIndicators || [];
+        sub.querySelectorAll('.indicator-checkbox').forEach(cb => {
+          cb.checked = true;
+          if (!globalList.includes(cb.value)) {
+            globalList.push(cb.value);
+          }
+        });
+        window.globalSelectedIndicators = globalList;
+        if (window.buildTableHeaders) window.buildTableHeaders(globalList);
         if (window.renderTableRows) window.renderTableRows();
       });
       btnNone.addEventListener('click', function() {
+        const globalList = window.globalSelectedIndicators || [];
+        const currentValues = Array.from(sub.querySelectorAll('.indicator-checkbox')).map(cb => cb.value);
         sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
-        if (window.buildTableHeaders) window.buildTableHeaders([]);
+        window.globalSelectedIndicators = globalList.filter(val => !currentValues.includes(val));
+        if (window.buildTableHeaders) window.buildTableHeaders(window.globalSelectedIndicators);
         if (window.renderTableRows) window.renderTableRows();
       });
     }
@@ -1051,22 +1079,35 @@ function showAutoCloseMessage(message, type = 'success') {
 
       // Fill the secondary panel but do NOT immediately rebuild headers.
       populateSubfilter(selectedCategory);
-      // With no subfilter selection, the manual table should not show indicator columns
-      if (window.buildTableHeaders) window.buildTableHeaders([]);
+      // Restore checked states based on global selection
+      const checkboxes = Array.from(sub.querySelectorAll('.indicator-checkbox'));
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = window.globalSelectedIndicators.includes(checkbox.value);
+      });
+      if (window.buildTableHeaders) window.buildTableHeaders(window.globalSelectedIndicators);
       if (window.renderTableRows) window.renderTableRows();
     });
 
     // Delegate change events: handle indicator-checkbox changes to rebuild headers
     document.addEventListener('change', function(e) {
       if (e.target && e.target.classList && e.target.classList.contains('indicator-checkbox')) {
-        const sub = document.getElementById('indicator-subfilter');
-        const selected = sub ? Array.from(sub.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value) : [];
-        if (!selected || selected.length === 0) {
+        const checkboxValue = e.target.value;
+        if (e.target.checked) {
+          if (!window.globalSelectedIndicators.includes(checkboxValue)) {
+            window.globalSelectedIndicators.push(checkboxValue);
+          }
+        } else {
+          const idx = window.globalSelectedIndicators.indexOf(checkboxValue);
+          if (idx > -1) {
+            window.globalSelectedIndicators.splice(idx, 1);
+          }
+        }
+        if (!window.globalSelectedIndicators || window.globalSelectedIndicators.length === 0) {
           if (window.buildTableHeaders) window.buildTableHeaders([]);
           if (window.renderTableRows) window.renderTableRows();
           return;
         }
-        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        if (window.buildTableHeaders) window.buildTableHeaders(window.globalSelectedIndicators);
         if (window.renderTableRows) window.renderTableRows();
       }
     });
