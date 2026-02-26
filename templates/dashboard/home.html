@@ -991,15 +991,23 @@ function showAutoCloseMessage(message, type = 'success') {
 
       // attach control actions
       btnAll.addEventListener('click', function() {
-        content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = true);
-        // trigger header/body rebuild
-        const selected = Array.from(content.querySelectorAll('.indicator-checkbox:checked')).map(n => n.value);
-        if (window.buildTableHeaders) window.buildTableHeaders(selected);
+        const globalList = window.globalSelectedIndicators || [];
+        content.querySelectorAll('.indicator-checkbox').forEach(cb => {
+          cb.checked = true;
+          if (!globalList.includes(cb.value)) {
+            globalList.push(cb.value);
+          }
+        });
+        window.globalSelectedIndicators = globalList;
+        if (window.buildTableHeaders) window.buildTableHeaders(globalList);
         if (window.renderTableRows) window.renderTableRows();
       });
       btnNone.addEventListener('click', function() {
+        const globalList = window.globalSelectedIndicators || [];
+        const currentValues = Array.from(content.querySelectorAll('.indicator-checkbox')).map(cb => cb.value);
         content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
-        if (window.buildTableHeaders) window.buildTableHeaders([]);
+        window.globalSelectedIndicators = globalList.filter(val => !currentValues.includes(val));
+        if (window.buildTableHeaders) window.buildTableHeaders(window.globalSelectedIndicators);
         if (window.renderTableRows) window.renderTableRows();
       });
     }
