@@ -408,8 +408,8 @@ def single_indicator_query(request):
     filters = {}
     if indicator_en:
         filters['name_en'] = indicator_en
-    if indicator_zh:
-        filters['name_zh'] = indicator_zh
+    # if indicator_zh:
+    #     filters['name_zh'] = indicator_zh
     if start_year:
         filters['year__gte'] = start_year
     if end_year:
