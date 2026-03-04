@@ -234,7 +234,7 @@
 
 
 <!-- Excel上传区域 -->
-<form id="excel-upload-form" action="/dashboard/upload_excel/" method="post" enctype="multipart/form-data" class="flex items-center space-x-4 justify-center">
+<form id="excel-upload-form" action="/dashboard/upload_excel_area/" method="post" enctype="multipart/form-data" class="flex items-center space-x-4 justify-center">
   {% csrf_token %}
   <input type="hidden" name="year" id="excel-upload-year" value="" />
 <div class="bg-white border border-yellow-400 rounded-xl p-6 mb-8 hidden" id="excel-section">

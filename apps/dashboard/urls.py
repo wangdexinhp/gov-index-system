@@ -30,6 +30,8 @@ urlpatterns = [
     path('many_indicator_city_query/', views.many_indicator_city_query, name='many_indicator_city_query'),
     
     path('upload_excel/', views.upload_excel, name='upload_excel'),
+    path('upload_excel_area/', views.upload_excel_area, name='upload_excel_area'),
+
 
 
 
