@@ -219,7 +219,7 @@ class IndicatorArea(models.Model):
         ordering = ["indicator_type", "name_en"]
         # 定义联合唯一约束（年、城市、英文名）
         unique_together = [
-            ('year', 'city_id', 'name_en'),
+            ('year', 'city_id', 'name_en', 'area'),
         ]
 
     def __str__(self):
