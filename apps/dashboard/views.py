@@ -12,7 +12,7 @@ from apps.coredata.models.indicator import IndicatorArea
 
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map,html_area_Map
     
-from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT,AREA_INDIMAP,AREA_INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
 import pandas as pd
@@ -833,7 +833,7 @@ def save_area_df_to_database(rows_data, year):
                 last_metric_name = raw_name
 
             print(f"处理指标: {name_zh}，值: {value}")
-            name_en = INDIMAP.get(name_zh)
+            name_en = AREA_INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
                 continue
