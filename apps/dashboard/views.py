@@ -700,20 +700,24 @@ def upload_excel_area(request):
     if not city_col:
         city_col = next((c for c in data_df.columns if '城市' in str(c)), None)
 
-    area_col = next((c for c in data_df.columns if c in ['所辖区县名称', '区县', '区县名称', '区县名']), None)
+    area_col = next((c for c in data_df.columns if c in ['所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称']), None)
     if not area_col:
-        area_col = next((c for c in data_df.columns if '区县' in str(c)), None)
+        area_col = next((c for c in data_df.columns if ('区县' in str(c) or '区域' in str(c))), None)
 
     if not city_col or not area_col:
         return JsonResponse({
             'success': False,
-            'message': 'Excel缺少“城市/城市名称”或“所辖区县名称/区县”列'
+            'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
         }, status=400)
 
     data_df = data_df.rename(columns={city_col: '城市', area_col: 'area'})
-    data_df['城市'] = data_df['城市'].ffill()
+    data_df['城市'] = data_df['城市'].replace(r'^\s*$', pd.NA, regex=True).ffill()
+    data_df['城市'] = data_df['城市'].astype(str).str.strip()
+    data_df['城市'] = data_df['城市'].replace({'nan': '', 'None': ''})
+
     data_df['area'] = data_df['area'].astype(str).str.strip()
-    data_df = data_df[data_df['area'].notna() & (data_df['area'] != '')]
+    data_df['area'] = data_df['area'].replace({'nan': '', 'None': ''})
+    data_df = data_df[(data_df['城市'] != '') & (data_df['area'] != '')]
 
     save_area_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
 
