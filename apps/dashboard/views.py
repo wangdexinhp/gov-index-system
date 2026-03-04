@@ -590,10 +590,7 @@ def upload_excel_area(request):
             'success': False,
             'message': '未上传文件'
         }, status=400)
-    # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
-    # 创建Excel写入器
-    # tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
-    # with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
+
     raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
     print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
     print(f"数据条数: {len(raw_data)}")
