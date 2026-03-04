@@ -320,6 +320,63 @@ def save_to_database(rows_data):
                 indicator_type=Indicator.IndicatorType.OTHER,
             )
 
+def save_area_to_database(rows_data):
+    """
+    将 rows_data 批量保存到 IndicatorArea 表。
+    rows_data: [
+        {
+            'city': '城市ID',
+            'province': '省ID',
+            'year': 2026,
+            'groups': [
+                {
+                    'indicator_key': 'gdp_per_capita',
+                    'value': '123.45',
+                    'note': '备注',
+                    'source': 'CITY_STAT_YB',
+                    'reference': '去年参考',
+                },
+                ...
+            ]
+        },
+        ...
+    ]
+    """
+    for row in rows_data:
+        city_name = row.get('city')
+        area=row.get('area')
+        province_name = row.get('province')
+        year = row.get('year') or None
+        groups = row.get('groups', [])
+        # 支持“北京市”/“北京”都能识别
+        city_key = city_name.replace('市','') if city_name else ''
+        city_name_to_code = get_city_name_to_code()
+        province_name_to_code = get_province_name_to_code()
+        city_id = city_name_to_code.get(city_key, 0)
+        prov_key = province_name.replace('市','') if province_name else ''
+        province_id = province_name_to_code.get(prov_key, 0)
+        for group in groups:
+            value = group.get('value')
+            source = group.get('source')
+            note = group.get('note')
+            name_zh = group.get('name_zh')
+            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
+            name_en = INDIMAP.get(name_zh)
+
+            IndicatorArea.objects.create(
+                year=year,
+                province_id=province_id,
+                city_id=city_id,
+                area=area,
+                source=source or '',
+                value=value or 0,
+                name_en=name_en or '',
+                note=note or '',
+                name_zh= name_zh or '',  
+                input_form=IndicatorArea.InputForm.INPUT,
+                indicator_type=IndicatorArea.IndicatorType.OTHER,
+            )
+
 
 # 区县数据提交接口
 @login_required
@@ -348,7 +405,7 @@ def submit_area_data(request):
                 print(f"    参考: {group.get('reference')}")
         
         # 保存数据到数据库
-        save_to_database(rows_data)
+        save_area_to_database(rows_data)
         # 返回成功响应
         return JsonResponse({
             'success': True,
