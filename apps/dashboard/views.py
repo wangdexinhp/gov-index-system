@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.http import JsonResponse, HttpResponse  
 import json,re
 from apps.coredata.models.indicator import Indicator
+from apps.coredata.models.indicator import IndicatorArea
+
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map,html_area_Map
     
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT
