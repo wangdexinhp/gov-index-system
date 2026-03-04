@@ -654,31 +654,67 @@ def upload_excel_area(request):
     print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
     print(f"数据条数: {len(raw_data)}")
 
+    if raw_data.empty:
+        return JsonResponse({
+            'success': False,
+            'message': 'Excel为空'
+        }, status=400)
+
+    def _is_data_row(row_series):
+        values = []
+        for val in row_series.tolist():
+            if pd.isna(val):
+                continue
+            text = str(val).strip()
+            if text:
+                values.append(text)
+        if not values:
+            return False
+        numeric_count = sum(pd.to_numeric(v, errors='coerce') == pd.to_numeric(v, errors='coerce') for v in values)
+        return numeric_count >= max(2, len(values) // 3)
+
+    header_rows = 1
+    if raw_data.shape[0] > 1 and not _is_data_row(raw_data.iloc[1]):
+        header_rows = 2
 
     headers = []
     for col_idx in range(raw_data.shape[1]):
-        col_headers = []
-        
-        # 第1行
-        level1 = raw_data.iloc[0, col_idx]
-        if pd.notna(level1):
-            col_headers.append(str(level1).strip())
-        
-        # 第2行
-        level2 = raw_data.iloc[1, col_idx]
-        if pd.notna(level2) and str(level2).strip():
-            col_headers.append(str(level2).strip())
-        
-        # 创建列名
-        if col_headers:
-            col_name = '_'.join(col_headers)
+        level1 = raw_data.iloc[0, col_idx] if raw_data.shape[0] > 0 else ''
+        level2 = raw_data.iloc[1, col_idx] if header_rows == 2 and raw_data.shape[0] > 1 else ''
+        level1 = '' if pd.isna(level1) else str(level1).strip()
+        level2 = '' if pd.isna(level2) else str(level2).strip()
+
+        if header_rows == 2 and level1 and level2 and level1 != level2:
+            col_name = f"{level1}_{level2}"
         else:
-            col_name = f'Column_{col_idx+1}'
-        
+            col_name = level1 or level2 or f'Column_{col_idx+1}'
+
+        col_name = col_name.replace('\n', '').replace('\r', '').strip()
         headers.append(col_name)
-    
-    data_df = raw_data.iloc[3:, :].reset_index(drop=True)
+
+    data_df = raw_data.iloc[header_rows:, :].reset_index(drop=True)
     data_df.columns = headers
+    data_df = data_df.dropna(how='all')
+
+    city_col = next((c for c in data_df.columns if c in ['城市', '城市名称', '地市']), None)
+    if not city_col:
+        city_col = next((c for c in data_df.columns if '城市' in str(c)), None)
+
+    area_col = next((c for c in data_df.columns if c in ['所辖区县名称', '区县', '区县名称', '区县名']), None)
+    if not area_col:
+        area_col = next((c for c in data_df.columns if '区县' in str(c)), None)
+
+    if not city_col or not area_col:
+        return JsonResponse({
+            'success': False,
+            'message': 'Excel缺少“城市/城市名称”或“所辖区县名称/区县”列'
+        }, status=400)
+
+    data_df = data_df.rename(columns={city_col: '城市', area_col: 'area'})
+    data_df['城市'] = data_df['城市'].ffill()
+    data_df['area'] = data_df['area'].astype(str).str.strip()
+    data_df = data_df[data_df['area'].notna() & (data_df['area'] != '')]
+
     save_area_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
 
         # 保存到新文件
@@ -742,15 +778,20 @@ def save_area_df_to_database(rows_data, year):
     # 构建城市名到代码、以及省份名到代码的映射
     # rows_data =  [{'A': '京', '城市': '北京', '所辖市区县个数_市': 0, '区': 14, '县': 2, '城镇户籍人口': 1089.8, '农业人口': 243.6, '年末实有企业数_个体工商户': 653319, '内资企业': 39533, '外资企业': 1657, '私营企业': 838099, '高新技术企业_产值': 'A', '增加值': 'A', '采矿（掘)业就业人员人数': 6.2, '制造业就业人员人数': 129.9, '采矿（掘)业在岗职工人数': 6.09, '制造业在岗职工人数': 97.43, '财政总支出': 4524.67, '一般预算支出_一般公共服务支出': 272.23, '公共安全支出': 'A', '文化体育传媒支出': 163.9, '环保支出': 213.36, '园林绿地面积': 77129, '专利授权量': 74661, '城镇单位职工工资总额': 72933000.0, '社会从业\n人员': 1156.7, '机关单位_工资总额': 'A', '就业人数': 'A', '公共管理和社会组织工资总额': 3434882, '公共管理和社会组织在岗职工人数': 424414, '取缔无照经营个数': 91, '查处取缔无照经营个数': 2037, '参保人数_城镇养老保险参保人数': 1392.6, '城镇医疗保险参保人数': 1604.25, '农村养老保险参保人数': 173.4, '户数统计_总户数': 522.6, '有线电视用户数': 551.57, '互联网用户数': 553, '刑事案件立案件数': 153334, '刑事案件破案件数': 91.7826608669567, '二氧化硫排放总量_2012年': 40347, 'R&D经费数': 1268.8, 'R&D经费与GDP之比': 5.95, '自来水受益村数': 'A', '村委会个数': 3937, '受理信访举报案件数': 1424, '文化馆': 19, '博物馆': 171, '群众艺术馆': 1, '文化艺术团体': 'A', '体育馆': 70, '城镇最低生活保障人数': 89135, '农村最低生活保障人数': 51324, '贪污贿赂人数': 429, '渎职侵权人数': 78, '财政总收入': 7214.5, '财政总收入增长率': 29.6, '固定资产投资总额增长率': 7.5, '全社会消费品零售总额增长率': 8.6, '进出口总额增长率': -3.4, '实际利用外资金额增长率': 6.07, '规模以上工业企业增加值': 3612, '规模以上工业企业产值增加值增长率': 6.2, '国有资产保值增值率': 105.52, '万元GDP综合能源消耗': 0.36, '万元GDP综合能源消耗降低率': 5.29, '城镇化率': 86.4, '城镇家庭居民人均可支配收入增长率': 7.2, '农村家庭居民人均纯收入增长率': 8.6, '居民消费价格指数CPI': 101.6, '工业品出厂价格指数PPI': 99.1, '亿元GDP生产安全事故死亡率': 0.051, '十万人工矿商贸从业人员事故死亡率': 0.94, '食品质量抽样检测合格率': 97.46, '药品安全抽样合格率': 99.88, '工业产品质量抽样合格率': 'A', '查处农资违法案件的数量': 25, '查办各类经济违法案件的数量': 'A', '查办违法广告的件数': 860, '查办商标侵权案件的件数': 472, '消费者维权案件办理率': 100, '出生人口性别比': 'A', '人口出生率': 9.75, '符合政策生育率': 'A', '年末实有社会组织登记数量': 9083, '万人刑事案件发案件数': 114.994750262487, '调处各类矛盾纠纷件数': 194100, '成功调处各类矛盾纠纷数': 188600, '受理各类法律援助案件的数量': 18273, '火灾死亡人数': 51, '接待群众来信来访人次': 39149, '城镇新增就业人数': 42.65, '农村养老保险覆盖率': 71.1822660098522, '新建各类保障性住房面积': 509.5, '农村自来水覆盖率（农村安全饮水覆盖率）': 99.55, '人均拥有道路面积': 7.93, '每万人拥有公交汽车数量': 18.76, '有线电视入户率': 106.85, '高中阶段毛入学率': 'A', '新农合参合率': 'A', '森林覆盖率': 35.84, '水土流失治理面积': 40000, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 87.67, '生活垃圾无害化处理率': 99.6, '城镇生活污水处理率': 86.1, '城市空气质量指数': 46.027397260274, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 'A', '行政复议案件办结率': 'A', '行政复议案件申请量': 1840, '受理行政诉讼的案件数量': 1840, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 181600, '2012年': 225800, '主动公开政府信息增长率': 24.3392070484581, '依申请公开政府信息件数_2013年': 16888, '2014年': 34766, '依申请公开政府信息增长率': 105.862150639507, '因公开问题申请行政复议的数量': 1840}, {'A': '津', '城市': '天津', '所辖市区县个数_市': 0, '区': 13, '县': 3, '城镇户籍人口': 645.05, '农业人口': 371.61, '年末实有企业数_个体工商户': 366, '内资企业': 264994, '外资企业': 11498, '私营企业': 552700, '高新技术企业_产值': 8467.12, '增加值': 331.1, '采矿（掘)业就业人员人数': 6.64, '制造业就业人员人数': 118.99, '采矿（掘)业在岗职工人数': 0.46, '制造业在岗职工人数': 6.52, '财政总支出': 2884.7, '一般预算支出_一般公共服务支出': 158.08, '公共安全支出': 139.31, '文化体育传媒支出': 47.87, '环保支出': 57.93, '园林绿地面积': 25307, '专利授权量': 26351, '城镇单位职工工资总额': 20631400.0, '社会从业\n人员': 877.21, '机关单位_工资总额': 1189400, '就业人数': 139800, '公共管理和社会组织工资总额': 1301800, '公共管理和社会组织在岗职工人数': 144000, '取缔无照经营个数': 6007, '查处取缔无照经营个数': 2126, '参保人数_城镇养老保险参保人数': 657.28, '城镇医疗保险参保人数': 1023.62, '农村养老保险参保人数': 100.5, '户数统计_总户数': 362.63, '有线电视用户数': 313, '互联网用户数': 1014, '刑事案件立案件数': 'A', '刑事案件破案件数': 35.0205575118525, '二氧化硫排放总量_2012年': 195395, 'R&D经费数': 464.69, 'R&D经费与GDP之比': 3, '自来水受益村数': 'A', '村委会个数': 3698, '受理信访举报案件数': 7231, '文化馆': 19, '博物馆': 22, '群众艺术馆': 19, '文化艺术团体': 51, '体育馆': 'A', '城镇最低生活保障人数': 135760, '农村最低生活保障人数': 101447, '贪污贿赂人数': 341, '渎职侵权人数': 56, '财政总收入': 2390.02, '财政总收入增长率': 15.0, '固定资产投资总额增长率': 15.1, '全社会消费品零售总额增长率': 6.0, '进出口总额增长率': 4.2, '实际利用外资金额增长率': 12.1, '规模以上工业企业增加值': 1520.52, '规模以上工业企业产值增加值增长率': 10.1, '国有资产保值增值率': 101.6, '万元GDP综合能源消耗': 0.54, '万元GDP综合能源消耗降低率': 6.0, '城镇化率': 82.3, '城镇家庭居民人均可支配收入增长率': 8.7, '农村家庭居民人均纯收入增长率': 10.8, '居民消费价格指数CPI': 101.9, '工业品出厂价格指数PPI': 96.3, '亿元GDP生产安全事故死亡率': 0.0232721834458473, '十万人工矿商贸从业人员事故死亡率': 'A', '食品质量抽样检测合格率': 98.38, '药品安全抽样合格率': 'A', '工业产品质量抽样合格率': 97.85, '查处农资违法案件的数量': 'A', '查办各类经济违法案件的数量': 250, '查办违法广告的件数': 351, '查办商标侵权案件的件数': 396, '消费者维权案件办理率': 99.64, '出生人口性别比': 'A', '人口出生率': 8.19, '符合政策生育率': 98.45, '年末实有社会组织登记数量': 4729, '万人刑事案件发案件数': nan, '调处各类矛盾纠纷件数': 90028, '成功调处各类矛盾纠纷数': 88230, '受理各类法律援助案件的数量': 4114, '火灾死亡人数': 'A', '接待群众来信来访人次': 13195, '城镇新增就业人数': 48.8, '农村养老保险覆盖率': 27.0444821183499, '新建各类保障性住房面积': '6.1万套', '农村自来水覆盖率（农村安全饮水覆盖率）': 98.98, '人均拥有道路面积': 15.78, '每万人拥有公交汽车数量': 13.41, '有线电视入户率': 88.95, '高中阶段毛入学率': 100, '新农合参合率': 'A', '森林覆盖率': 9.87, '水土流失治理面积': 6400, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 98.91, '生活垃圾无害化处理率': 96.23, '城镇生活污水处理率': 100, '城市空气质量指数': 47.9, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 670, '行政复议案件办结率': 'A', '行政复议案件申请量': 194, '受理行政诉讼的案件数量': 194, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 123888, '2012年': 214499, '主动公开政府信息增长率': 73.1394485341599, '依申请公开政府信息件数_2013年': 5146, '2014年': 11399, '依申请公开政府信息增长率': 121.511853867081, '因公开问题申请行政复议的数量': 1074}]
     for row in rows_data:
-        city_name = row.get('城市')
+        city_name = row.get('城市') or row.get('城市名称')
         city_name_to_code = get_city_name_to_code()
-        area = row.get('area', '')  
-        city_id = city_name_to_code.get(city_name.replace('市',''), 0) if city_name else 0
+        area = row.get('area') or row.get('所辖区县名称') or row.get('区县') or ''
+        area = str(area).strip() if area is not None else ''
+        city_id = city_name_to_code.get(str(city_name).replace('市',''), 0) if city_name else 0
         city_code_to_province = get_city_code_to_province()
         province_info = city_code_to_province.get(city_id)
         province_id = province_info['province_code'] if province_info else 0
+
+        if not city_id or not area:
+            continue
+
         for col_name, value in row.items():
-            if col_name in ['城市', 'A']:
+            if col_name in ['城市', '城市名称', 'area', '所辖区县名称', '区县', '区县名称', '区县名', 'A']:
                 continue  
             name_zh = col_name
             print(f"处理指标: {name_zh}，值: {value}")
@@ -764,7 +805,7 @@ def save_area_df_to_database(rows_data, year):
                     province_id=province_id,
                     city_id=city_id,
                     source='INPUT',
-                    value=value or 0,
+                    value=0 if pd.isna(value) else (value or 0),
                     name_en=name_en or '',
                     note= '',
                     name_zh= name_zh or '',  # 备注直接写入 name_zh
@@ -773,7 +814,7 @@ def save_area_df_to_database(rows_data, year):
                     indicator_type=IndicatorArea.IndicatorType.OTHER,
                 )
             except IntegrityError as e:
-                if 'Duplicate entry' in str(e):
+                if 'Duplicate entry' in str(e) or 'UNIQUE constraint failed' in str(e):
                     print(f"跳过重复记录: {year}-{city_id}-{name_en}")
                     continue
                 else:
