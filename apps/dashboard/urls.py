@@ -12,6 +12,8 @@ urlpatterns = [
     path('get-area-map/', views.get_area_map, name='area_map_query'),
     
     path('single-indicator-year-query/', views.dashboard_single_query, name='single_query'),
+    path('single-indicator-year-query-area/', views.dashboard_single_query_area, name='single_query_area'),
+
     path('single-indicator-city-query/', views.dashboard_single_indicator_city_query, name='single_indicator_query'),
     path('many-indicator-query/', views.dashboard_many_indicator_query, name='many_indicator_query'),
 
@@ -26,10 +28,13 @@ urlpatterns = [
     path('submit/', views.submit_data, name='submit_data'),
     path('submit-area/', views.submit_area_data, name='submit_area_data'),
     path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
+    path('single_indicator_area_query/', views.single_indicator_area_query, name='single_indicator_area_query'),
     path('single_indicator_city_query/', views.single_indicator_city_query, name='single_indicator_city_query'),
     path('many_indicator_city_query/', views.many_indicator_city_query, name='many_indicator_city_query'),
     
     path('upload_excel/', views.upload_excel, name='upload_excel'),
+    path('upload_excel_area/', views.upload_excel_area, name='upload_excel_area'),
+
 
 
 

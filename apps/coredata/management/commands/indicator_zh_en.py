@@ -648,3 +648,31 @@ INDIMAP_UNIT = {
         "public_issues_disclose_government_information_num_remark": {"unit": None, "name_zh": "因公开问题申请行政复议的数量备注"}
     
 }
+
+AREA_INDIMAP = {
+    "常住人口数":"long_term_pop",
+    "户籍人口数":"registered_pop",
+    "GDP":"gdp",
+    "人均GDP":"avg_gdp",       
+    "GDP增长率":"incre_rate_gdp",
+    "一般公共预算收入":"public_budget_revenue",
+    "一般公共预算收入增长率":"incre_rate_public_budget_revenue",
+    "人均一般公共预算收入": "avg_public_budget_revenue",
+    "城镇居民人均可支配收入": "city_avg_income",
+    "城镇居民家庭人均可支配收入" : "city_avg_income",
+    "农民居民人均纯收入": "country_avg_income",
+    "农村居民家庭人均纯收入": "country_avg_income",
+}
+
+AREA_INDIMAP_UNIT = {
+    "long_term_pop": {"unit": "万人", "name_zh": "常住人口数"},
+    "registered_pop": {"unit": "万人", "name_zh": "户籍人口数"},
+    "gdp": {"unit": "亿元", "name_zh": "GDP"},
+    "avg_gdp": {"unit": "元", "name_zh": "人均GDP"},
+    "incre_rate_gdp": {"unit": "%", "name_zh": "GDP增长率"},
+    "public_budget_revenue": {"unit": "亿元", "name_zh": "一般公共预算收入"},
+    "incre_rate_public_budget_revenue": {"unit": "%", "name_zh": "一般公共预算收入增长率"},
+    "avg_public_budget_revenue": {"unit": "元", "name_zh": "人均一般公共预算收入"},
+    "city_avg_income": {"unit": "元", "name_zh": "城镇居民人均可支配收入"},
+    "country_avg_income": {"unit": "元", "name_zh": "农民居民人均纯收入"},
+}
