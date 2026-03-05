@@ -729,6 +729,7 @@ const dataDict = {
       const indicator = document.getElementById('dataSelect').value;
       // const group = document.getElementById('indicatorGroupSelect').value;
       const city = document.getElementById('citySelect').value;
+      const district = document.getElementById('districtSelect').value;
       const province = document.getElementById('provinceSelect').value;
       const startYear = document.getElementById('startYear').value;
       const endYear = document.getElementById('endYear').value;
@@ -746,7 +747,8 @@ const dataDict = {
       document.getElementById('resultContent').classList.remove('hidden');
 
       // 发起 AJAX 请求到后端接口
-      fetch(`/dashboard/single_indicator_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}`)
+      const areaParam = district ? `&area=${encodeURIComponent(district)}` : '';
+      fetch(`/dashboard/single_indicator_area_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}${areaParam}`)
         .then(res => res.json())
         .then(res => {
           if (!res.success || !res.data || res.data.length === 0) {
