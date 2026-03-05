@@ -385,6 +385,7 @@
 <thead>
 <tr class="bg-gray-50 border-b border-gray-200">
 <th class="px-6 py-4 font-semibold text-gray-700">年份</th>
+<th class="px-6 py-4 font-semibold text-gray-700">区县</th>
 <th class="px-6 py-4 font-semibold text-gray-700" id="indicatorHeader">指标值</th>
 <th class="px-6 py-4 font-semibold text-gray-700">单位</th>
 <th class="px-6 py-4 font-semibold text-gray-700">操作</th>
@@ -759,6 +760,7 @@ const dataDict = {
           }
           rawData = res.data.map(item => ({
             year: item.year + '年',
+            area: item.area || district || '-',
             val: item.value,
             // unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
             unit: item.unit
@@ -791,6 +793,7 @@ const dataDict = {
         tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
         tr.innerHTML = `
           <td class="px-6 py-4 text-gray-800 font-medium border-b border-gray-100">${item.year}</td>
+          <td class="px-6 py-4 text-gray-700 border-b border-gray-100">${item.area || '-'}</td>
           <td class="px-6 py-4 indicator-value border-b border-gray-100">${item.val.toLocaleString()}</td>
           <td class="px-6 py-4 text-gray-500 border-b border-gray-100">${item.unit}</td>
           <td class="px-6 py-4">

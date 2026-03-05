@@ -557,6 +557,7 @@ def single_indicator_area_query(request):
     for ind in indicators:
         data.append({
             'year': ind.year,
+            'area': ind.area,
             'value': ind.value,
             'note': ind.note,
             'source': ind.source,
