@@ -261,6 +261,14 @@
 <option value="">请先选择省份</option>
 </select>
 </div>
+
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择区县</label>
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="districtSelect">
+<option value="">请先选择城市</option>
+</select>
+</div>
+
 <div class="flex gap-4 col-span-1">
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-medium text-gray-700">起始年份</label>
@@ -655,7 +663,11 @@ const dataDict = {
     function updateCities() {
       const province = document.getElementById('provinceSelect').value;
       const citySelect = document.getElementById('citySelect');
+      const districtSelect = document.getElementById('districtSelect');
       citySelect.innerHTML = '<option value="">选择城市</option>';
+      if (districtSelect) {
+        districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+      }
       if (cityData[province]) {
         cityData[province].forEach(city => {
           const opt = document.createElement('option');
@@ -665,6 +677,53 @@ const dataDict = {
         });
       }
     }
+
+    function updateDistricts() {
+      const city = document.getElementById('citySelect').value;
+      const districtSelect = document.getElementById('districtSelect');
+      if (!districtSelect) return;
+
+      districtSelect.innerHTML = '<option value="">加载中...</option>';
+
+      if (!city) {
+        districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+        return;
+      }
+
+      fetch(`/dashboard/get-area-map/?city=${encodeURIComponent(city)}`)
+        .then(res => res.json())
+        .then(areas => {
+          districtSelect.innerHTML = '<option value="">请选择区县</option>';
+
+          if (!Array.isArray(areas) || areas.length === 0) {
+            districtSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+            return;
+          }
+
+          areas.forEach(area => {
+            const areaName = typeof area === 'string' ? area : (area && (area.name || area.label || area.value));
+            if (!areaName) return;
+            const opt = document.createElement('option');
+            opt.value = areaName;
+            opt.textContent = areaName;
+            districtSelect.appendChild(opt);
+          });
+
+          if (districtSelect.options.length === 1) {
+            districtSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+          }
+        })
+        .catch(() => {
+          districtSelect.innerHTML = '<option value="">区县加载失败，请重试</option>';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const citySelect = document.getElementById('citySelect');
+      if (citySelect) {
+        citySelect.addEventListener('change', updateDistricts);
+      }
+    });
 
     function handleSearch() {
       const indicator = document.getElementById('dataSelect').value;
