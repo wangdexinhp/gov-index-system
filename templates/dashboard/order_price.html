@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台 | 价格与指标配置中心</title>
+    <!-- 引入 Iconify 图标库 -->
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,15 +16,78 @@
         body {
             background: linear-gradient(135deg, #f0f4f8 0%, #e3eaf1 100%);
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            padding: 40px 32px;
             min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .top-nav {
+            background: white;
+            border-bottom: 2px solid #eab308;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-left iconify-icon {
+            color: #eab308;
+            font-size: 28px;
+        }
+
+        .nav-left h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a3a4f;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #eab308, #f59e0b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar iconify-icon {
+            color: white;
+            font-size: 22px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a3a4f;
+            letter-spacing: 1px;
+        }
+
+        .brand-name span {
+            color: #eab308;
         }
 
         /* 主容器 */
         .config-system {
             max-width: 1400px;
             width: 100%;
-            margin: 0 auto;
+            margin: 24px auto;
             background: white;
             border-radius: 32px;
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
@@ -417,8 +482,8 @@
     </style>
 </head>
 <body>
-
- <div class="top-nav">
+    <!-- 顶部导航栏 - 城策智库在最右边 -->
+    <div class="top-nav">
         <div class="nav-left">
             <iconify-icon icon="mdi:chart-box"></iconify-icon>
             <h1>数据指标管理系统</h1>
@@ -428,464 +493,462 @@
                 <iconify-icon icon="mdi:account"></iconify-icon>
             </div>
             <div class="brand-name">
-                <a href="{% url 'landing:home' %}" class="flex items-center">
-                    <span class="text-xl font-medium uppercase tracking-wide text-black">城策智库</span>
-                </a>        
+                <a href="{% url 'landing:home' %}" class="flex items-center"><span>城策智库</span></a>
+                
             </div>
         </div>
     </div>
 
-
-<div class="config-system">
-    <div class="header">
-        <div>
-            <h1>⚙️ 价格与指标配置中心</h1>
-            <div class="sub">管理定价策略、指标权限范围 | 配置实时生效</div>
-        </div>
-        <div class="nav-buttons">
-            <a href="#" class="nav-btn" id="viewPurchasePage">📊 查看购买页面</a>
-        </div>
-    </div>
-
-    <div class="info-bar">
-        <span>💡 提示：修改配置后点击"保存配置"，购买页面将同步更新</span>
-        <span id="saveStatus" style="display: none;">✓ 已保存</span>
-    </div>
-
-    <div class="main-content">
-        <!-- 标签页 -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="price">💰 价格配置</button>
-            <button class="tab-btn" data-tab="indicator">📊 指标配置</button>
-            <button class="tab-btn" data-tab="duration">⏱️ 时长系数配置</button>
-        </div>
-
-        <!-- 价格配置面板 -->
-        <div id="pricePanel" class="tab-panel">
-            <div class="config-card">
-                <div class="card-title">🏷️ 地域权限价格（元/年）</div>
-                <table class="price-table">
-                    <thead>
-                        <tr><th>权限级别</th><th>名称</th><th>价格（元/年）</th></tr>
-                    </thead>
-                    <tbody id="priceTableBody"></tbody>
-                </table>
+    <div class="config-system">
+        <div class="header">
+            <div>
+                <h1>⚙️ 价格与指标配置中心</h1>
+                <div class="sub">管理定价策略、指标权限范围 | 配置实时生效</div>
+            </div>
+            <div class="nav-buttons">
+                <a href="#" class="nav-btn" id="viewPurchasePage">📊 查看购买页面</a>
             </div>
         </div>
 
-        <!-- 指标配置面板 -->
-        <div id="indicatorPanel" class="tab-panel" style="display: none;">
-            <div class="config-card">
-                <div class="card-title">👤 个人用户可查看指标</div>
-                <div id="personalIndicatorsList" class="indicator-list"></div>
-                <button class="add-btn" id="addPersonalIndicator" style="margin-top: 20px;">+ 添加个人指标</button>
-            </div>
-
-            <div class="config-card">
-                <div class="card-title">🏢 机构用户可查看指标</div>
-                <div id="orgIndicatorsList" class="indicator-list"></div>
-                <button class="add-btn" id="addOrgIndicator" style="margin-top: 20px;">+ 添加机构指标</button>
-            </div>
+        <div class="info-bar">
+            <span>💡 提示：修改配置后点击"保存配置"，购买页面将同步更新</span>
+            <span id="saveStatus" style="display: none;">✓ 已保存</span>
         </div>
 
-        <!-- 时长系数配置面板 -->
-        <div id="durationPanel" class="tab-panel" style="display: none;">
-            <div class="config-card">
-                <div class="card-title">⏱️ 时长价格系数配置</div>
-                <div class="duration-config" id="durationConfig"></div>
-                <div class="info-note" style="margin-top: 20px; padding: 12px; background: #eef2ff; border-radius: 12px;">
-                    💡 说明：实际价格 = 年价格 × 时长系数<br>
-                    例如：年卡系数1.0，月卡0.1表示月卡价格是年卡的1/10
+        <div class="main-content">
+            <!-- 标签页 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="price">💰 价格配置</button>
+                <button class="tab-btn" data-tab="indicator">📊 指标配置</button>
+                <button class="tab-btn" data-tab="duration">⏱️ 时长系数配置</button>
+            </div>
+
+            <!-- 价格配置面板 -->
+            <div id="pricePanel" class="tab-panel">
+                <div class="config-card">
+                    <div class="card-title">🏷️ 地域权限价格（元/年）</div>
+                    <table class="price-table">
+                        <thead>
+                            <tr><th>权限级别</th><th>名称</th><th>价格（元/年）</th></tr>
+                        </thead>
+                        <tbody id="priceTableBody"></tbody>
+                    </table>
                 </div>
             </div>
+
+            <!-- 指标配置面板 -->
+            <div id="indicatorPanel" class="tab-panel" style="display: none;">
+                <div class="config-card">
+                    <div class="card-title">👤 个人用户可查看指标</div>
+                    <div id="personalIndicatorsList" class="indicator-list"></div>
+                    <button class="add-btn" id="addPersonalIndicator" style="margin-top: 20px;">+ 添加个人指标</button>
+                </div>
+
+                <div class="config-card">
+                    <div class="card-title">🏢 机构用户可查看指标</div>
+                    <div id="orgIndicatorsList" class="indicator-list"></div>
+                    <button class="add-btn" id="addOrgIndicator" style="margin-top: 20px;">+ 添加机构指标</button>
+                </div>
+            </div>
+
+            <!-- 时长系数配置面板 -->
+            <div id="durationPanel" class="tab-panel" style="display: none;">
+                <div class="config-card">
+                    <div class="card-title">⏱️ 时长价格系数配置</div>
+                    <div class="duration-config" id="durationConfig"></div>
+                    <div class="info-note" style="margin-top: 20px; padding: 12px; background: #eef2ff; border-radius: 12px;">
+                        💡 说明：实际价格 = 年价格 × 时长系数<br>
+                        例如：年卡系数1.0，月卡0.1表示月卡价格是年卡的1/10
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button class="reset-btn" id="resetBtn">重置默认配置</button>
+                <button class="test-btn" id="testBtn">测试配置</button>
+                <button class="save-btn" id="saveBtn">💾 保存配置</button>
+            </div>
         </div>
 
-        <!-- 操作按钮 -->
-        <div class="action-buttons">
-            <button class="reset-btn" id="resetBtn">重置默认配置</button>
-            <button class="test-btn" id="testBtn">测试配置</button>
-            <button class="save-btn" id="saveBtn">💾 保存配置</button>
-        </div>
+        <footer>
+            📌 配置数据将保存在 localStorage 中，刷新页面不会丢失。<br>
+            🔄 保存后，购买页面将使用最新配置的价格和指标范围。
+        </footer>
     </div>
 
-    <footer>
-        📌 配置数据将保存在 localStorage 中，刷新页面不会丢失。<br>
-        🔄 保存后，购买页面将使用最新配置的价格和指标范围。
-    </footer>
-</div>
-
-<script>
-    // ==================== 默认配置数据 ====================
-    const defaultConfig = {
-        // 价格配置
-        prices: {
-            national: { name: '全国', price: 5000 },
-            regions: [
-                { id: 'region_northeast', name: '东北地区', price: 1200 },
-                { id: 'region_north', name: '华北地区', price: 1200 },
-                { id: 'region_east', name: '华东地区', price: 1200 },
-                { id: 'region_central', name: '华中地区', price: 1200 },
-                { id: 'region_south', name: '华南地区', price: 1200 },
-                { id: 'region_southwest', name: '西南地区', price: 1200 },
-                { id: 'region_northwest', name: '西北地区', price: 1200 }
+    <script>
+        // ==================== 默认配置数据 ====================
+        const defaultConfig = {
+            // 价格配置
+            prices: {
+                national: { name: '全国', price: 5000 },
+                regions: [
+                    { id: 'region_northeast', name: '东北地区', price: 1200 },
+                    { id: 'region_north', name: '华北地区', price: 1200 },
+                    { id: 'region_east', name: '华东地区', price: 1200 },
+                    { id: 'region_central', name: '华中地区', price: 1200 },
+                    { id: 'region_south', name: '华南地区', price: 1200 },
+                    { id: 'region_southwest', name: '西南地区', price: 1200 },
+                    { id: 'region_northwest', name: '西北地区', price: 1200 }
+                ],
+                provincePrice: 300,
+                cityPrice: 80
+            },
+            
+            // 个人用户指标
+            personalIndicators: [
+                { id: 'p1', name: '基础指标（GDP、人口、面积）', desc: '宏观经济基础数据' },
+                { id: 'p2', name: '行业趋势概览', desc: '各行业发展趋势分析' },
+                { id: 'p3', name: '区域经济概况', desc: '区域经济基本情况' },
+                { id: 'p4', name: '公开统计数据', desc: '政府公开统计数据' },
+                { id: 'p5', name: '基础分析报告', desc: '标准化分析报告' },
+                { id: 'p6', name: '可视化图表（基础版）', desc: '基础图表展示' }
             ],
-            provincePrice: 300,
-            cityPrice: 80
-        },
-        
-        // 个人用户指标
-        personalIndicators: [
-            { id: 'p1', name: '基础指标（GDP、人口、面积）', desc: '宏观经济基础数据' },
-            { id: 'p2', name: '行业趋势概览', desc: '各行业发展趋势分析' },
-            { id: 'p3', name: '区域经济概况', desc: '区域经济基本情况' },
-            { id: 'p4', name: '公开统计数据', desc: '政府公开统计数据' },
-            { id: 'p5', name: '基础分析报告', desc: '标准化分析报告' },
-            { id: 'p6', name: '可视化图表（基础版）', desc: '基础图表展示' }
-        ],
-        
-        // 机构用户指标
-        orgIndicators: [
-            { id: 'o1', name: '基础指标（GDP、人口、面积）', desc: '宏观经济基础数据' },
-            { id: 'o2', name: '行业趋势深度分析', desc: '深度行业趋势分析' },
-            { id: 'o3', name: '区域经济详细数据', desc: '区域经济详细数据' },
-            { id: 'o4', name: '公开+内部统计数据', desc: '整合内外部数据' },
-            { id: 'o5', name: '高级分析报告', desc: '定制化高级报告' },
-            { id: 'o6', name: '可视化图表（专业版）', desc: '专业图表工具' },
-            { id: 'o7', name: '预测模型数据', desc: 'AI预测模型' },
-            { id: 'o8', name: '原始数据下载', desc: 'CSV/Excel导出' },
-            { id: 'o9', name: 'API数据接口', desc: '实时API调用' },
-            { id: 'o10', name: '定制化分析报告', desc: '专属定制报告' },
-            { id: 'o11', name: '竞品对比分析', desc: '竞品数据对比' },
-            { id: 'o12', name: '实时监控数据', desc: '实时数据监控' }
-        ],
-        
-        // 时长系数
-        durationMultipliers: {
-            year: 1.0,
-            month: 0.1,
-            day: 0.004
+            
+            // 机构用户指标
+            orgIndicators: [
+                { id: 'o1', name: '基础指标（GDP、人口、面积）', desc: '宏观经济基础数据' },
+                { id: 'o2', name: '行业趋势深度分析', desc: '深度行业趋势分析' },
+                { id: 'o3', name: '区域经济详细数据', desc: '区域经济详细数据' },
+                { id: 'o4', name: '公开+内部统计数据', desc: '整合内外部数据' },
+                { id: 'o5', name: '高级分析报告', desc: '定制化高级报告' },
+                { id: 'o6', name: '可视化图表（专业版）', desc: '专业图表工具' },
+                { id: 'o7', name: '预测模型数据', desc: 'AI预测模型' },
+                { id: 'o8', name: '原始数据下载', desc: 'CSV/Excel导出' },
+                { id: 'o9', name: 'API数据接口', desc: '实时API调用' },
+                { id: 'o10', name: '定制化分析报告', desc: '专属定制报告' },
+                { id: 'o11', name: '竞品对比分析', desc: '竞品数据对比' },
+                { id: 'o12', name: '实时监控数据', desc: '实时数据监控' }
+            ],
+            
+            // 时长系数
+            durationMultipliers: {
+                year: 1.0,
+                month: 0.1,
+                day: 0.004
+            }
+        };
+
+        // 当前配置
+        let currentConfig = JSON.parse(JSON.stringify(defaultConfig));
+
+        // 加载保存的配置
+        function loadConfig() {
+            const saved = localStorage.getItem('indicatorPurchaseConfig');
+            if (saved) {
+                try {
+                    currentConfig = JSON.parse(saved);
+                    showToast('已加载保存的配置', 'success');
+                } catch(e) {
+                    console.error('加载配置失败', e);
+                }
+            }
+            renderAllPanels();
         }
-    };
 
-    // 当前配置
-    let currentConfig = JSON.parse(JSON.stringify(defaultConfig));
+        // 保存配置
+        function saveConfig() {
+            localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(currentConfig));
+            const statusSpan = document.getElementById('saveStatus');
+            statusSpan.style.display = 'inline-block';
+            statusSpan.innerHTML = '✓ 已保存到本地';
+            showToast('配置已保存！购买页面将使用新配置', 'success');
+            setTimeout(() => {
+                statusSpan.style.display = 'none';
+            }, 2000);
+        }
 
-    // 加载保存的配置
-    function loadConfig() {
-        const saved = localStorage.getItem('indicatorPurchaseConfig');
-        if (saved) {
-            try {
-                currentConfig = JSON.parse(saved);
-                showToast('已加载保存的配置', 'success');
-            } catch(e) {
-                console.error('加载配置失败', e);
+        // 重置配置
+        function resetConfig() {
+            if (confirm('确认重置所有配置为默认值吗？')) {
+                currentConfig = JSON.parse(JSON.stringify(defaultConfig));
+                renderAllPanels();
+                saveConfig();
+                showToast('已重置为默认配置', 'info');
             }
         }
-        renderAllPanels();
-    }
 
-    // 保存配置
-    function saveConfig() {
-        localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(currentConfig));
-        const statusSpan = document.getElementById('saveStatus');
-        statusSpan.style.display = 'inline-block';
-        statusSpan.innerHTML = '✓ 已保存到本地';
-        showToast('配置已保存！购买页面将使用新配置', 'success');
-        setTimeout(() => {
-            statusSpan.style.display = 'none';
-        }, 2000);
-    }
-
-    // 重置配置
-    function resetConfig() {
-        if (confirm('确认重置所有配置为默认值吗？')) {
-            currentConfig = JSON.parse(JSON.stringify(defaultConfig));
-            renderAllPanels();
-            saveConfig();
-            showToast('已重置为默认配置', 'info');
+        // 测试配置
+        function testConfig() {
+            const totalPersonal = currentConfig.personalIndicators.length;
+            const totalOrg = currentConfig.orgIndicators.length;
+            const samplePrice = currentConfig.prices.national.price;
+            
+            alert(`📊 配置测试\n\n` +
+                  `个人指标数量：${totalPersonal}项\n` +
+                  `机构指标数量：${totalOrg}项\n` +
+                  `全国价格：¥${samplePrice}/年\n` +
+                  `地区价格：¥${currentConfig.prices.regions[0].price}/年\n` +
+                  `省份价格：¥${currentConfig.prices.provincePrice}/年\n` +
+                  `城市价格：¥${currentConfig.prices.cityPrice}/年\n` +
+                  `时长系数：年 ${currentConfig.durationMultipliers.year}，` +
+                  `月 ${currentConfig.durationMultipliers.month}，` +
+                  `日 ${currentConfig.durationMultipliers.day}\n\n` +
+                  `✅ 配置有效！保存后可在购买页面使用。`);
         }
-    }
 
-    // 测试配置
-    function testConfig() {
-        const totalPersonal = currentConfig.personalIndicators.length;
-        const totalOrg = currentConfig.orgIndicators.length;
-        const samplePrice = currentConfig.prices.national.price;
-        
-        alert(`📊 配置测试\n\n` +
-              `个人指标数量：${totalPersonal}项\n` +
-              `机构指标数量：${totalOrg}项\n` +
-              `全国价格：¥${samplePrice}/年\n` +
-              `地区价格：¥${currentConfig.prices.regions[0].price}/年\n` +
-              `省份价格：¥${currentConfig.prices.provincePrice}/年\n` +
-              `城市价格：¥${currentConfig.prices.cityPrice}/年\n` +
-              `时长系数：年 ${currentConfig.durationMultipliers.year}，` +
-              `月 ${currentConfig.durationMultipliers.month}，` +
-              `日 ${currentConfig.durationMultipliers.day}\n\n` +
-              `✅ 配置有效！保存后可在购买页面使用。`);
-    }
-
-    // 渲染价格面板
-    function renderPricePanel() {
-        const tbody = document.getElementById('priceTableBody');
-        let html = `
-            <tr>
-                <td>全国</td>
-                <td>🌏 全国（覆盖所有地区）</td>
-                <td><input type="number" class="price-input" id="nationalPrice" value="${currentConfig.prices.national.price}" step="100"></td>
-            </tr>
-        `;
-        
-        currentConfig.prices.regions.forEach((region, idx) => {
-            html += `
+        // 渲染价格面板
+        function renderPricePanel() {
+            const tbody = document.getElementById('priceTableBody');
+            let html = `
                 <tr>
-                    <td>地区</td>
-                    <td>🗺️ ${region.name}</td>
-                    <td><input type="number" class="price-input" data-region-idx="${idx}" value="${region.price}" step="50"></td>
+                    <td>全国</td>
+                    <td>🌏 全国（覆盖所有地区）</td>
+                    <td><input type="number" class="price-input" id="nationalPrice" value="${currentConfig.prices.national.price}" step="100"></td>
                 </tr>
             `;
-        });
-        
-        html += `
-            <tr>
-                <td>省份</td>
-                <td>🏙️ 各省份</td>
-                <td><input type="number" class="price-input" id="provincePrice" value="${currentConfig.prices.provincePrice}" step="50"></td>
-            </tr>
-            <tr>
-                <td>城市</td>
-                <td>🏢 各城市</td>
-                <td><input type="number" class="price-input" id="cityPrice" value="${currentConfig.prices.cityPrice}" step="20"></td>
-            </tr>
-        `;
-        
-        tbody.innerHTML = html;
-        
-        // 绑定事件
-        document.getElementById('nationalPrice')?.addEventListener('change', (e) => {
-            currentConfig.prices.national.price = parseInt(e.target.value) || 5000;
-        });
-        
-        document.querySelectorAll('[data-region-idx]').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const idx = parseInt(input.getAttribute('data-region-idx'));
-                currentConfig.prices.regions[idx].price = parseInt(e.target.value) || 1200;
-            });
-        });
-        
-        document.getElementById('provincePrice')?.addEventListener('change', (e) => {
-            currentConfig.prices.provincePrice = parseInt(e.target.value) || 300;
-        });
-        
-        document.getElementById('cityPrice')?.addEventListener('change', (e) => {
-            currentConfig.prices.cityPrice = parseInt(e.target.value) || 80;
-        });
-    }
-
-    // 渲染指标列表
-    function renderIndicators() {
-        // 个人指标
-        const personalContainer = document.getElementById('personalIndicatorsList');
-        personalContainer.innerHTML = currentConfig.personalIndicators.map((ind, idx) => `
-            <div class="indicator-item" data-idx="${idx}" data-type="personal">
-                <div class="indicator-info">
-                    <div class="indicator-name">${escapeHtml(ind.name)}</div>
-                    <div class="indicator-desc">${escapeHtml(ind.desc)}</div>
-                </div>
-                <div class="indicator-actions">
-                    <button class="edit-btn" onclick="editIndicator('personal', ${idx})">编辑</button>
-                    <button class="delete-btn" onclick="deleteIndicator('personal', ${idx})">删除</button>
-                </div>
-            </div>
-        `).join('');
-        
-        if (currentConfig.personalIndicators.length === 0) {
-            personalContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #8ba0ae;">暂无指标，请点击上方按钮添加</div>';
-        }
-        
-        // 机构指标
-        const orgContainer = document.getElementById('orgIndicatorsList');
-        orgContainer.innerHTML = currentConfig.orgIndicators.map((ind, idx) => `
-            <div class="indicator-item" data-idx="${idx}" data-type="org">
-                <div class="indicator-info">
-                    <div class="indicator-name">${escapeHtml(ind.name)}</div>
-                    <div class="indicator-desc">${escapeHtml(ind.desc)}</div>
-                </div>
-                <div class="indicator-actions">
-                    <button class="edit-btn" onclick="editIndicator('org', ${idx})">编辑</button>
-                    <button class="delete-btn" onclick="deleteIndicator('org', ${idx})">删除</button>
-                </div>
-            </div>
-        `).join('');
-        
-        if (currentConfig.orgIndicators.length === 0) {
-            orgContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #8ba0ae;">暂无指标，请点击上方按钮添加</div>';
-        }
-    }
-
-    // 编辑指标
-    window.editIndicator = function(type, idx) {
-        const indicators = type === 'personal' ? currentConfig.personalIndicators : currentConfig.orgIndicators;
-        const indicator = indicators[idx];
-        
-        const newName = prompt('请输入指标名称：', indicator.name);
-        if (newName && newName.trim()) {
-            const newDesc = prompt('请输入指标描述：', indicator.desc);
-            indicator.name = newName.trim();
-            indicator.desc = newDesc ? newDesc.trim() : '';
-            renderIndicators();
-        }
-    };
-    
-    // 删除指标
-    window.deleteIndicator = function(type, idx) {
-        if (confirm('确认删除该指标吗？')) {
-            if (type === 'personal') {
-                currentConfig.personalIndicators.splice(idx, 1);
-            } else {
-                currentConfig.orgIndicators.splice(idx, 1);
-            }
-            renderIndicators();
-        }
-    };
-    
-    // 添加指标
-    function addIndicator(type) {
-        const name = prompt('请输入指标名称：');
-        if (name && name.trim()) {
-            const desc = prompt('请输入指标描述（可选）：');
-            const newIndicator = {
-                id: Date.now() + Math.random(),
-                name: name.trim(),
-                desc: desc ? desc.trim() : ''
-            };
             
-            if (type === 'personal') {
-                currentConfig.personalIndicators.push(newIndicator);
-            } else {
-                currentConfig.orgIndicators.push(newIndicator);
-            }
-            renderIndicators();
-            showToast('指标已添加', 'success');
+            currentConfig.prices.regions.forEach((region, idx) => {
+                html += `
+                    <tr>
+                        <td>地区</td>
+                        <td>🗺️ ${region.name}</td>
+                        <td><input type="number" class="price-input" data-region-idx="${idx}" value="${region.price}" step="50"></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                <tr>
+                    <td>省份</td>
+                    <td>🏙️ 各省份</td>
+                    <td><input type="number" class="price-input" id="provincePrice" value="${currentConfig.prices.provincePrice}" step="50"></td>
+                </tr>
+                <tr>
+                    <td>城市</td>
+                    <td>🏢 各城市</td>
+                    <td><input type="number" class="price-input" id="cityPrice" value="${currentConfig.prices.cityPrice}" step="20"></td>
+                </tr>
+            `;
+            
+            tbody.innerHTML = html;
+            
+            // 绑定事件
+            document.getElementById('nationalPrice')?.addEventListener('change', (e) => {
+                currentConfig.prices.national.price = parseInt(e.target.value) || 5000;
+            });
+            
+            document.querySelectorAll('[data-region-idx]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(input.getAttribute('data-region-idx'));
+                    currentConfig.prices.regions[idx].price = parseInt(e.target.value) || 1200;
+                });
+            });
+            
+            document.getElementById('provincePrice')?.addEventListener('change', (e) => {
+                currentConfig.prices.provincePrice = parseInt(e.target.value) || 300;
+            });
+            
+            document.getElementById('cityPrice')?.addEventListener('change', (e) => {
+                currentConfig.prices.cityPrice = parseInt(e.target.value) || 80;
+            });
         }
-    }
 
-    // 渲染时长系数
-    function renderDurationPanel() {
-        const container = document.getElementById('durationConfig');
-        container.innerHTML = `
-            <div class="duration-item">
-                <div class="duration-name">📅 年卡</div>
-                <input type="number" id="yearMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.year}" step="0.1" min="0">
-                <div style="font-size: 12px; margin-top: 8px;">系数：1.0 = 原价</div>
-            </div>
-            <div class="duration-item">
-                <div class="duration-name">📆 月卡</div>
-                <input type="number" id="monthMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.month}" step="0.01" min="0">
-                <div style="font-size: 12px; margin-top: 8px;">建议 0.08-0.12</div>
-            </div>
-            <div class="duration-item">
-                <div class="duration-name">⚡ 日卡</div>
-                <input type="number" id="dayMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.day}" step="0.001" min="0">
-                <div style="font-size: 12px; margin-top: 8px;">建议 0.003-0.005</div>
-            </div>
-        `;
-        
-        document.getElementById('yearMultiplier')?.addEventListener('change', (e) => {
-            currentConfig.durationMultipliers.year = parseFloat(e.target.value) || 1.0;
-        });
-        
-        document.getElementById('monthMultiplier')?.addEventListener('change', (e) => {
-            currentConfig.durationMultipliers.month = parseFloat(e.target.value) || 0.1;
-        });
-        
-        document.getElementById('dayMultiplier')?.addEventListener('change', (e) => {
-            currentConfig.durationMultipliers.day = parseFloat(e.target.value) || 0.004;
-        });
-    }
+        // 渲染指标列表
+        function renderIndicators() {
+            // 个人指标
+            const personalContainer = document.getElementById('personalIndicatorsList');
+            personalContainer.innerHTML = currentConfig.personalIndicators.map((ind, idx) => `
+                <div class="indicator-item" data-idx="${idx}" data-type="personal">
+                    <div class="indicator-info">
+                        <div class="indicator-name">${escapeHtml(ind.name)}</div>
+                        <div class="indicator-desc">${escapeHtml(ind.desc)}</div>
+                    </div>
+                    <div class="indicator-actions">
+                        <button class="edit-btn" onclick="editIndicator('personal', ${idx})">编辑</button>
+                        <button class="delete-btn" onclick="deleteIndicator('personal', ${idx})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (currentConfig.personalIndicators.length === 0) {
+                personalContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #8ba0ae;">暂无指标，请点击上方按钮添加</div>';
+            }
+            
+            // 机构指标
+            const orgContainer = document.getElementById('orgIndicatorsList');
+            orgContainer.innerHTML = currentConfig.orgIndicators.map((ind, idx) => `
+                <div class="indicator-item" data-idx="${idx}" data-type="org">
+                    <div class="indicator-info">
+                        <div class="indicator-name">${escapeHtml(ind.name)}</div>
+                        <div class="indicator-desc">${escapeHtml(ind.desc)}</div>
+                    </div>
+                    <div class="indicator-actions">
+                        <button class="edit-btn" onclick="editIndicator('org', ${idx})">编辑</button>
+                        <button class="delete-btn" onclick="deleteIndicator('org', ${idx})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (currentConfig.orgIndicators.length === 0) {
+                orgContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #8ba0ae;">暂无指标，请点击上方按钮添加</div>';
+            }
+        }
 
-    // 渲染所有面板
-    function renderAllPanels() {
-        renderPricePanel();
-        renderIndicators();
-        renderDurationPanel();
-    }
-
-    // 工具函数
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.remove();
-        }, 2000);
-    }
-
-    // 标签页切换
-    function initTabs() {
-        const tabs = document.querySelectorAll('.tab-btn');
-        const panels = {
-            price: document.getElementById('pricePanel'),
-            indicator: document.getElementById('indicatorPanel'),
-            duration: document.getElementById('durationPanel')
+        // 编辑指标
+        window.editIndicator = function(type, idx) {
+            const indicators = type === 'personal' ? currentConfig.personalIndicators : currentConfig.orgIndicators;
+            const indicator = indicators[idx];
+            
+            const newName = prompt('请输入指标名称：', indicator.name);
+            if (newName && newName.trim()) {
+                const newDesc = prompt('请输入指标描述：', indicator.desc);
+                indicator.name = newName.trim();
+                indicator.desc = newDesc ? newDesc.trim() : '';
+                renderIndicators();
+            }
         };
         
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.getAttribute('data-tab');
-                
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                Object.values(panels).forEach(panel => {
-                    if (panel) panel.style.display = 'none';
-                });
-                
-                if (panels[tabName]) {
-                    panels[tabName].style.display = 'block';
+        // 删除指标
+        window.deleteIndicator = function(type, idx) {
+            if (confirm('确认删除该指标吗？')) {
+                if (type === 'personal') {
+                    currentConfig.personalIndicators.splice(idx, 1);
+                } else {
+                    currentConfig.orgIndicators.splice(idx, 1);
                 }
+                renderIndicators();
+            }
+        };
+        
+        // 添加指标
+        function addIndicator(type) {
+            const name = prompt('请输入指标名称：');
+            if (name && name.trim()) {
+                const desc = prompt('请输入指标描述（可选）：');
+                const newIndicator = {
+                    id: Date.now() + Math.random(),
+                    name: name.trim(),
+                    desc: desc ? desc.trim() : ''
+                };
+                
+                if (type === 'personal') {
+                    currentConfig.personalIndicators.push(newIndicator);
+                } else {
+                    currentConfig.orgIndicators.push(newIndicator);
+                }
+                renderIndicators();
+                showToast('指标已添加', 'success');
+            }
+        }
+
+        // 渲染时长系数
+        function renderDurationPanel() {
+            const container = document.getElementById('durationConfig');
+            container.innerHTML = `
+                <div class="duration-item">
+                    <div class="duration-name">📅 年卡</div>
+                    <input type="number" id="yearMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.year}" step="0.1" min="0">
+                    <div style="font-size: 12px; margin-top: 8px;">系数：1.0 = 原价</div>
+                </div>
+                <div class="duration-item">
+                    <div class="duration-name">📆 月卡</div>
+                    <input type="number" id="monthMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.month}" step="0.01" min="0">
+                    <div style="font-size: 12px; margin-top: 8px;">建议 0.08-0.12</div>
+                </div>
+                <div class="duration-item">
+                    <div class="duration-name">⚡ 日卡</div>
+                    <input type="number" id="dayMultiplier" class="duration-input" value="${currentConfig.durationMultipliers.day}" step="0.001" min="0">
+                    <div style="font-size: 12px; margin-top: 8px;">建议 0.003-0.005</div>
+                </div>
+            `;
+            
+            document.getElementById('yearMultiplier')?.addEventListener('change', (e) => {
+                currentConfig.durationMultipliers.year = parseFloat(e.target.value) || 1.0;
             });
-        });
-    }
+            
+            document.getElementById('monthMultiplier')?.addEventListener('change', (e) => {
+                currentConfig.durationMultipliers.month = parseFloat(e.target.value) || 0.1;
+            });
+            
+            document.getElementById('dayMultiplier')?.addEventListener('change', (e) => {
+                currentConfig.durationMultipliers.day = parseFloat(e.target.value) || 0.004;
+            });
+        }
 
-    // 查看购买页面
-    function viewPurchasePage() {
-        alert('购买页面已打开，请在新窗口查看\n\n提示：配置已保存，购买页面会自动读取最新配置');
-        // 实际项目中可以打开新窗口
-        window.open('purchase.html', '_blank');
-    }
+        // 渲染所有面板
+        function renderAllPanels() {
+            renderPricePanel();
+            renderIndicators();
+            renderDurationPanel();
+        }
 
-    // 初始化
-    function init() {
-        loadConfig();
-        initTabs();
+        // 工具函数
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        }
+
+        // 标签页切换
+        function initTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const panels = {
+                price: document.getElementById('pricePanel'),
+                indicator: document.getElementById('indicatorPanel'),
+                duration: document.getElementById('durationPanel')
+            };
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    Object.values(panels).forEach(panel => {
+                        if (panel) panel.style.display = 'none';
+                    });
+                    
+                    if (panels[tabName]) {
+                        panels[tabName].style.display = 'block';
+                    }
+                });
+            });
+        }
+
+        // 查看购买页面
+        function viewPurchasePage() {
+            alert('购买页面已打开，请在新窗口查看\n\n提示：配置已保存，购买页面会自动读取最新配置');
+            // 实际项目中可以打开新窗口
+            window.open('purchase.html', '_blank');
+        }
+
+        // 初始化
+        function init() {
+            loadConfig();
+            initTabs();
+            
+            document.getElementById('saveBtn').addEventListener('click', () => {
+                saveConfig();
+            });
+            
+            document.getElementById('resetBtn').addEventListener('click', resetConfig);
+            document.getElementById('testBtn').addEventListener('click', testConfig);
+            document.getElementById('addPersonalIndicator').addEventListener('click', () => addIndicator('personal'));
+            document.getElementById('addOrgIndicator').addEventListener('click', () => addIndicator('org'));
+            document.getElementById('viewPurchasePage').addEventListener('click', (e) => {
+                e.preventDefault();
+                viewPurchasePage();
+            });
+        }
         
-        document.getElementById('saveBtn').addEventListener('click', () => {
-            saveConfig();
-        });
-        
-        document.getElementById('resetBtn').addEventListener('click', resetConfig);
-        document.getElementById('testBtn').addEventListener('click', testConfig);
-        document.getElementById('addPersonalIndicator').addEventListener('click', () => addIndicator('personal'));
-        document.getElementById('addOrgIndicator').addEventListener('click', () => addIndicator('org'));
-        document.getElementById('viewPurchasePage').addEventListener('click', (e) => {
-            e.preventDefault();
-            viewPurchasePage();
-        });
-    }
-    
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>
