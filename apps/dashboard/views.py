@@ -42,6 +42,13 @@ def dashboard_single_query(request):
 def dashboard_single_query_area(request):
     return render(request, 'dashboard/single_query_area.html')
 
+@login_required
+@require_http_methods(['GET'])
+def dashboard_order_price(request):
+    return render(request, 'dashboard/order_price.html')
+
+
+
 # @login_required
 # @require_http_methods(['GET'])
 # def dashboard_single_indicator_city_query(request):
