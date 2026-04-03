@@ -1,0 +1,863 @@
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>单指标历年数据查询界面</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    body { background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    /* 表格明细样式 */
+    .table-detail-row:hover { background-color: #f8fafc; transition: background-color 0.2s; }
+    .indicator-value { color: #2563eb; font-weight: 700; font-family: 'Monaco', 'Consolas', monospace; }
+
+
+
+  /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        /* 两列布局 */
+        .two-columns {
+            display: flex;
+            gap: 20px;
+            height: 350px;
+        }
+        
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .column-header {
+            background: #f8f9fa;
+            padding: 12px;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            text-align: left;
+        }
+        
+        .item:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .item.selected {
+            background-color: #e3f2fd;
+            border-left: 3px solid #3498db;
+        }
+        
+        .no-data {
+            padding: 30px 20px;
+            color: #95a5a6;
+            text-align: center;
+        }
+        
+        .selection-result {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .selection-result p {
+            color: #2c3e50;
+        }
+        
+
+
+
+
+
+
+
+</style>
+</head>
+<!-- <body class="p-6">
+<div class="max-w-[1440px] mx-auto space-y-6"> -->
+<!-- 标题栏 -->
+
+
+<header class="bg-white border-b border-yellow-600 h-20 flex items-center px-8 sticky top-0 z-50">
+<div class="flex items-center space-x-3">
+<iconify-icon class="text-yellow-500 text-3xl" icon="mdi:chart-box"></iconify-icon>
+<h1 class="text-2xl font-bold text-black">数据指标管理系统</h1>
+</div>
+<div class="ml-auto flex items-center space-x-4">
+<div class="flex space-x-3 mr-6">
+  <a href="/dashboard/" 
+      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+      指标录入
+  </a>
+   <a href="/dashboard/area_input" 
+      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+      区县指标录入
+  </a>
+  <a href="/dashboard/single-indicator-year-query/" 
+      class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
+      单指标历年查询
+  </a>
+  <a href="/dashboard/single-indicator-city-query/" 
+      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+      单指标多城市查询
+  </a>
+  <a href="/dashboard/many-indicator-query/" 
+      class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+      多城市多指标查询
+  </a>
+</div>
+<div class="text-right">
+<div class="flex-shrink-0 flex items-center">
+  <a href="{% url 'landing:home' %}" class="flex items-center">
+      <span class="text-xl font-medium uppercase tracking-wide">城策智库</span>
+  </a>
+</div>
+</div>
+<div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+<iconify-icon class="text-yellow-500 text-xl" icon="mdi:account"></iconify-icon>
+</div>
+</div>
+
+</header>
+
+
+
+<header class="flex items-center space-y-1 py-2">
+<span class="iconify text-3xl text-blue-600 mr-3" data-icon="fluent:database-search-24-filled"></span>
+<a href="/dashboard/single-indicator-year-query/" 
+    class="bg-white-700 text-black font-medium py-2 px-4 rounded-lg text-sm hover:bg-gray-300 border border-gray-600 transition">
+    城市数据查询
+</a>
+<a href="/dashboard/single-indicator-year-query-area/" 
+    class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 font-medium py-2 px-4 rounded-lg text-sm hover:from-yellow-600 hover:to-yellow-700 transition">
+    区县数据查询
+</a>
+</header>
+<!-- 查询条件区 -->
+<section class="card p-6">
+<div class="grid grid-cols-6 gap-6 items-end">
+  <div class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700">请选择指标</label>
+    <select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" id="dataSelect">
+      <option value="option2">请选择指标</option>
+      <option value="custom-selector" class="custom-selector-option">
+                    打开指标项
+      </option>
+    </select>
+    <!-- 隐藏的输入框，用于存储选择器的值 -->
+    <input type="hidden" id="customSelectorValue" value="">
+  </div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择省份</label>
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="provinceSelect" onchange="updateCities()">
+<option value="">请选择省份</option>
+<option value="北京市">北京市</option>
+              <option value="天津市">天津市</option>
+              <option value="上海市">上海市</option>
+              <option value="重庆市">重庆市</option>
+              <option value="河北省">河北省</option>
+              <option value="山西省">山西省</option>
+              <option value="辽宁省">辽宁省</option>
+              <option value="吉林省">吉林省</option>
+              <option value="黑龙江省">黑龙江省</option>
+              <option value="江苏省">江苏省</option>
+              <option value="浙江省">浙江省</option>
+              <option value="安徽省">安徽省</option>
+              <option value="福建省">福建省</option>
+              <option value="江西省">江西省</option>
+              <option value="山东省">山东省</option>
+              <option value="河南省">河南省</option>
+              <option value="湖北省">湖北省</option>
+              <option value="湖南省">湖南省</option>
+              <option value="广东省">广东省</option>
+              <option value="海南省">海南省</option>
+              <option value="四川省">四川省</option>
+              <option value="贵州省">贵州省</option>
+              <option value="云南省">云南省</option>
+              <option value="陕西省">陕西省</option>
+              <option value="甘肃省">甘肃省</option>
+              <option value="青海省">青海省</option>
+              <option value="内蒙古自治区">内蒙古自治区</option>
+              <option value="广西壮族自治区">广西壮族自治区</option>
+              <option value="西藏自治区">西藏自治区</option>
+              <option value="宁夏回族自治区">宁夏回族自治区</option>
+              <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+              <option value="香港特别行政区">香港特别行政区</option>
+              <option value="澳门特别行政区">澳门特别行政区</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择城市 (单选)</label>
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="citySelect">
+<option value="">请先选择省份</option>
+</select>
+</div>
+
+<div class="space-y-2">
+<label class="block text-sm font-medium text-gray-700">请选择区县</label>
+<select class="w-48 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="districtSelect">
+<option value="">请先选择城市</option>
+</select>
+</div>
+
+<div class="flex gap-4 col-span-1">
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-medium text-gray-700">起始年份</label>
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="startYear">
+<option value="2009">2009年</option>
+<option value="2010">2010年</option>
+<option value="2011">2011年</option>
+<option value="2012">2012年</option>
+<option value="2013">2013年</option>
+<option value="2014">2014年</option>
+<option value="2015">2015年</option>
+<option value="2016">2016年</option>
+<option value="2017">2017年</option>
+<option value="2018">2018年</option>
+<option value="2019">2019年</option>
+<option value="2020">2020年</option>
+<option value="2021">2021年</option>
+<option value="2022">2022年</option>
+<option value="2023">2023年</option>
+<option value="2024">2024年</option>
+<option value="2025">2025年</option>
+</select>
+</div>
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-medium text-gray-700">终止年份</label>
+<select class="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" id="endYear">
+<option selected="" value="2026">2026年</option>
+<option value="2025">2025年</option>
+<option value="2024">2024年</option>
+<option value="2023">2023年</option>
+<option value="2022">2022年</option>
+<option value="2021">2021年</option>
+<option value="2020">2020年</option>
+<option value="2019">2019年</option>
+<option value="2018">2018年</option>
+<option value="2017">2017年</option>
+<option value="2016">2016年</option>
+<option value="2015">2015年</option>
+<option value="2014">2014年</option>
+<option value="2013">2013年</option>
+<option value="2012">2012年</option>
+<option value="2011">2011年</option>
+<option value="2010">2010年</option>
+<option value="2009">2009年</option>
+</select>
+</div>
+<button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center justify-center" onclick="handleSearch()">
+<span class="iconify mr-2" data-icon="fluent:search-24-regular"></span>查询
+</button>
+</div>
+</div>
+</section>
+
+
+
+<!-- 弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">选择数据</div>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="two-columns">
+                    <!-- 第一列 -->
+                    <div class="column">
+                        <div class="column-header">分类</div>
+                        <div class="column-content" id="firstColumn"></div>
+                    </div>
+                    
+                    <!-- 第二列 -->
+                    <div class="column">
+                        <div class="column-header">指标项</div>
+                        <div class="column-content" id="secondColumn">
+                            <div class="no-data">请选择左侧分类</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="selection-result" id="modalSelectionResult" style="margin-top: 15px;">
+                    <p id="modalResultContent">请选择分类</p>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="confirmBtn" style="padding: 8px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        确认选择
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+<!-- 数据展示区 -->
+<div class="hidden space-y-6" id="resultContent">
+<!-- 表格卡片 -->
+<section class="card p-6">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="tableTitle">历年数据明细</h2>
+<div class="flex items-center space-x-2">
+<span class="text-sm text-gray-500">数值排序：</span>
+<select class="border border-gray-300 rounded px-2 py-1 text-sm outline-none" id="sortOrder" onchange="renderTable()">
+<option value="year_asc">按年份升序</option>
+<option value="val_asc">按数值升序</option>
+<option value="val_desc">按数值降序</option>
+</select>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-gray-50 border-b border-gray-200">
+<th class="px-6 py-4 font-semibold text-gray-700">年份</th>
+<th class="px-6 py-4 font-semibold text-gray-700">区县</th>
+<th class="px-6 py-4 font-semibold text-gray-700" id="indicatorHeader">指标值</th>
+<th class="px-6 py-4 font-semibold text-gray-700">单位</th>
+<th class="px-6 py-4 font-semibold text-gray-700">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100" id="tableBody">
+<!-- JS 填充 -->
+</tbody>
+</table>
+</div>
+</section>
+<!-- 图表卡片 -->
+<section class="card p-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-3" id="chartTitle">趋势分析视图</h2>
+<div class="flex bg-gray-100 p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm" id="btnBar" onclick="switchChart('bar')">柱状图</button>
+<button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600" id="btnLine" onclick="switchChart('line')">曲线图</button>
+</div>
+</div>
+<div class="w-full h-[400px]" id="mainChart"></div>
+</section>
+</div>
+<!-- 缺省页 -->
+<div class="card py-20 flex flex-col items-center justify-center text-gray-400" id="emptyState">
+<img alt="No data illustration" class="w-32 h-32 mb-4 opacity-20" id="1" src="https://modao.cc/agent-py/media/generated_images/2025-12-19/cfa70c9f5ea744609279fdbeadddb0f3.jpg"/>
+<p>请选择指标和地区后点击查询按钮</p>
+</div>
+</div>
+<script>
+// 两层结构数据示例
+const dataDict = {
+      '人口数据': ['常住人口数', '户籍人口数'],
+      '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '一般公共预算收入', '一般公共预算收入增长率', '人均一般公共预算收入','城镇居民家庭人均可支配收入','农村居民家庭人均纯收入'],
+    };
+
+        // DOM元素
+        const dataSelect = document.getElementById('dataSelect');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const closeModalBtn = document.getElementById('closeModal');
+        const firstColumn = document.getElementById('firstColumn');
+        const secondColumn = document.getElementById('secondColumn');
+        const modalResultContent = document.getElementById('modalResultContent');
+        // const selectionResult = document.getElementById('selectionResult');
+        // const resultContent = document.getElementById('resultContent');
+        // const customSelectorValue = document.getElementById('customSelectorValue');
+        const confirmBtn = document.getElementById('confirmBtn');
+        
+        // 当前选中的分类和值
+        let selectedCategory = null;
+        let selectedValue = null;
+        
+        // 当选择自定义选择器选项时打开弹窗
+        dataSelect.addEventListener('change', function() {
+            if (this.value === 'custom-selector') {
+                // 打开弹窗
+                modalOverlay.style.display = 'flex';
+                populateFirstColumn();
+            } else if (this.value) {
+                // 普通选项
+                resultContent.textContent = this.options[this.selectedIndex].text;
+                selectionResult.style.display = 'block';
+                customSelectorValue.value = ''; // 清空选择器的值
+            }
+        });
+        
+        // 关闭弹窗
+        closeModalBtn.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
+        });
+        
+        // 点击弹窗外部关闭
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
+        });
+        
+        // 确认选择
+        confirmBtn.addEventListener('click', () => {
+            if (selectedValue) {
+                // 1. 关闭弹窗
+                modalOverlay.style.display = 'none';
+                
+                // 2. 直接更新下拉框的选中项显示
+                const dataSelect = document.getElementById('dataSelect');
+                
+                // 创建一个选项来显示选中的值
+                dataSelect.innerHTML = `
+                    <option value="${selectedValue}">${selectedValue}</option>
+                    <option value="custom-selector" class="custom-selector-option">
+                        打开指标项
+                    </option>
+                `;
+                
+                console.log('已选择指标:', selectedValue);
+            } else {
+                alert('请先选择一个选项');
+            }
+        });
+                
+        // 填充第一列数据
+        function populateFirstColumn() {
+            firstColumn.innerHTML = '';
+            
+            Object.keys(dataDict).forEach(category => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = category;
+                
+                itemDiv.addEventListener('click', () => {
+                    selectedCategory = category;
+                    selectedValue = null;
+                    highlightSelectedCategory(category);
+                    populateSecondColumn(category);
+                });
+                
+                firstColumn.appendChild(itemDiv);
+            });
+            
+            // 默认选中第一个
+            const firstCategory = Object.keys(dataDict)[0];
+            if (firstCategory) {
+                selectedCategory = firstCategory;
+                highlightSelectedCategory(firstCategory);
+                populateSecondColumn(firstCategory);
+            }
+        }
+        
+        // 高亮选中的分类
+        function highlightSelectedCategory(category) {
+            // 移除所有选中状态
+            document.querySelectorAll('#firstColumn .item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 添加选中状态到当前选中的分类
+            const items = document.querySelectorAll('#firstColumn .item');
+            for (let item of items) {
+                if (item.textContent === category) {
+                    item.classList.add('selected');
+                    break;
+                }
+            }
+        }
+        
+        // 填充第二列数据
+        function populateSecondColumn(category) {
+            secondColumn.innerHTML = '';
+            
+            if (!category || !dataDict[category]) {
+                secondColumn.innerHTML = '<div class="no-data">无数据</div>';
+                return;
+            }
+            
+            const items = dataDict[category];
+            
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = item;
+                
+                itemDiv.addEventListener('click', () => {
+                    selectedValue = item;
+                    highlightSelectedValue(item);
+                    
+                    // 更新弹窗中的选择状态
+                    modalResultContent.textContent = `已选择: ${category} -> ${item}`;
+                });
+                
+                secondColumn.appendChild(itemDiv);
+            });
+            
+            // 更新弹窗中的选择状态
+            modalResultContent.textContent = `已选择分类: ${category}，请从右侧选择具体选项`;
+        }
+        
+        // 高亮选中的值
+        function highlightSelectedValue(value) {
+            // 移除所有选中状态
+            document.querySelectorAll('#secondColumn .item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 添加选中状态到当前选中的值
+            const items = document.querySelectorAll('#secondColumn .item');
+            for (let item of items) {
+                if (item.textContent === value) {
+                    item.classList.add('selected');
+                    break;
+                }
+            }
+        }
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始显示一些提示信息
+            // resultContent.textContent = '无';
+        });
+
+
+
+
+
+
+
+    // const cityData = {
+    //   "广东省": ["广州市", "深圳市", "珠海市", "佛山市"],
+    //   "江苏省": ["南京市", "无锡市", "徐州市", "苏州市"],
+    //   "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市"]
+    // };
+    const cityData = {
+      "北京市": ["北京市"],
+      "天津市": ["天津市"],
+      "河北省": ["石家庄市", "唐山市", "秦皇岛市", "邯郸市", "邢台市", "保定市", "张家口市", "承德市", "沧州市", "廊坊市", "衡水市"],
+      "山西省": ["太原市", "大同市", "阳泉市", "长治市", "晋城市", "朔州市", "晋中市", "运城市", "忻州市", "临汾市", "吕梁市"],
+      "内蒙古自治区": ["呼和浩特市", "包头市", "乌海市", "赤峰市", "通辽市", "鄂尔多斯市", "呼伦贝尔市", "巴彦淖尔市", "乌兰察布市", "兴安盟", "锡林郭勒盟", "阿拉善盟"],
+      "辽宁省": ["沈阳市", "大连市", "鞍山市", "抚顺市", "本溪市", "丹东市", "锦州市", "营口市", "阜新市", "辽阳市", "盘锦市", "铁岭市", "朝阳市", "葫芦岛市"],
+      "吉林省": ["长春市", "吉林市", "四平市", "辽源市", "通化市", "白山市", "松原市", "白城市", "延边朝鲜族自治州"],
+      "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"],
+      "上海市": ["上海市"],
+      "江苏省": ["南京市", "无锡市", "徐州市", "常州市", "苏州市", "南通市", "连云港市", "淮安市", "盐城市", "扬州市", "镇江市", "泰州市", "宿迁市"],
+      "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市", "湖州市", "绍兴市", "金华市", "衢州市", "舟山市", "台州市", "丽水市"],
+      "安徽省": ["合肥市", "芜湖市", "蚌埠市", "淮南市", "马鞍山市", "淮北市", "铜陵市", "安庆市", "黄山市", "滁州市", "阜阳市", "宿州市", "六安市", "亳州市", "池州市", "宣城市"],
+      "福建省": ["福州市", "厦门市", "莆田市", "三明市", "泉州市", "漳州市", "南平市", "龙岩市", "宁德市"],
+      "江西省": ["南昌市", "景德镇市", "萍乡市", "九江市", "新余市", "鹰潭市", "赣州市", "吉安市", "宜春市", "抚州市", "上饶市"],
+      "山东省": ["济南市", "青岛市", "淄博市", "枣庄市", "东营市", "烟台市", "潍坊市", "济宁市", "泰安市", "威海市", "日照市", "临沂市", "德州市", "聊城市", "滨州市", "菏泽市"],
+      "河南省": ["郑州市", "开封市", "洛阳市", "平顶山市", "安阳市", "鹤壁市", "新乡市", "焦作市", "濮阳市", "许昌市", "漯河市", "三门峡市", "南阳市", "商丘市", "信阳市", "周口市", "驻马店市", "济源市"],
+      "湖北省": ["武汉市", "黄石市", "十堰市", "宜昌市", "襄阳市", "鄂州市", "荆门市", "孝感市", "荆州市", "黄冈市", "咸宁市", "随州市", "恩施土家族苗族自治州", "仙桃市", "潜江市", "天门市", "神农架林区"],
+      "湖南省": ["长沙市", "株洲市", "湘潭市", "衡阳市", "邵阳市", "岳阳市", "常德市", "张家界市", "益阳市", "郴州市", "永州市", "怀化市", "娄底市", "湘西土家族苗族自治州"],
+      "广东省": ["广州市", "韶关市", "深圳市", "珠海市", "汕头市", "佛山市", "江门市", "湛江市", "茂名市", "肇庆市", "惠州市", "梅州市", "汕尾市", "河源市", "阳江市", "清远市", "东莞市", "中山市", "潮州市", "揭阳市", "云浮市"],
+      "广西壮族自治区": ["南宁市", "柳州市", "桂林市", "梧州市", "北海市", "防城港市", "钦州市", "贵港市", "玉林市", "百色市", "贺州市", "河池市", "来宾市", "崇左市"],
+      "海南省": ["海口市", "三亚市", "三沙市", "儋州市"],
+      "重庆市": ["重庆市"],
+      "四川省": ["成都市", "自贡市", "攀枝花市", "泸州市", "德阳市", "绵阳市", "广元市", "遂宁市", "内江市", "乐山市", "南充市", "眉山市", "宜宾市", "广安市", "达州市", "雅安市", "巴中市", "资阳市", "阿坝藏族羌族自治州", "甘孜藏族自治州", "凉山彝族自治州"],
+      "贵州省": ["贵阳市", "六盘水市", "遵义市", "安顺市", "毕节市", "铜仁市", "黔西南布依族苗族自治州", "黔东南苗族侗族自治州", "黔南布依族苗族自治州"],
+      "云南省": ["昆明市", "曲靖市", "玉溪市", "保山市", "昭通市", "丽江市", "普洱市", "临沧市", "楚雄彝族自治州", "红河哈尼族彝族自治州", "文山壮族苗族自治州", "西双版纳傣族自治州", "大理白族自治州", "德宏傣族景颇族自治州", "怒江傈僳族自治州", "迪庆藏族自治州"],
+      "西藏自治区": ["拉萨市", "日喀则市", "昌都市", "林芝市", "山南市", "那曲市", "阿里地区"],
+      "陕西省": ["西安市", "铜川市", "宝鸡市", "咸阳市", "渭南市", "延安市", "汉中市", "榆林市", "安康市", "商洛市"],
+      "甘肃省": ["兰州市", "嘉峪关市", "金昌市", "白银市", "天水市", "武威市", "张掖市", "平凉市", "酒泉市", "庆阳市", "定西市", "陇南市", "临夏回族自治州", "甘南藏族自治州"],
+      "青海省": ["西宁市", "海东市", "海北藏族自治州", "黄南藏族自治州", "海南藏族自治州", "果洛藏族自治州", "玉树藏族自治州", "海西蒙古族藏族自治州"],
+      "宁夏回族自治区": ["银川市", "石嘴山市", "吴忠市", "固原市", "中卫市"],
+      "新疆维吾尔自治区": ["乌鲁木齐市", "克拉玛依市", "吐鲁番市", "哈密市", "昌吉回族自治州", "博尔塔拉蒙古自治州", "巴音郭楞蒙古自治州", "阿克苏地区", "克孜勒苏柯尔克孜自治州", "喀什地区", "和田地区", "伊犁哈萨克自治州", "塔城地区", "阿勒泰地区", "石河子市", "阿拉尔市", "图木舒克市", "五家渠市", "铁门关市"],
+      "台湾省": ["台北市", "高雄市", "台南市", "台中市", "金门县", "南投县", "基隆市", "新竹市", "嘉义市", "新北市", "宜兰县", "新竹县", "桃园市", "苗栗县", "彰化县", "嘉义县", "云林县", "屏东县", "台东县", "花莲县", "澎湖县", "连江县"],
+      "香港特别行政区": ["香港特别行政区"],
+      "澳门特别行政区": ["澳门特别行政区"]
+    };
+
+    // 指标分组与指标列表，参考 home.html indicatorCategories
+
+
+    let rawData = [];
+    let currentChartType = 'bar';
+    let myChart = null;
+
+    // 分组选择后，动态填充指标下拉框
+    document.addEventListener('DOMContentLoaded', function() {
+      const groupSelect = document.getElementById('indicatorGroupSelect');
+      const indicatorSelect = document.getElementById('indicatorSelect');
+      if (groupSelect && indicatorSelect) {
+        groupSelect.addEventListener('change', function() {
+          const group = this.value;
+          indicatorSelect.innerHTML = '<option value="">请选择指标</option>';
+          if (group && indicatorCategories[group]) {
+            indicatorCategories[group].forEach(ind => {
+              const opt = document.createElement('option');
+              opt.value = ind;
+              opt.textContent = ind;
+              indicatorSelect.appendChild(opt);
+            });
+          }
+        });
+      }
+    });
+
+    function updateCities() {
+      const province = document.getElementById('provinceSelect').value;
+      const citySelect = document.getElementById('citySelect');
+      const districtSelect = document.getElementById('districtSelect');
+      citySelect.innerHTML = '<option value="">选择城市</option>';
+      if (districtSelect) {
+        districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+      }
+      if (cityData[province]) {
+        cityData[province].forEach(city => {
+          const opt = document.createElement('option');
+          opt.value = city;
+          opt.textContent = city;
+          citySelect.appendChild(opt);
+        });
+      }
+    }
+
+    function updateDistricts() {
+      const city = document.getElementById('citySelect').value;
+      const districtSelect = document.getElementById('districtSelect');
+      if (!districtSelect) return;
+
+      districtSelect.innerHTML = '<option value="">加载中...</option>';
+
+      if (!city) {
+        districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+        return;
+      }
+
+      fetch(`/dashboard/get-area-map/?city=${encodeURIComponent(city)}`)
+        .then(res => res.json())
+        .then(areas => {
+          districtSelect.innerHTML = '<option value="">请选择区县</option>';
+
+          if (!Array.isArray(areas) || areas.length === 0) {
+            districtSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+            return;
+          }
+
+          areas.forEach(area => {
+            const areaName = typeof area === 'string' ? area : (area && (area.name || area.label || area.value));
+            if (!areaName) return;
+            const opt = document.createElement('option');
+            opt.value = areaName;
+            opt.textContent = areaName;
+            districtSelect.appendChild(opt);
+          });
+
+          if (districtSelect.options.length === 1) {
+            districtSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+          }
+        })
+        .catch(() => {
+          districtSelect.innerHTML = '<option value="">区县加载失败，请重试</option>';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const citySelect = document.getElementById('citySelect');
+      if (citySelect) {
+        citySelect.addEventListener('change', updateDistricts);
+      }
+    });
+
+    function handleSearch() {
+      const indicator = document.getElementById('dataSelect').value;
+      // const group = document.getElementById('indicatorGroupSelect').value;
+      const city = document.getElementById('citySelect').value;
+      const district = document.getElementById('districtSelect').value;
+      const province = document.getElementById('provinceSelect').value;
+      const startYear = document.getElementById('startYear').value;
+      const endYear = document.getElementById('endYear').value;
+
+      if (!indicator || !city || !province) {
+        alert("请完整选择分组、指标、省份和城市");
+        return;
+      }
+      if (parseInt(startYear) > parseInt(endYear)) {
+        alert("起始年份不能大于终止年份");
+        return;
+      }
+
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('resultContent').classList.remove('hidden');
+
+      // 发起 AJAX 请求到后端接口
+      const areaParam = district ? `&area=${encodeURIComponent(district)}` : '';
+      fetch(`/dashboard/single_indicator_area_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}${areaParam}`)
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success || !res.data || res.data.length === 0) {
+            document.getElementById('tableBody').innerHTML = '';
+            if (myChart) myChart.clear();
+            alert('没有查询到数据');
+            return;
+          }
+          rawData = res.data.map(item => ({
+            year: item.year + '年',
+            area: item.area || district || '-',
+            val: item.value,
+            // unit: indicator.includes('人口') ? '万人' : (indicator.includes('面积') ? '平方公里' : '项')
+            unit: item.unit
+          }));
+
+          document.getElementById('tableTitle').textContent = `${city} - ${indicator} 历年数据`;
+          document.getElementById('chartTitle').textContent = `${city} - ${indicator} 变化趋势`;
+          document.getElementById('indicatorHeader').textContent = indicator;
+
+          renderTable();
+          renderChart();
+        })
+        .catch(err => {
+          alert('查询失败: ' + err);
+        });
+    }
+
+    function renderTable() {
+      const sort = document.getElementById('sortOrder').value;
+      let displayData = [...rawData];
+
+      if (sort === 'val_asc') displayData.sort((a, b) => a.val - b.val);
+      else if (sort === 'val_desc') displayData.sort((a, b) => b.val - a.val);
+      else displayData.sort((a, b) => parseInt(a.year) - parseInt(b.year));
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      displayData.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50') + ' table-detail-row';
+        tr.innerHTML = `
+          <td class="px-6 py-4 text-gray-800 font-medium border-b border-gray-100">${item.year}</td>
+          <td class="px-6 py-4 text-gray-700 border-b border-gray-100">${item.area || '-'}</td>
+          <td class="px-6 py-4 indicator-value border-b border-gray-100">${item.val.toLocaleString()}</td>
+          <td class="px-6 py-4 text-gray-500 border-b border-gray-100">${item.unit}</td>
+          <td class="px-6 py-4">
+            <button class="text-blue-600 hover:text-blue-800 text-sm">详情</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderChart() {
+      if (!myChart) myChart = echarts.init(document.getElementById('mainChart'));
+      
+      const years = rawData.map(d => d.year);
+      const vals = rawData.map(d => d.val);
+      
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { top: '10%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+        series: [{
+          data: vals,
+          type: currentChartType,
+          smooth: true,
+          barWidth: '35%',
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: { width: 3, color: '#3b82f6' },
+          itemStyle: {
+            color: currentChartType === 'bar' 
+              ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: '#3b82f6' },
+                  { offset: 1, color: '#60a5fa' }
+                ])
+              : '#2563eb',
+            borderRadius: [4, 4, 0, 0]
+          },
+          areaStyle: currentChartType === 'line' ? {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(24,144,255,0.3)' },
+              { offset: 1, color: 'rgba(24,144,255,0)' }
+            ])
+          } : null
+        }]
+      };
+      myChart.setOption(option);
+      window.addEventListener('resize', () => myChart.resize());
+    }
+
+    function switchChart(type) {
+      currentChartType = type;
+      const btnBar = document.getElementById('btnBar');
+      const btnLine = document.getElementById('btnLine');
+      
+      if (type === 'bar') {
+        btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm';
+        btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600';
+      } else {
+        btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm';
+        btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-blue-600';
+      }
+      renderChart();
+    }
+  </script>
+</body>
+</html>
