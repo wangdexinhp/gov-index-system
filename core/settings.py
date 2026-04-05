@@ -35,6 +35,21 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = ['*']
 
 
+CSRF_TRUSTED_ORIGINS = [
+    # HTTPS 地址（现在主要使用这些）
+    'https://www.city-index.cn',
+    'https://city-index.cn',
+    
+    # HTTP 地址（重定向期间可能短暂使用，可以保留）
+    'http://www.city-index.cn',
+    'http://city-index.cn',
+    
+    # 本地测试地址（如果不需要可以删除）
+    'http://8.140.225.109:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 # Application definition
 
 INSTALLED_APPS = [
