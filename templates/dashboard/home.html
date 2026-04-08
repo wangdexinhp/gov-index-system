@@ -3,78 +3,84 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>数据指标管理系统 | 蓝色商务版</title>
+<title>单指标多城市查询 | 数据指标管理系统</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
 <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <style>
+    /* 蓝调商务风格，与主系统统一 */
     body {
         background: #f0f4f9;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .card { background: white; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.2s ease; border: 1px solid #e2e8f0; }
+    .table-detail-row:hover { background-color: #f0f9ff; transition: background-color 0.2s; }
+    .indicator-value { color: #2563eb; font-weight: 700; font-family: 'Monaco', 'Consolas', monospace; }
     
-    #manual-section table th:first-child,
-    #manual-section table td:first-child {
-        position: sticky;
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+    
+    /* 弹窗样式 (保持功能，色调蓝) */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
         left: 0;
-        background: #ffffff;
-        z-index: 2;
-        box-shadow: 6px 0 8px -6px rgba(0, 80, 120, 0.2);
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
     }
-    #manual-section table thead th:first-child {
-        z-index: 3;
+    .modal-content {
+        background-color: white;
+        width: 90%;
+        max-width: 700px;
+        border-radius: 1rem;
+        box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2);
+        overflow: hidden;
     }
+    .modal-header {
+        background: #1e3a8a;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-title { font-size: 1.2rem; font-weight: 600; }
+    .close-btn { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; line-height: 1; opacity: 0.8; transition: opacity 0.2s; }
+    .close-btn:hover { opacity: 1; }
+    .modal-body { padding: 20px; }
+    .two-columns { display: flex; gap: 20px; height: 350px; }
+    .column { flex: 1; display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; background: white; }
+    .column-header { background: #f8fafc; padding: 12px; font-weight: 600; color: #1e293b; border-bottom: 1px solid #e2e8f0; }
+    .column-content { flex: 1; overflow-y: auto; }
+    .item { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.15s; color: #334155; }
+    .item:hover { background-color: #eff6ff; }
+    .item.selected { background-color: #dbeafe; border-left: 3px solid #3b82f6; color: #1e40af; font-weight: 500; }
+    .no-data { padding: 30px 20px; color: #94a3b8; text-align: center; }
+    .selection-result { background-color: #f8fafc; border-radius: 0.75rem; padding: 12px 16px; margin-top: 20px; border-left: 4px solid #3b82f6; }
+    .selection-result p { color: #1e293b; font-size: 0.9rem; }
     
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 10px;
-    }
-    
-    input:focus, select:focus, textarea:focus {
+    /* 表单控件 */
+    input:focus, select:focus, button:focus-visible {
         outline: none;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-    }
-    
-    #city-list, #indicator-subfilter {
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    #city-items {
-        max-height: 140px;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-    .city-checkbox, .indicator-checkbox {
-        cursor: pointer;
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-    }
-    .city-checkbox:checked, .indicator-checkbox:checked {
-        background-color: #3b82f6;
+        ring: 2px solid #3b82f6;
         border-color: #3b82f6;
-    }
-    #city-content .flex.items-center {
-        padding: 6px 0;
-        transition: background 0.1s;
-    }
-    #city-content .flex.items-center:hover {
-        background-color: #f0f7ff;
     }
 </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
+<body>
 
+<!-- 导航栏 - 深蓝商务风格 与主页统一 -->
 <header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
 <div class="flex items-center space-x-3">
     <div class="bg-blue-600 rounded-xl p-2 shadow-md">
@@ -83,786 +89,435 @@
     <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">数据指标管理系统</h1>
 </div>
 <div class="ml-auto flex items-center space-x-4">
-    <div class="flex space-x-3 mr-6">
-        <a href="/dashboard/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all">
-            地市指标录入
-        </a>
-        <a href="/dashboard/area_input" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
-            区县指标录入
-        </a>
-        <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
-            订单价格配置
-        </a>
-        <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
-            单指标历年查询
-        </a>
-        <a href="/dashboard/single-indicator-city-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
-            单指标多城市
-        </a>
-        <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
-            多城市多指标
-        </a>
-    </div>
-    <div class="text-right">
-        <div class="flex-shrink-0 flex items-center">
-            <a href="{% url 'landing:home' %}" class="flex items-center">
-                <span class="text-xl font-medium tracking-wide text-blue-800">城策智库</span>
-            </a>
-        </div>
-    </div>
-    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner">
-        <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
-    </div>
+<div class="flex space-x-3 mr-6">
+    <a href="/dashboard/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
+    <a href="/dashboard/area_input" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">区县指标录入</a>
+    <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
+    <a href="/dashboard/single-indicator-city-query/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all hover:shadow-md">单指标多城市查询</a>
+    <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标查询</a>
+</div>
+<div class="text-right">
+<div class="flex-shrink-0 flex items-center">
+    <a href="{% url 'landing:home' %}" class="flex items-center">
+        <span class="text-xl font-medium tracking-wide text-blue-800">城策智库</span>
+    </a>
+</div>
+</div>
+<div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner">
+    <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
+</div>
 </div>
 </header>
 
 <main class="max-w-7xl mx-auto px-6 py-8">
-    <!-- 筛选卡片 -->
-    <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
-            <!-- 年份 -->
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📅 选择年份</label>
-                <select id="year-select" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option>选择年份</option>
+    <!-- 标题区 -->
+    <div class="flex items-center space-x-3 mb-6">
+        <div class="bg-blue-100 p-2 rounded-xl">
+            <iconify-icon class="text-blue-600 text-2xl" icon="fluent:database-search-24-filled"></iconify-icon>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">单指标多城市查询</h1>
+    </div>
+
+    <!-- 查询条件卡片 -->
+    <section class="card p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-6 items-start">
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-blue-700">📊 请选择指标</label>
+                <select class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition" id="dataSelect">
+                    <option value="option2">请选择指标</option>
+                    <option value="custom-selector" class="custom-selector-option">打开指标项</option>
                 </select>
+                <input type="hidden" id="customSelectorValue" value="">
             </div>
-            <!-- 省份 -->
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📍 选择省份</label>
-                <select id="province-select" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-blue-700">📍 请选择省份</label>
+                <select class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" id="provinceSelect" onchange="updateCities()">
                     <option value="">请选择省份</option>
-                    <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
-                    <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
-                    <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
-                    <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
-                    <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
-                    <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
-                    <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
-                    <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
-                    <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
-                    <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
-                    <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+                    <!-- 省份选项由JS动态生成，保证完整 -->
                 </select>
             </div>
-            <!-- 城市多选 -->
-            <div class="min-w-0">
-                <label id="city-label" class="block text-sm font-semibold text-blue-700 mb-2 cursor-pointer flex items-center">
-                    <iconify-icon id="city-toggle-icon" class="text-blue-500 text-lg mr-2 transition-transform" icon="mdi:chevron-right"></iconify-icon>
-                    <span>🏙️ 选择城市 (多选)</span>
-                </label>
-                <div id="city-list" class="bg-white border border-slate-300 rounded-xl py-3 px-4 overflow-hidden transition-all duration-300 cursor-pointer shadow-sm" style="height: 52px;">
-                    <div id="city-placeholder" class="text-slate-500 text-base text-center">请选择城市</div>
-                    <div id="city-content" class="hidden">
-                        <div class="flex justify-end mb-2 space-x-3">
-                            <button type="button" id="select-all-cities" class="text-xs text-blue-600 hover:text-blue-800 font-medium">全选</button>
-                            <button type="button" id="deselect-all-cities" class="text-xs text-slate-500 hover:text-slate-700">取消全选</button>
-                        </div>
-                        <div class="space-y-1" id="city-items"></div>
-                        <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">暂无城市数据，请先选择省份</div>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-blue-700">🏙️ 选择城市 (多选)</label>
+                <div class="mt-2 border border-slate-300 rounded-xl p-3 bg-white shadow-sm">
+                    <div class="flex justify-end text-sm text-blue-600 mb-2 space-x-3">
+                        <button type="button" class="hover:text-blue-800 font-medium" onclick="selectAllCities()">全选</button>
+                        <button type="button" class="hover:text-slate-700 text-slate-500" onclick="clearAllCities()">取消全选</button>
+                    </div>
+                    <div id="cityItems" class="max-h-36 overflow-y-auto hide-scrollbar space-y-1">
+                        <div class="text-sm text-slate-400">请先选择省份</div>
                     </div>
                 </div>
             </div>
-            <!-- 指标组 -->
-            <div class="min-w-0 overflow-hidden">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📊 指标组</label>
-                <select id="indicator-filter" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="admin" selected>行政区域数据</option>
-                    <option value="population">人口数据</option><option value="economy_structure">经济结构数据</option>
-                    <option value="education_tech">教育科技数据</option><option value="employment">就业数据</option>
-                    <option value="finance">财政指标数据</option><option value="economic_performance">经济效果数据</option>
-                    <option value="ecology">生态环保数据</option><option value="market_supervision">市场监管数据</option>
-                    <option value="social_security">社会保障数据</option><option value="healthcare">医疗卫生数据</option>
-                    <option value="infrastructure">基础设施数据</option><option value="public_safety">公共安全数据</option>
-                    <option value="culture_sports">文化体育数据</option><option value="administrative_integrity">行政廉洁数据</option>
-                    <option value="economic_growth">经济增长数据</option><option value="economic_development">经济发展数据</option>
-                    <option value="public_service">公共服务数据</option><option value="law_based_governance">依法行政数据</option>
-                    <option value="government_affairs_openness">政务公开数据</option>
+            <div class="space-y-2 col-span-1">
+                <label class="block text-sm font-semibold text-blue-700">📅 起始年份</label>
+                <select class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-blue-200 outline-none" id="startYear">
+                    <!-- 年份动态生成 -->
                 </select>
             </div>
-            <!-- 二级指标多选 -->
-            <div class="min-w-0 overflow-hidden">
-                <label id="indicator-label" class="block text-sm font-semibold text-blue-700 mb-2 cursor-pointer flex items-center">
-                    <iconify-icon id="indicator-toggle-icon" class="text-blue-500 text-lg mr-2" icon="mdi:chevron-right"></iconify-icon>
-                    <span>🔍 筛选指标（多选）</span>
-                </label>
-                <div id="indicator-subfilter" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 overflow-hidden transition-all duration-300 cursor-pointer shadow-sm" style="height: 52px;">
-                    <div id="indicator-placeholder" class="text-slate-500 text-base text-center">请筛选指标</div>
-                    <div id="indicator-content" class="hidden"></div>
+            <div class="space-y-2 col-span-1">
+                <label class="block text-sm font-semibold text-blue-700">📅 终止年份</label>
+                <select class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-blue-200 outline-none" id="endYear">
+                    <!-- 年份动态生成 -->
+                </select>
+            </div>
+            <div class="flex gap-4 col-span-1 items-end">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-medium transition-all flex items-center justify-center shadow-md hover:shadow-lg" onclick="handleSearch()">
+                    <iconify-icon class="mr-2 text-lg" icon="fluent:search-24-regular"></iconify-icon>查询
+                </button>
+            </div>
+            <div class="col-span-1 self-start">
+                <label class="block text-sm font-semibold text-blue-700">✅ 已选择城市</label>
+                <div id="selectedCitiesList" class="mt-2 border border-slate-300 rounded-xl p-3 bg-white min-h-[8rem] max-h-36 overflow-y-auto hide-scrollbar shadow-sm">
+                    <div class="text-sm text-slate-400">尚未选择城市</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 弹窗 (指标单选) -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">选择指标数据</div>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="two-columns">
+                    <div class="column">
+                        <div class="column-header">分类</div>
+                        <div class="column-content" id="firstColumn"></div>
+                    </div>
+                    <div class="column">
+                        <div class="column-header">指标项</div>
+                        <div class="column-content" id="secondColumn"><div class="no-data">请选择左侧分类</div></div>
+                    </div>
+                </div>
+                <div class="selection-result" id="modalSelectionResult">
+                    <p id="modalResultContent">请选择分类</p>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="confirmBtn" style="padding: 8px 24px; background: #2563eb; color: white; border: none; border-radius: 0.75rem; cursor: pointer; font-weight: 500; transition: background 0.2s;">确认选择</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 选项卡 -->
-    <div class="mb-6 border-b border-blue-200">
-        <div class="flex space-x-6">
-            <button class="pb-3 px-1 font-semibold text-blue-700 border-b-2 border-blue-600 transition" id="manual-tab">✍️ 手工录入</button>
-            <button class="pb-3 px-1 font-medium text-slate-600 hover:text-blue-600 transition" id="excel-tab">📎 Excel上传</button>
-        </div>
-    </div>
-
-    <!-- 手工录入区域 -->
-    <form id="manual-form" method="post" action="/dashboard/submit/">
-        {% csrf_token %}
-        <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8" id="manual-section">
-            <div class="max-h-[60vh] overflow-x-auto overflow-y-auto hide-scrollbar pb-4 rounded-lg">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-blue-50 to-white sticky top-0 z-10">
-                            <th class="border border-blue-200 px-4 py-3 text-left text-blue-700 font-semibold min-w-24 bg-white">城市</th>
-                        </tr>
-                        <tr class="bg-gray-50 sticky top-12 z-10">
-                            <th class="border border-blue-200 px-2 py-2 text-left text-slate-500 font-medium text-xs min-w-20 bg-gray-50"></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
+    <!-- 数据展示区 -->
+    <div class="hidden space-y-6" id="resultContent">
+        <!-- 表格卡片 - 多城市多年份横向展示 -->
+        <section class="card p-6">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                <h2 class="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3" id="tableTitle">历年数据明细</h2>
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-slate-500">数值排序：</span>
+                    <select class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-400" id="sortOrder" onchange="renderTable()">
+                        <option value="year_asc">按年份升序</option>
+                        <option value="val_asc">按数值升序</option>
+                        <option value="val_desc">按数值降序</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto rounded-xl">
+                <table class="w-full text-left border-collapse" id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody class="divide-y divide-slate-100" id="tableBody"></tbody>
                 </table>
-                <input type="hidden" id="rows-json" name="rows_json" value="" />
-                <div class="flex space-x-4 mt-6">
-                    <button id="submit-button" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl shadow-md transition-all">💾 提交数据</button>
-                    <button id="reset-button" type="button" class="bg-white border border-slate-300 text-slate-700 font-medium py-3 px-8 rounded-xl hover:bg-slate-50 transition">🔄 重置表单</button>
-                    <button id="save-draft-button" type="button" class="ml-auto bg-slate-100 border border-slate-300 text-slate-700 font-medium py-3 px-6 rounded-xl flex items-center gap-2 hover:bg-slate-200 transition">
-                        <iconify-icon icon="mdi:content-save"></iconify-icon> 保存草稿
-                    </button>
+            </div>
+        </section>
+        <!-- 图表卡片 -->
+        <section class="card p-6">
+            <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+                <h2 class="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3" id="chartTitle">趋势分析视图</h2>
+                <div class="flex bg-slate-100 p-1 rounded-lg">
+                    <button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm" id="btnBar" onclick="switchChart('bar')">柱状图</button>
+                    <button class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 hover:text-blue-600" id="btnLine" onclick="switchChart('line')">曲线图</button>
                 </div>
             </div>
-        </div>
-    </form>
-
-    <!-- Excel上传区域 -->
-    <form id="excel-upload-form" action="/dashboard/upload_excel/" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="hidden" name="year" id="excel-upload-year" value="" />
-        <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8 hidden" id="excel-section">
-            <div class="text-center py-8">
-                <div class="mx-auto w-20 h-20 flex items-center justify-center bg-blue-100 rounded-full mb-6 shadow-inner">
-                    <iconify-icon class="text-blue-600 text-4xl" icon="mdi:file-excel"></iconify-icon>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-3">上传Excel数据文件</h3>
-                <p class="text-slate-500 mb-8">支持 .xlsx 格式，请确保数据格式符合模板要求</p>
-                <div class="border-2 border-dashed border-blue-300 rounded-xl max-w-xl mx-auto p-8 bg-blue-50/40">
-                    <div class="flex flex-col items-center gap-4">
-                        <iconify-icon class="text-blue-500 text-4xl" icon="mdi:cloud-upload"></iconify-icon>
-                        <input type="file" name="excel_file" accept=".xlsx,.xls" required class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-8 rounded-xl shadow transition">上传并解析</button>
-                    </div>
-                </div>
-                <div class="mt-8">
-                    <button type="button" class="flex items-center text-blue-600 hover:text-blue-800 mx-auto gap-1 font-medium">
-                        <iconify-icon icon="mdi:download"></iconify-icon> 下载Excel模板
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-    <!-- 录入进度 -->
-    <div class="bg-gradient-to-r from-blue-50 to-white border border-blue-200 rounded-2xl shadow-sm p-4 mb-8">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-100 p-2 rounded-full">
-                    <iconify-icon class="text-blue-600 text-xl" icon="mdi:progress-clock"></iconify-icon>
-                </div>
-                <div>
-                    <p class="text-sm text-slate-500">数据录入进度</p>
-                    <p class="text-lg font-bold text-blue-700" id="progress-text">进度：已完成0/0指标</p>
-                </div>
-            </div>
-            <div class="w-64 h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
-            </div>
-        </div>
+            <div class="w-full h-[400px]" id="mainChart"></div>
+        </section>
+    </div>
+    <!-- 缺省页 -->
+    <div class="card py-20 flex flex-col items-center justify-center text-slate-400" id="emptyState">
+        <iconify-icon icon="mdi:chart-timeline-variant" class="text-6xl mb-4 opacity-30"></iconify-icon>
+        <p class="text-base">请选择指标和地区后点击查询按钮</p>
     </div>
 </main>
 
 <script>
-    // ========== 初始化年份 ==========
-    function initYearSelector() {
-        const select = document.getElementById('year-select');
-        if (!select) return;
-        const currentYear = new Date().getFullYear();
-        while (select.options.length > 1) select.remove(1);
-        for (let i = 0; i <= 20; i++) {
-            const year = currentYear - i;
-            const option = new Option(year + '年', year);
-            select.add(option);
-        }
-        select.selectedIndex = 0;
-    }
-    initYearSelector();
+// ==================== 完整保留原始功能，仅调整视觉 ====================
+// 指标字典 (两层结构)
+const dataDict = {
+    '行政区域数据': ['市数量', '区数量', '县数量', '辖区面积'],
+    '人口数据': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数', '出生人口性别比', '人口出生率'],
+    '经济结构数据': ['年末个体工商户数量', '年末内资企业数', '年末外资企业数', '年末私营企业数', '高新技术企业产值', '高新技术企业增加值', '技术合同成交额（交易额）', '技术合同成交额（交易额）增长率', '国有资产保值增值率', '第二产业增加值占GDP（增量）比重', '第三产业增加值占GDP（增量）比重'],
+    '教育科技数据': ['有效发明专利量（发明专利有效量）', '每万人发明专利拥有量', '专利授权数量', '普通小学专任教师数', '普通中学专任教师数', '普通小学在校学生数', '普通中学在校学生数', '高中学在校学生数', 'R&D经费'],
+    '就业数据': ['采矿（掘)业就业人员人数', '制造业就业人员人数', '采矿（掘)业在岗职工人数', '制造业在岗职工人数', '城镇单位职工工资总额', '城镇就业人数（城镇单位职工总数（城镇单位就业人数+城镇私营就业人数））', '社会从业人员', '机关单位工资总额', '机关单位就业人数', '公共管理、社会保障和社会组织工资总额', '公共管理、社会保障和社会组织在岗职工人数'],
+    '财政指标数据': ['一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出'],
+    '经济效果数据': ['城镇居民人均消费支出', '城镇食品支出', '农村居民人均消费支出', '农村食品支出', '城镇恩格尔系数', '农村恩格尔系数', '城镇登记失业人员数', '城镇登记失业率', '能源消耗总量', '万元GDP综合能源消耗', '城镇化率', '城镇居民人均可支配收入', '城镇居民人均可支配收入增长率', '农民居民人均可支配收入', '农民居民人均可支配收入增长率'],
+    '生态环保数据': ['园林绿地面积', '二氧化硫排放总量', '工业二氧化硫排放量', '森林覆盖率', '水土流失治理面积', '工业废水排放总量', '工业固体废弃物综合利用率', '生活垃圾无害化处理率', '城镇生活污水处理率', '城市空气质量指数', '城市区域环境噪音指数', 'PM2.5', 'PM10'],
+    '市场监管数据': ['查出不正当竞争案件数', '生产安全事故死亡人数', '工矿商贸死亡人数', '亿元GDP生产安全事故死亡率', '十万人工矿商贸从业人员事故死亡率', '食品质量抽样检测合格率', '药品安全抽样合格率', '工业产品质量抽样合格率', '查处农资违法案件的数量', '查办违法广告的件数', '查办商标侵权案件的件数', '受理消费者维权案件数', '受理消费者投诉案件数', '消费者维权案件办理率'],
+    '社会保障数据': ['城镇职工基本养老保险人数', '城乡居民基本养老保险人数', '城镇职工基本医疗保险人数', '城乡居民基本医疗保险人数', '城镇最低生活保障人数', '农村最低生活保障人数', '年末实有社会组织登记数量', '养老机构床位数', '城镇新增就业人数', '新建保障性住房套数'],
+    '医疗卫生数据': ['卫生技术人员数量', '医疗机构病床数'],
+    '基础设施数据': ['有线电视用户数', '固定宽带互联网用户数', '自来水受益村数', '村委会个数'],
+    '公共安全数据': ['刑事案件立案件数', '刑事案件破案件数', '受理信访举报案件数', '调处各类矛盾纠纷件数', '成功调处各类矛盾纠纷数', '受理各类法律援助案件的数量', '火灾死亡人数', '接待群众来信来访人次'],
+    '文化体育数据': ['文化馆、群众艺术馆', '博物馆', '艺术表演团体', '体育场馆', '公共图书馆'],
+    '行政廉洁数据': ['贪污贿赂人数', '渎职侵权人数', '立案查处违法违纪案件数', '被依法追究责任的领导干部人数'],
+    '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '一般公共预算收入', '财政总收入', '财政总收入增长率', '固定资产投资总额', '固定资产投资总额增长率', '全社会消费品零售总额', '全社会消费品零售总额增长率', '进出口总额', '进出口总额增长率', '实际利用外资金额', '实际利用外资金额增长率', '规模以上工业企业增加值'],
+    '经济发展数据': ['居民消费价格指数CPI', '工业品出厂价格指数PPI'],
+    '公共服务数据': ['人均城市道路面积', '高中阶段毛入学率'],
+    '依法行政数据': ['行政复议案件办结率', '行政复议案件申请量', '行政案件数'],
+    '政务公开数据': ['主动公开政府信息件数','主动公开政府信息件数备注', '依申请公开政府信息件数', '依申请公开政府信息件数备注','因公开问题申请行政复议的数量','因公开问题申请行政复议的数量备注']
+};
 
-    // ========== 进度更新 ==========
-    function updateProgress() {
-        const allInputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"]');
-        const total = allInputs.length;
-        let completed = 0;
-        allInputs.forEach(inp => { if (inp.value.trim() !== '') completed++; });
-        const percent = total ? (completed / total) * 100 : 0;
-        document.getElementById('progress-text').innerText = `进度：已完成${completed}/${total}指标`;
-        document.getElementById('progress-bar').style.width = percent + '%';
-    }
-    
-    function attachProgressListeners() {
-        const inputs = document.querySelectorAll('#manual-section table tbody input[placeholder="数值"], #manual-section table tbody input[placeholder="备注"]');
-        inputs.forEach(inp => {
-            inp.removeEventListener('input', updateProgress);
-            inp.addEventListener('input', updateProgress);
-            inp.addEventListener('change', updateProgress);
-        });
-    }
+// 城市数据映射 (完整)
+const cityData = {
+    "北京市": ["北京市"], "天津市": ["天津市"], "河北省": ["石家庄市", "唐山市", "秦皇岛市", "邯郸市", "邢台市", "保定市", "张家口市", "承德市", "沧州市", "廊坊市", "衡水市"],
+    "山西省": ["太原市", "大同市", "阳泉市", "长治市", "晋城市", "朔州市", "晋中市", "运城市", "忻州市", "临汾市", "吕梁市"],
+    "内蒙古自治区": ["呼和浩特市", "包头市", "乌海市", "赤峰市", "通辽市", "鄂尔多斯市", "呼伦贝尔市", "巴彦淖尔市", "乌兰察布市", "兴安盟", "锡林郭勒盟", "阿拉善盟"],
+    "辽宁省": ["沈阳市", "大连市", "鞍山市", "抚顺市", "本溪市", "丹东市", "锦州市", "营口市", "阜新市", "辽阳市", "盘锦市", "铁岭市", "朝阳市", "葫芦岛市"],
+    "吉林省": ["长春市", "吉林市", "四平市", "辽源市", "通化市", "白山市", "松原市", "白城市", "延边朝鲜族自治州"],
+    "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"],
+    "上海市": ["上海市"], "江苏省": ["南京市", "无锡市", "徐州市", "常州市", "苏州市", "南通市", "连云港市", "淮安市", "盐城市", "扬州市", "镇江市", "泰州市", "宿迁市"],
+    "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市", "湖州市", "绍兴市", "金华市", "衢州市", "舟山市", "台州市", "丽水市"],
+    "安徽省": ["合肥市", "芜湖市", "蚌埠市", "淮南市", "马鞍山市", "淮北市", "铜陵市", "安庆市", "黄山市", "滁州市", "阜阳市", "宿州市", "六安市", "亳州市", "池州市", "宣城市"],
+    "福建省": ["福州市", "厦门市", "莆田市", "三明市", "泉州市", "漳州市", "南平市", "龙岩市", "宁德市"],
+    "江西省": ["南昌市", "景德镇市", "萍乡市", "九江市", "新余市", "鹰潭市", "赣州市", "吉安市", "宜春市", "抚州市", "上饶市"],
+    "山东省": ["济南市", "青岛市", "淄博市", "枣庄市", "东营市", "烟台市", "潍坊市", "济宁市", "泰安市", "威海市", "日照市", "临沂市", "德州市", "聊城市", "滨州市", "菏泽市"],
+    "河南省": ["郑州市", "开封市", "洛阳市", "平顶山市", "安阳市", "鹤壁市", "新乡市", "焦作市", "濮阳市", "许昌市", "漯河市", "三门峡市", "南阳市", "商丘市", "信阳市", "周口市", "驻马店市", "济源市"],
+    "湖北省": ["武汉市", "黄石市", "十堰市", "宜昌市", "襄阳市", "鄂州市", "荆门市", "孝感市", "荆州市", "黄冈市", "咸宁市", "随州市", "恩施土家族苗族自治州", "仙桃市", "潜江市", "天门市", "神农架林区"],
+    "湖南省": ["长沙市", "株洲市", "湘潭市", "衡阳市", "邵阳市", "岳阳市", "常德市", "张家界市", "益阳市", "郴州市", "永州市", "怀化市", "娄底市", "湘西土家族苗族自治州"],
+    "广东省": ["广州市", "韶关市", "深圳市", "珠海市", "汕头市", "佛山市", "江门市", "湛江市", "茂名市", "肇庆市", "惠州市", "梅州市", "汕尾市", "河源市", "阳江市", "清远市", "东莞市", "中山市", "潮州市", "揭阳市", "云浮市"],
+    "广西壮族自治区": ["南宁市", "柳州市", "桂林市", "梧州市", "北海市", "防城港市", "钦州市", "贵港市", "玉林市", "百色市", "贺州市", "河池市", "来宾市", "崇左市"],
+    "海南省": ["海口市", "三亚市", "三沙市", "儋州市"], "重庆市": ["重庆市"], "四川省": ["成都市", "自贡市", "攀枝花市", "泸州市", "德阳市", "绵阳市", "广元市", "遂宁市", "内江市", "乐山市", "南充市", "眉山市", "宜宾市", "广安市", "达州市", "雅安市", "巴中市", "资阳市", "阿坝藏族羌族自治州", "甘孜藏族自治州", "凉山彝族自治州"],
+    "贵州省": ["贵阳市", "六盘水市", "遵义市", "安顺市", "毕节市", "铜仁市", "黔西南布依族苗族自治州", "黔东南苗族侗族自治州", "黔南布依族苗族自治州"],
+    "云南省": ["昆明市", "曲靖市", "玉溪市", "保山市", "昭通市", "丽江市", "普洱市", "临沧市", "楚雄彝族自治州", "红河哈尼族彝族自治州", "文山壮族苗族自治州", "西双版纳傣族自治州", "大理白族自治州", "德宏傣族景颇族自治州", "怒江傈僳族自治州", "迪庆藏族自治州"],
+    "西藏自治区": ["拉萨市", "日喀则市", "昌都市", "林芝市", "山南市", "那曲市", "阿里地区"], "陕西省": ["西安市", "铜川市", "宝鸡市", "咸阳市", "渭南市", "延安市", "汉中市", "榆林市", "安康市", "商洛市"],
+    "甘肃省": ["兰州市", "嘉峪关市", "金昌市", "白银市", "天水市", "武威市", "张掖市", "平凉市", "酒泉市", "庆阳市", "定西市", "陇南市", "临夏回族自治州", "甘南藏族自治州"],
+    "青海省": ["西宁市", "海东市", "海北藏族自治州", "黄南藏族自治州", "海南藏族自治州", "果洛藏族自治州", "玉树藏族自治州", "海西蒙古族藏族自治州"],
+    "宁夏回族自治区": ["银川市", "石嘴山市", "吴忠市", "固原市", "中卫市"], "新疆维吾尔自治区": ["乌鲁木齐市", "克拉玛依市", "吐鲁番市", "哈密市", "昌吉回族自治州", "博尔塔拉蒙古自治州", "巴音郭楞蒙古自治州", "阿克苏地区", "克孜勒苏柯尔克孜自治州", "喀什地区", "和田地区", "伊犁哈萨克自治州", "塔城地区", "阿勒泰地区", "石河子市", "阿拉尔市", "图木舒克市", "五家渠市", "铁门关市"],
+    "台湾省": ["台北市", "高雄市", "台南市", "台中市", "金门县", "南投县", "基隆市", "新竹市", "嘉义市", "新北市", "宜兰县", "新竹县", "桃园市", "苗栗县", "彰化县", "嘉义县", "云林县", "屏东县", "台东县", "花莲县", "澎湖县", "连江县"],
+    "香港特别行政区": ["香港特别行政区"], "澳门特别行政区": ["澳门特别行政区"]
+};
 
-    // ========== 指标分类库 ==========
-    const indicatorCategories = {
-        'admin': ['#市数量(个)', '#区数量(个)', '#县数量(个)', '#辖区面积(平方公里)'],
-        'population': ['#常住人口数(万人)', '#城镇人口数(万人)', '#乡村人口数(万人)', '#户籍人口数(万人)', '#年末总人口(万人)', '#年末总户数(户)', '#15-19岁人口数(万人)', '#60岁以上人口数(万人)', '#出生人口性别比(%)', '#人口出生率(‰)'],
-        'economy_structure': ['#年末个体工商户数量(户（个）)', '#年末内资企业数(户（个）)', '#年末外资企业数(户（个）)', '#年末私营企业数(户（个）)', '#高新技术企业产值(亿元)', '#高新技术企业增加值(亿元)', '#技术合同成交额（交易额）(亿元)', '#技术合同成交额（交易额）增长率(%)', '#国有资产保值增值率(%)', '#第二产业增加值占GDP（增量）比重(%)', '#第三产业增加值占GDP（增量）比重(%)'],
-        'education_tech': ['#有效发明专利量（发明专利有效量）(件)', '#专利授权数量(件)', '#R&D经费(亿元)', '#普通小学专任教师数(人)', '#普通中学专任教师数(人)', '#普通小学在校学生数(万人)', '#普通中学在校学生数(万人)', '#高中学在校学生数(万人)'],
-        'employment': ['#采矿（掘)业就业人员人数(万人)', '#制造业就业人员人数(万人)', '#采矿（掘)业在岗职工人数(万人)', '#制造业在岗职工人数(万人)', '#城镇单位职工工资总额(万元)', '#城镇就业人数（城镇单位职工总数（城镇单位就业人数+城镇私营就业人数））(万人)', '#社会从业人员(万人)', '#机关单位工资总额(万元)', '#机关单位就业人数(万人)', '#公共管理、社会保障和社会组织工资总额(万元)', '#公共管理、社会保障和社会组织在岗职工人数(万人)'],
-        'finance': ['#一般公共预算支出(亿元)', '#一般公共服务支出(亿元)', '#科学技术支出(亿元)', '#公共安全支出(亿元)', '#文化体育传媒支出(亿元)', '#环保支出(亿元)', '#社会保障和就业支出(亿元)', '#教育支出(亿元)', '#医疗卫生支出(亿元)'],
-        'economic_performance': ['#城镇居民人均消费支出(元)', '#城镇食品支出(元)', '#农村居民人均消费支出(元)', '#农村食品支出(元)', '#城镇恩格尔系数(%)', '#农村恩格尔系数(%)', '#城镇登记失业人员数(人)', '#城镇登记失业率(%)', '#能源消耗总量(吨标准煤)', '#万元GDP综合能源消耗(吨标准煤/万元)', '#城镇化率(%)', '#城镇居民人均可支配收入(元)', '#城镇居民人均可支配收入增长率(%)', '#农民居民人均可纯收入(元)', '#农民居民人均可纯收入增长率(%)'],
-        'ecology': ['#万元GDP二氧化硫排放量(吨/万元)', '#园林绿地面积(公顷)', '#二氧化硫排放总量(吨)', '#工业二氧化硫排放量(吨)', '#森林覆盖率(%)', '#水土流失治理面积(公顷)', '#工业废水排放总量(万吨)', '#工业固体废弃物综合利用率(%)', '#生活垃圾无害化处理率(%)', '#城镇生活污水处理率(%)', '#城市空气质量指数(%)', '#城市区域环境噪音指数（市区区域环境噪音平均等效声级值）(分贝)', '#PM2.5(微克/立方米)', '#PM10(微克/立方米)'],
-        'market_supervision': ['#查出不正当竞争案件数(个)', '#生产安全事故死亡人数(人)', '#工矿商贸死亡人数(人)', '#亿元GDP生产安全事故死亡率(%)', '#十万人工矿商贸从业人员事故死亡率(%)', '#食品质量抽样检测合格率(%)', '#药品安全抽样合格率(%)', '#工业产品质量抽样合格率(%)', '#查处农资违法案件的数量(件)', '#查办违法广告的件数(件)', '#查办商标侵权案件的件数(件)', '#受理消费者维权案件数(件)', '#受理消费者投诉案件数(件)', '#消费者维权案件办理率(%)'],
-        'social_security': ['#城镇职工基本养老保险人数(万人)', '#城乡居民基本养老保险人数(万人)', '#城镇职工基本医疗保险人数(万人)', '#城乡居民基本医疗保险人数(万人)', '#年末实有社会组织登记数量(个)', '#养老机构床位数(张)', '#城镇新增就业人数(万人)', '#新建保障性住房套数(套)', '#城镇最低生活保障人数(人)', '#农村最低生活保障人数(人)'],
-        'healthcare': ['#卫生技术人员数量(万人)', '#医疗机构病床数(张)'],
-        'infrastructure': ['#有线电视用户数(万户)', '#固定宽带互联网用户数(万户)', '#自来水受益村数(个)', '#村委会个数(个)', '#每万人拥有公共（电）汽车数量(辆/万人)'],
-        'public_safety': ['#刑事案件立案件数(件)', '#刑事案件破案件数(件)', '#受理信访举报案件数(件)', '#调处各类矛盾纠纷件数(件)', '#成功调处各类矛盾纠纷数(件)', '#受理各类法律援助案件的数量(件)', '#火灾死亡人数(人)', '#接待群众来信来访人次(次)'],
-        'culture_sports': ['#文化馆、群众艺术馆(个)', '#博物馆(个)', '#艺术表演团体(个)', '#体育场馆(个)', '#公共图书馆(个)'],
-        'administrative_integrity': ['#贪污贿赂人数(人)', '#渎职侵权人数(人)', '#立案查处违法违纪案件数(件)', '#被依法追究责任的领导干部人数(人)'],
-        'economic_growth': ['#GDP(亿元)', '#人均GDP(元)', '#GDP增长率(%)', '#一般公共预算收入(亿元)', '#财政总收入(亿元)', '#财政总收入增长率(%)', '#固定资产投资总额(亿元)', '#固定资产投资总额增长率(%)', '#全社会消费品零售总额(亿元)', '#全社会消费品零售总额增长率(%)', '#进出口总额(亿美元)', '#进出口总额增长率(%)', '#实际利用外资金额(亿元)', '#实际利用外资金额增长率(%)', '#规模以上工业企业增加值(亿元)', '#规模以上工业企业增加值增长率(%)'],
-        'economic_development': ['#居民消费价格指数CPI(%)', '#工业品出厂价格指数PPI(%)'],
-        'public_service': ['#人均城市道路面积(平方米/人)', '#高中阶段毛入学率(%)'],
-        'law_based_governance': ['#行政复议案件办结率(%)', '#行政复议案件申请量(件)', '#行政案件数(件)'],
-        'government_affairs_openness': ['#主动公开政府信息件数(件)', '#依申请公开政府信息件数(件)', '#因公开问题申请行政复议的数量(件)']
-    };
+// 全局变量
+let rawDataByCity = {};   // { cityName: [{year, val, unit}] }
+let currentChartType = 'bar';
+let myChart = null;
+const selectedCities = new Set();
 
-    // ========== 全局变量 ==========
-    let provinceCityMap = {};
-    const globalSelectedCities = new Set();
-    window.globalSelectedIndicators = window.globalSelectedIndicators || [];
+// 弹窗逻辑 (原始单选交互)
+const dataSelect = document.getElementById('dataSelect');
+const modalOverlay = document.getElementById('modalOverlay');
+const closeModalBtn = document.getElementById('closeModal');
+const firstColumnDiv = document.getElementById('firstColumn');
+const secondColumnDiv = document.getElementById('secondColumn');
+const modalResultContent = document.getElementById('modalResultContent');
+const confirmBtnModal = document.getElementById('confirmBtn');
+let selectedCategory = null;
+let selectedValue = null;
 
-    // ========== 表格操作函数 ==========
-    function buildTableHeaders(indicators) {
-        const thead = document.querySelector('#manual-section table thead');
-        if (!thead) return;
-        const firstRow = thead.querySelector('tr:first-child');
-        const secondRow = thead.querySelector('tr:nth-child(2)');
-        
-        firstRow.innerHTML = '<th class="border border-blue-200 px-4 py-3 text-left text-blue-700 font-semibold min-w-24 bg-white">城市</th>';
-        indicators.forEach(ind => {
-            const th = document.createElement('th');
-            th.className = 'border border-blue-200 px-4 py-3 text-left text-blue-700 font-medium';
-            th.colSpan = 4;
-            th.setAttribute('data-indicator', ind);
-            th.textContent = ind;
-            firstRow.appendChild(th);
-        });
-        
-        secondRow.innerHTML = '<th class="border border-blue-200 px-2 py-2 text-left text-slate-500 font-medium text-xs min-w-20 bg-gray-50"></th>';
-        indicators.forEach(() => {
-            ['数值', '备注', '数据来源', '去年参考'].forEach(title => {
-                const th = document.createElement('th');
-                th.className = 'border border-blue-200 px-2 py-2 text-left text-slate-700 font-medium text-xs';
-                th.textContent = title;
-                secondRow.appendChild(th);
-            });
-        });
-    }
-
-    function renderTableRows() {
-        const tbody = document.querySelector('#manual-section table tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        
-        const cities = Array.from(globalSelectedCities);
-        const headers = document.querySelectorAll('#manual-section table thead th[data-indicator]');
-        const groups = headers.length;
-        
-        if (!cities.length) {
-            const tr = tbody.insertRow();
-            tr.innerHTML = `<td colspan="${1 + (groups * 4 || 2)}" class="text-center text-slate-400 p-6">请在上方选择城市</td>`;
-            updateProgress();
-            return;
-        }
-        if (!groups) {
-            const tr = tbody.insertRow();
-            tr.innerHTML = `<td colspan="2" class="text-left text-slate-400 p-6">请先在指标筛选中勾选具体指标</td>`;
-            updateProgress();
-            return;
-        }
-        
-        cities.forEach(city => {
-            const tr = tbody.insertRow();
-            const tdCity = tr.insertCell();
-            tdCity.className = 'border border-blue-200 px-4 py-3 text-slate-800 font-medium bg-blue-50/30';
-            tdCity.textContent = city;
-            
-            for (let g = 0; g < groups; g++) {
-                const indName = headers[g].getAttribute('data-indicator');
-                const safe = s => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
-                const cityKey = safe(city);
-                const indKey = safe(indName);
-                
-                const valCell = tr.insertCell();
-                valCell.className = 'border border-blue-200 px-2 py-2';
-                valCell.innerHTML = `<input placeholder="数值" type="text" name="data[${cityKey}][${indKey}][value]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-200">`;
-                
-                const noteCell = tr.insertCell();
-                noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${cityKey}][${indKey}][note]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm">`;
-                
-                const srcCell = tr.insertCell();
-                srcCell.innerHTML = `<select name="data[${cityKey}][${indKey}][source]" class="w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-sm">
-                    <option value="">选择来源</option>
-                    <option value="CITY_STAT_YB">地市统计年鉴</option>
-                    <option value="CITY_YB">地市年鉴</option>
-                    <option value="PROV_STAT_YB">省级统计年鉴</option>
-                    <option value="GOV_INFO_RPT">政府信息公开报告</option>
-                </select>`;
-                
-                const refCell = tr.insertCell();
-                refCell.className = 'border border-blue-200 px-2 py-2 text-slate-400 text-xs';
-                refCell.innerText = '-';
-            }
-        });
-        attachProgressListeners();
-        updateProgress();
-    }
-
-    // ========== 加载城市映射（调用真实接口）==========
-    function loadProvinceCityMap() {
-        return fetch('/dashboard/get-city-map/', {
-            method: 'GET',
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            provinceCityMap = data || {};
-            return provinceCityMap;
-        })
-        .catch(error => {
-            console.warn('接口获取失败，使用备用数据', error);
-            // 备用数据确保功能可用
-            provinceCityMap = {
-                "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
-                "河北省": ["石家庄市", "唐山市", "秦皇岛市", "邯郸市", "邢台市", "保定市", "张家口市", "承德市", "沧州市", "廊坊市", "衡水市"],
-                "山西省": ["太原市", "大同市", "阳泉市", "长治市", "晋城市", "朔州市", "晋中市", "运城市", "忻州市", "临汾市", "吕梁市"],
-                "辽宁省": ["沈阳市", "大连市", "鞍山市", "抚顺市", "本溪市", "丹东市", "锦州市", "营口市", "阜新市", "辽阳市", "盘锦市", "铁岭市", "朝阳市", "葫芦岛市"],
-                "江苏省": ["南京市", "苏州市", "无锡市", "常州市", "镇江市", "南通市", "扬州市", "盐城市", "徐州市", "淮安市", "连云港市", "泰州市", "宿迁市"],
-                "浙江省": ["杭州市", "宁波市", "温州市", "嘉兴市", "湖州市", "绍兴市", "金华市", "衢州市", "舟山市", "台州市", "丽水市"],
-                "广东省": ["广州市", "深圳市", "珠海市", "佛山市", "惠州市", "东莞市", "中山市", "江门市", "肇庆市"]
-            };
-            return provinceCityMap;
-        });
-    }
-
-    // ========== 渲染城市复选框（关键：直接绑定事件）==========
-    function renderCitiesForProvince(prov) {
-        const container = document.getElementById('city-items');
-        const emptyDiv = document.getElementById('city-empty');
-        if (!container) return;
-        container.innerHTML = '';
-        
-        let cities = [];
-        if (prov && prov !== '' && provinceCityMap[prov]) {
-            cities = provinceCityMap[prov];
-        } else if (!prov || prov === '') {
-            cities = Object.values(provinceCityMap).flat();
-        }
-        
-        if (!cities.length) {
-            emptyDiv.classList.remove('hidden');
-            return;
-        }
-        emptyDiv.classList.add('hidden');
-        
-        cities.forEach(city => {
-            const div = document.createElement('div');
-            div.className = 'flex items-center mb-1';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.id = `city_${city.replace(/\s/g, '_')}`;
-            cb.className = 'rounded border-slate-300 text-blue-500 city-checkbox';
-            cb.value = city;
-            cb.checked = globalSelectedCities.has(city);
-            
-            const label = document.createElement('label');
-            label.htmlFor = cb.id;
-            label.className = 'ml-2 text-slate-700 text-sm cursor-pointer flex-1';
-            label.textContent = city;
-            
-            // 关键：直接绑定 change 事件，不依赖事件委托
-            cb.addEventListener('change', function(e) {
-                e.stopPropagation();
-                if (cb.checked) {
-                    globalSelectedCities.add(city);
-                } else {
-                    globalSelectedCities.delete(city);
-                }
-                renderTableRows();
-            });
-            
-            label.addEventListener('click', function(e) {
-                e.preventDefault();
-                cb.checked = !cb.checked;
-                const changeEvent = new Event('change', { bubbles: true });
-                cb.dispatchEvent(changeEvent);
-            });
-            
-            div.appendChild(cb);
-            div.appendChild(label);
-            container.appendChild(div);
-        });
-    }
-
-    // ========== 全选/取消全选 ==========
-    function bindSelectAllButtons() {
-        const selectAllBtn = document.getElementById('select-all-cities');
-        const deselectAllBtn = document.getElementById('deselect-all-cities');
-        
-        if (selectAllBtn) {
-            selectAllBtn.onclick = function() {
-                document.querySelectorAll('#city-items .city-checkbox').forEach(cb => {
-                    cb.checked = true;
-                    globalSelectedCities.add(cb.value);
-                });
-                renderTableRows();
-            };
-        }
-        if (deselectAllBtn) {
-            deselectAllBtn.onclick = function() {
-                document.querySelectorAll('#city-items .city-checkbox').forEach(cb => {
-                    cb.checked = false;
-                    globalSelectedCities.delete(cb.value);
-                });
-                renderTableRows();
-            };
-        }
-    }
-
-    // ========== 指标筛选面板 ==========
-    function populateSubfilter(categoryKey) {
-        const content = document.getElementById('indicator-content');
-        if (!content) return;
-        content.innerHTML = '';
-        
-        const items = indicatorCategories[categoryKey] || [];
-        
-        const ctrlDiv = document.createElement('div');
-        ctrlDiv.className = 'flex justify-end mb-2 space-x-3';
-        const btnAll = document.createElement('button');
-        btnAll.type = 'button';
-        btnAll.className = 'text-xs text-blue-600 hover:text-blue-800';
-        btnAll.textContent = '全选';
-        const btnNone = document.createElement('button');
-        btnNone.type = 'button';
-        btnNone.className = 'text-xs text-slate-500 hover:text-slate-700';
-        btnNone.textContent = '取消全选';
-        ctrlDiv.appendChild(btnAll);
-        ctrlDiv.appendChild(btnNone);
-        content.appendChild(ctrlDiv);
-        
-        const listDiv = document.createElement('div');
-        listDiv.className = 'flex flex-col space-y-2';
-        
-        items.forEach((item, idx) => {
-            const label = item.replace(/^#/, '');
-            const id = `indicator_${categoryKey}_${idx}`;
-            const row = document.createElement('div');
-            row.className = 'flex items-center w-full';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.className = 'indicator-checkbox rounded border-slate-300 text-blue-500';
-            cb.value = label;
-            cb.id = id;
-            cb.checked = window.globalSelectedIndicators.includes(label);
-            
-            const lab = document.createElement('label');
-            lab.htmlFor = id;
-            lab.className = 'ml-2 text-slate-700 text-sm truncate cursor-pointer';
-            lab.textContent = label;
-            
-            cb.addEventListener('change', function() {
-                if (cb.checked) {
-                    if (!window.globalSelectedIndicators.includes(label)) {
-                        window.globalSelectedIndicators.push(label);
-                    }
-                } else {
-                    window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => v !== label);
-                }
-                buildTableHeaders(window.globalSelectedIndicators);
-                renderTableRows();
-            });
-            
-            lab.addEventListener('click', function(e) {
-                e.preventDefault();
-                cb.checked = !cb.checked;
-                const changeEvent = new Event('change', { bubbles: true });
-                cb.dispatchEvent(changeEvent);
-            });
-            
-            row.appendChild(cb);
-            row.appendChild(lab);
-            listDiv.appendChild(row);
-        });
-        content.appendChild(listDiv);
-        
-        btnAll.onclick = function() {
-            content.querySelectorAll('.indicator-checkbox').forEach(cb => {
-                cb.checked = true;
-                if (!window.globalSelectedIndicators.includes(cb.value)) {
-                    window.globalSelectedIndicators.push(cb.value);
-                }
-            });
-            buildTableHeaders(window.globalSelectedIndicators);
-            renderTableRows();
-        };
-        
-        btnNone.onclick = function() {
-            const currentVals = Array.from(content.querySelectorAll('.indicator-checkbox')).map(cb => cb.value);
-            content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
-            window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => !currentVals.includes(v));
-            buildTableHeaders(window.globalSelectedIndicators);
-            renderTableRows();
-        };
-    }
-
-    // ========== 折叠面板控制 ==========
-    function setupCityToggle() {
-        const label = document.getElementById('city-label');
-        const cityList = document.getElementById('city-list');
-        const toggleIcon = document.getElementById('city-toggle-icon');
-        const placeholder = document.getElementById('city-placeholder');
-        const content = document.getElementById('city-content');
-        
-        function togglePanel(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const expanded = cityList.style.height !== '52px';
-            if (!expanded) {
-                placeholder.classList.add('hidden');
-                content.classList.remove('hidden');
-                cityList.style.height = '200px';
-                cityList.style.overflowY = 'auto';
-                cityList.style.cursor = 'default';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-            } else {
-                placeholder.classList.remove('hidden');
-                content.classList.add('hidden');
-                cityList.style.height = '52px';
-                cityList.style.overflowY = 'hidden';
-                cityList.style.cursor = 'pointer';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-right');
-            }
-        }
-        
-        if (label) label.addEventListener('click', togglePanel);
-        if (cityList) {
-            cityList.addEventListener('click', function(e) {
-                const expanded = cityList.style.height !== '52px';
-                if (!expanded) togglePanel(e);
-            });
-        }
-    }
-    
-    function setupIndicatorToggle() {
-        const label = document.getElementById('indicator-label');
-        const subfilter = document.getElementById('indicator-subfilter');
-        const toggleIcon = document.getElementById('indicator-toggle-icon');
-        const placeholder = document.getElementById('indicator-placeholder');
-        const content = document.getElementById('indicator-content');
-        
-        function togglePanel(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const expanded = subfilter.style.height !== '52px';
-            if (!expanded) {
-                placeholder.classList.add('hidden');
-                content.classList.remove('hidden');
-                subfilter.style.height = '200px';
-                subfilter.style.overflowY = 'auto';
-                subfilter.style.cursor = 'default';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-            } else {
-                placeholder.classList.remove('hidden');
-                content.classList.add('hidden');
-                subfilter.style.height = '52px';
-                subfilter.style.overflowY = 'hidden';
-                subfilter.style.cursor = 'pointer';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-right');
-            }
-        }
-        
-        if (label) label.addEventListener('click', togglePanel);
-        if (subfilter) {
-            subfilter.addEventListener('click', function(e) {
-                const expanded = subfilter.style.height !== '52px';
-                if (!expanded) togglePanel(e);
-            });
-        }
-    }
-
-    // ========== 选项卡切换 ==========
-    function setupTabs() {
-        const manualTab = document.getElementById('manual-tab');
-        const excelTab = document.getElementById('excel-tab');
-        const manualSection = document.getElementById('manual-section');
-        const excelSection = document.getElementById('excel-section');
-        
-        if (manualTab && excelTab) {
-            manualTab.onclick = function() {
-                manualSection.classList.remove('hidden');
-                excelSection.classList.add('hidden');
-                manualTab.classList.add('font-semibold', 'text-blue-700', 'border-b-2', 'border-blue-600');
-                manualTab.classList.remove('font-medium', 'text-slate-600');
-                excelTab.classList.remove('font-semibold', 'text-blue-700', 'border-b-2', 'border-blue-600');
-                excelTab.classList.add('font-medium', 'text-slate-600');
-                attachProgressListeners();
-                updateProgress();
-            };
-            excelTab.onclick = function() {
-                excelSection.classList.remove('hidden');
-                manualSection.classList.add('hidden');
-                excelTab.classList.add('font-semibold', 'text-blue-700', 'border-b-2', 'border-blue-600');
-                excelTab.classList.remove('font-medium', 'text-slate-600');
-                manualTab.classList.remove('font-semibold', 'text-blue-700', 'border-b-2', 'border-blue-600');
-                manualTab.classList.add('font-medium', 'text-slate-600');
-            };
-        }
-    }
-
-    // ========== 重置按钮 ==========
-    function setupResetButton() {
-        const resetBtn = document.getElementById('reset-button');
-        if (resetBtn) {
-            resetBtn.onclick = function() {
-                document.querySelectorAll('#manual-section table tbody input').forEach(i => i.value = '');
-                document.querySelectorAll('#manual-section table tbody select').forEach(s => s.selectedIndex = 0);
-                updateProgress();
-            };
-        }
-    }
-
-    // ========== Excel年份同步 ==========
-    function setupExcelYearSync() {
-        const yearSelect = document.getElementById('year-select');
-        const excelYear = document.getElementById('excel-upload-year');
-        if (yearSelect && excelYear) {
-            function sync() {
-                excelYear.value = yearSelect.value.replace(/[^\d]/g, '');
-            }
-            sync();
-            yearSelect.addEventListener('change', sync);
-        }
-    }
-
-    // ========== 表单提交 ==========
-    function setupFormSubmit() {
-        const form = document.getElementById('manual-form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const submitBtn = document.getElementById('submit-button');
-                const originalText = submitBtn.textContent;
-                submitBtn.textContent = '提交中...';
-                submitBtn.disabled = true;
-                
-                const formData = new FormData(form);
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ 提交成功！');
-                        setTimeout(() => window.location.reload(), 500);
-                    } else {
-                        alert('❌ 提交失败：' + (data.message || '未知错误'));
-                        submitBtn.textContent = originalText;
-                        submitBtn.disabled = false;
-                    }
-                })
-                .catch(error => {
-                    alert('❌ 网络错误');
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                });
-            });
-        }
-    }
-
-    // ========== DOMContentLoaded 初始化 ==========
-    document.addEventListener('DOMContentLoaded', async function() {
-        await loadProvinceCityMap();
-        
-        const provSel = document.getElementById('province-select');
-        renderCitiesForProvince('');
-        bindSelectAllButtons();
-        
-        if (provSel) {
-            provSel.addEventListener('change', function() {
-                renderCitiesForProvince(this.value);
-                bindSelectAllButtons();
-            });
-        }
-        
-        // 初始化指标筛选
-        const indicatorFilter = document.getElementById('indicator-filter');
-        if (indicatorFilter) {
-            populateSubfilter('admin');
-            indicatorFilter.addEventListener('change', function() {
-                populateSubfilter(this.value);
-            });
-        }
-        
-        buildTableHeaders([]);
-        renderTableRows();
-        
-        setupCityToggle();
-        setupIndicatorToggle();
-        setupTabs();
-        setupResetButton();
-        setupExcelYearSync();
-        setupFormSubmit();
-        
-        // Excel上传表单处理
-        const excelForm = document.getElementById('excel-upload-form');
-        if (excelForm) {
-            excelForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const yearInput = document.getElementById('excel-upload-year');
-                if (!yearInput.value) {
-                    alert('请先选择年份！');
-                    return;
-                }
-                const formData = new FormData(excelForm);
-                const submitBtn = excelForm.querySelector('button[type="submit"]');
-                const originalText = submitBtn.textContent;
-                submitBtn.textContent = '上传中...';
-                submitBtn.disabled = true;
-                
-                fetch(excelForm.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ Excel上传成功！');
-                    } else {
-                        alert('❌ 上传失败：' + (data.message || '未知错误'));
-                    }
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                })
-                .catch(error => {
-                    alert('❌ 网络错误');
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                });
-            });
-        }
+function populateFirstColumn() {
+    firstColumnDiv.innerHTML = '';
+    Object.keys(dataDict).forEach(category => {
+        const itemDiv = document.createElement('div'); itemDiv.className = 'item'; itemDiv.textContent = category;
+        itemDiv.addEventListener('click', () => { selectedCategory = category; selectedValue = null; highlightSelectedCategory(category); populateSecondColumn(category); });
+        firstColumnDiv.appendChild(itemDiv);
     });
+    if (Object.keys(dataDict)[0]) { selectedCategory = Object.keys(dataDict)[0]; highlightSelectedCategory(selectedCategory); populateSecondColumn(selectedCategory); }
+}
+function highlightSelectedCategory(category) { document.querySelectorAll('#firstColumn .item').forEach(item => item.classList.remove('selected')); Array.from(document.querySelectorAll('#firstColumn .item')).find(item => item.textContent === category)?.classList.add('selected'); }
+function populateSecondColumn(category) {
+    secondColumnDiv.innerHTML = '';
+    if (!category || !dataDict[category]) { secondColumnDiv.innerHTML = '<div class="no-data">无数据</div>'; return; }
+    dataDict[category].forEach(item => {
+        const itemDiv = document.createElement('div'); itemDiv.className = 'item'; itemDiv.textContent = item;
+        itemDiv.addEventListener('click', () => { selectedValue = item; highlightSelectedValue(item); modalResultContent.textContent = `已选择: ${category} -> ${item}`; });
+        secondColumnDiv.appendChild(itemDiv);
+    });
+    modalResultContent.textContent = `已选择分类: ${category}，请从右侧选择具体选项`;
+}
+function highlightSelectedValue(value) { document.querySelectorAll('#secondColumn .item').forEach(item => item.classList.remove('selected')); Array.from(document.querySelectorAll('#secondColumn .item')).find(item => item.textContent === value)?.classList.add('selected'); }
+dataSelect.addEventListener('change', function() { if (this.value === 'custom-selector') { modalOverlay.style.display = 'flex'; populateFirstColumn(); } });
+closeModalBtn.addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.style.display = 'none'; });
+confirmBtnModal.addEventListener('click', () => {
+    if (!selectedValue) { alert('请先选择一个指标'); return; }
+    modalOverlay.style.display = 'none';
+    dataSelect.innerHTML = `<option value="${selectedValue}" selected>${selectedValue}</option><option value="custom-selector" class="custom-selector-option">打开指标项</option>`;
+});
+
+// 省份、城市联动 (保持原始)
+function initProvinceSelect() {
+    const provSelect = document.getElementById('provinceSelect');
+    if (!provSelect) return;
+    const provinces = Object.keys(cityData);
+    provSelect.innerHTML = '<option value="">请选择省份</option>';
+    provinces.forEach(prov => {
+        const opt = document.createElement('option');
+        opt.value = prov;
+        opt.textContent = prov;
+        provSelect.appendChild(opt);
+    });
+}
+function updateCities() {
+    const province = document.getElementById('provinceSelect').value;
+    const container = document.getElementById('cityItems');
+    if (!container) return;
+    container.innerHTML = '';
+    if (cityData[province]) {
+        cityData[province].forEach(city => {
+            const id = 'city_cb_' + city.replace(/\s|市/g, '');
+            const wrapper = document.createElement('label');
+            wrapper.className = 'flex items-center space-x-2 px-2 py-1 text-sm hover:bg-blue-50 rounded cursor-pointer';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'city-checkbox rounded border-slate-300 text-blue-500';
+            cb.value = city;
+            cb.id = id;
+            if (selectedCities.has(city)) cb.checked = true;
+            const span = document.createElement('span');
+            span.className = 'text-slate-700';
+            span.textContent = city;
+            cb.addEventListener('change', function(e) { if (this.checked) selectedCities.add(this.value); else selectedCities.delete(this.value); renderSelectedCities(); });
+            wrapper.appendChild(cb); wrapper.appendChild(span); container.appendChild(wrapper);
+        });
+    } else {
+        container.innerHTML = '<div class="text-sm text-slate-400">请先选择省份</div>';
+    }
+    renderSelectedCities();
+}
+function selectAllCities() { document.querySelectorAll('#cityItems .city-checkbox').forEach(b => { b.checked = true; selectedCities.add(b.value); }); renderSelectedCities(); }
+function clearAllCities() { document.querySelectorAll('#cityItems .city-checkbox').forEach(b => { b.checked = false; selectedCities.delete(b.value); }); renderSelectedCities(); }
+function renderSelectedCities() {
+    const container = document.getElementById('selectedCitiesList');
+    if (!container) return;
+    container.innerHTML = '';
+    if (selectedCities.size === 0) { container.innerHTML = '<div class="text-sm text-slate-400">尚未选择城市</div>'; return; }
+    Array.from(selectedCities).forEach(city => {
+        const row = document.createElement('div'); row.className = 'flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0';
+        const name = document.createElement('div'); name.className = 'text-sm text-slate-700'; name.textContent = city;
+        const btn = document.createElement('button'); btn.className = 'text-xs text-red-500 hover:text-red-700 ml-2'; btn.textContent = '移除';
+        btn.addEventListener('click', () => { selectedCities.delete(city); const cb = document.querySelector(`#cityItems input.city-checkbox[value="${city}"]`); if (cb) cb.checked = false; renderSelectedCities(); });
+        row.appendChild(name); row.appendChild(btn); container.appendChild(row);
+    });
+}
+
+// 年份下拉框初始化
+function initYears() {
+    const startSelect = document.getElementById('startYear');
+    const endSelect = document.getElementById('endYear');
+    if (!startSelect || !endSelect) return;
+    const currentYear = new Date().getFullYear();
+    startSelect.innerHTML = '';
+    endSelect.innerHTML = '';
+    for (let y = 2009; y <= currentYear + 1; y++) {
+        const optStart = document.createElement('option'); optStart.value = y; optStart.textContent = y + '年';
+        const optEnd = document.createElement('option'); optEnd.value = y; optEnd.textContent = y + '年';
+        if (y === 2015) optStart.selected = true;
+        if (y === currentYear + 1) optEnd.selected = true;
+        startSelect.appendChild(optStart);
+        endSelect.appendChild(optEnd);
+    }
+}
+
+// 查询功能 (保持原始多城市多年度逻辑)
+function handleSearch() {
+    const indicator = document.getElementById('dataSelect').value;
+    const province = document.getElementById('provinceSelect').value;
+    const startYear = document.getElementById('startYear').value;
+    const endYear = document.getElementById('endYear').value;
+    const checked = Array.from(selectedCities);
+    if (!indicator || checked.length === 0 || !province) { alert("请完整选择指标、省份和至少一个城市"); return; }
+    if (parseInt(startYear) > parseInt(endYear)) { alert("起始年份不能大于终止年份"); return; }
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('resultContent').classList.remove('hidden');
+    const cityParam = encodeURIComponent(checked.join(','));
+    fetch(`/dashboard/single_indicator_city_query/?name_zh=${encodeURIComponent(indicator)}&start_year=${startYear}&end_year=${endYear}&city=${cityParam}&province=${encodeURIComponent(province)}`)
+        .then(res => res.json()).then(res => {
+            if (!res.success || !res.data || (Array.isArray(res.data) && res.data.length === 0) || (typeof res.data === 'object' && Object.keys(res.data).length === 0)) {
+                document.getElementById('tableBody').innerHTML = ''; if (myChart) myChart.clear(); alert('没有查询到数据'); return;
+            }
+            rawDataByCity = {};
+            if (Array.isArray(res.data)) {
+                const cityLabel = checked.join(' / ') || '数据';
+                rawDataByCity[cityLabel] = res.data.map(item => ({ year: item.year + '年', val: Number(item.value), unit: item.unit }));
+            } else {
+                Object.keys(res.data).forEach(city => {
+                    const arr = Array.isArray(res.data[city]) ? res.data[city] : [];
+                    rawDataByCity[city] = arr.map(item => ({ year: item.year + '年', val: item.value === null ? null : Number(item.value), unit: item.unit }));
+                });
+            }
+            document.getElementById('tableTitle').textContent = `${checked.join(' / ')} - ${indicator} 历年数据`;
+            document.getElementById('chartTitle').textContent = `${checked.join(' / ')} - ${indicator} 变化趋势`;
+            renderTable(); renderChart();
+        }).catch(err => { alert('查询失败: ' + err); });
+}
+
+// 渲染多城市多年度表格
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const thead = document.getElementById('tableHead');
+    tbody.innerHTML = ''; thead.innerHTML = '';
+    const cityNames = Object.keys(rawDataByCity);
+    if (cityNames.length === 0) return;
+    const yearSet = new Set();
+    cityNames.forEach(city => rawDataByCity[city].forEach(r => yearSet.add(r.year)));
+    const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+    const headerRow = document.createElement('tr');
+    const thYear = document.createElement('th'); thYear.className = 'px-6 py-4 font-semibold text-slate-700 bg-slate-50 border-b border-slate-200'; thYear.textContent = '年份'; headerRow.appendChild(thYear);
+    cityNames.forEach(city => {
+        const th = document.createElement('th'); th.className = 'px-6 py-4 font-semibold text-slate-700 text-center bg-slate-50 border-b border-slate-200';
+        const unit = (rawDataByCity[city][0] && rawDataByCity[city][0].unit) ? rawDataByCity[city][0].unit : '';
+        th.textContent = unit ? `${city} (${unit})` : city;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    years.forEach((year, idx) => {
+        const tr = document.createElement('tr'); tr.className = (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30') + ' table-detail-row hover:bg-blue-50/50 transition';
+        const tdYear = document.createElement('td'); tdYear.className = 'px-6 py-4 text-slate-800 font-medium border-b border-slate-100'; tdYear.textContent = year; tr.appendChild(tdYear);
+        cityNames.forEach(city => {
+            const td = document.createElement('td'); td.className = 'px-6 py-4 text-center border-b border-slate-100';
+            const rec = rawDataByCity[city].find(r => r.year === year);
+            if (rec && rec.val !== null && !isNaN(rec.val)) td.textContent = Number(rec.val).toLocaleString();
+            else td.textContent = '-';
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+// 图表渲染
+function renderChart() {
+    if (!myChart) myChart = echarts.init(document.getElementById('mainChart'));
+    const cityNames = Object.keys(rawDataByCity);
+    if (cityNames.length === 0) return;
+    const yearSet = new Set();
+    cityNames.forEach(city => rawDataByCity[city].forEach(r => yearSet.add(r.year)));
+    const years = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+    const series = cityNames.map((city, idx) => {
+        const map = {};
+        rawDataByCity[city].forEach(r => { map[r.year] = (r.val === null) ? null : Number(r.val); });
+        const data = years.map(y => map[y] !== undefined ? map[y] : null);
+        return { name: city, data: data, type: currentChartType, smooth: true, barWidth: '35%', symbol: 'circle', symbolSize: 8, lineStyle: { width: 3, color: '#3b82f6' }, itemStyle: { color: ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6'][idx % 5] }, areaStyle: currentChartType === 'line' ? { opacity: 0.1 } : null };
+    });
+    const option = { tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, legend: { data: cityNames, top: '2%' }, grid: { top: '12%', left: '3%', right: '4%', bottom: '3%', containLabel: true }, xAxis: { type: 'category', data: years, axisTick: { alignWithLabel: true } }, yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } }, series: series };
+    myChart.setOption(option); window.addEventListener('resize', () => myChart.resize());
+}
+function switchChart(type) {
+    currentChartType = type;
+    const btnBar = document.getElementById('btnBar'), btnLine = document.getElementById('btnLine');
+    if (type === 'bar') { btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm'; btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 hover:text-blue-600'; }
+    else { btnLine.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm'; btnBar.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 hover:text-blue-600'; }
+    renderChart();
+}
+
+// 初始化页面
+document.addEventListener('DOMContentLoaded', () => {
+    initProvinceSelect();
+    initYears();
+    updateCities();
+    renderSelectedCities();
+});
 </script>
 </body>
 </html>
