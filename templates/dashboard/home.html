@@ -135,25 +135,6 @@
 
 
 
-{% if request.user.is_superuser %}
-<button class="btn btn-danger">系统设置（仅管理员）</button>
-{% endif %}
-
-<!-- 只有 staff/超级管理员能看到「用户管理」标签 -->
-{% if request.user.is_staff %}
-<div class="card">
-  <h3>用户管理面板</h3>
-  <!-- 管理员专属内容 -->
-</div>
-{% endif %}
-
-<!-- 普通用户仅能看到「个人中心」 -->
-{% if request.user.role == 'normal' %}
-<p>欢迎使用普通用户版功能</p>
-{% endif %}
-
-
-
 <div class="ml-auto flex items-center space-x-4">
 
     <div class="flex space-x-3 mr-6">

@@ -91,8 +91,11 @@
 </div>
 <div class="ml-auto flex items-center space-x-4">
 <div class="flex space-x-3 mr-6">
+    {% if request.user.is_superuser %}
     <a href="/dashboard/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
     <a href="/dashboard/area_input" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">区县指标录入</a>
+    {% endif %}
+
     <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
     <a href="/dashboard/single-indicator-city-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市查询</a>
     <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标查询</a>
