@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.db import IntegrityError
@@ -22,11 +22,13 @@ import secrets
 from .models import UserSettings, SubscriptionPlan
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 @require_http_methods(['GET'])
 def dashboard_home(request):
     return render(request, 'dashboard/home.html')
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 @require_http_methods(['GET'])
 def area_input(request):
     return render(request, 'dashboard/input_area.html')
@@ -237,6 +239,7 @@ def start_trial(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)  
 @require_http_methods(['POST'])
 def submit_data(request):
     """处理表单提交"""
