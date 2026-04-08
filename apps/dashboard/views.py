@@ -21,21 +21,19 @@ from datetime import datetime
 import secrets
 from .models import UserSettings, SubscriptionPlan
 
-def is_admin_user(user):
-    if not user.is_authenticated:
-        return False
-    return user.profile.membership_level == 'admin'
 
 @login_required
-@user_passes_test(is_admin_user)
 @require_http_methods(['GET'])
 def dashboard_home(request):
+    if request.user.profile.membership_level != 'admin':
+        return redirect('/') 
     return render(request, 'dashboard/home.html')
 
 @login_required
-@user_passes_test(is_admin_user)
 @require_http_methods(['GET'])
 def area_input(request):
+    if request.user.profile.membership_level != 'admin':
+        return redirect('/') 
     return render(request, 'dashboard/input_area.html')
 
 
