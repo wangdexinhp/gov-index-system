@@ -92,6 +92,8 @@
 <div class="flex space-x-3 mr-6">
     {% if request.user.is_superuser %}
     <a href="/dashboard/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
+    <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">订单价格配置</a>
+
     {% endif %}
 
     <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
