@@ -70,7 +70,7 @@
 <div class="ml-auto flex items-center space-x-4">
 <div class="flex space-x-3 mr-6">
     <a href="/dashboard/" 
-        class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
+        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all">
         指标录入
     </a>
     <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">
@@ -104,6 +104,19 @@
 
 <!-- 主内容区 -->
 <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <div class="flex items-center space-x-3 mb-6">
+        <div class="bg-blue-100 p-2 rounded-xl">
+            <iconify-icon class="text-blue-600 text-2xl" icon="fluent:database-search-24-filled"></iconify-icon>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/dashboard/" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">地市指标录入</a>
+            <a href="/dashboard/area_input" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">区县指标录入</a>
+            <a href="/dashboard/indicator-check" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">指标校验</a>
+        </div>
+    </div>
+
+
     <!-- 筛选卡片 - 蓝色现代风格 -->
     <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8 transition-all">
         <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
