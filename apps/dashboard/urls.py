@@ -6,6 +6,8 @@ app_name = 'dashboard'
 urlpatterns = [
     path('', views.dashboard_home, name='home'),
     path('area_input', views.area_input, name='area_input'),
+    path('indicator-check', views.indicator_check, name='indicator_check'),  
+
 
     # 城市数据查询路径
     path('get-city-map/', views.get_city_map, name='city_map_query'),
@@ -27,6 +29,7 @@ urlpatterns = [
 
     path('submit/', views.submit_data, name='submit_data'),
     path('submit-area/', views.submit_area_data, name='submit_area_data'),
+
     path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
     path('single_indicator_area_query/', views.single_indicator_area_query, name='single_indicator_area_query'),
     path('single_indicator_city_query/', views.single_indicator_city_query, name='single_indicator_city_query'),

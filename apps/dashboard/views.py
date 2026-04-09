@@ -38,6 +38,15 @@ def area_input(request):
         return redirect('/') 
     return render(request, 'dashboard/input_area.html')
 
+@login_required
+@require_http_methods(['GET'])
+def indicator_check(request):
+    print(f"用户 {request.user.profile.membership_level} 访问了区域输入页面")
+    if request.user.profile.membership_level != 'admin':
+        return redirect('/') 
+    return render(request, 'dashboard/indic_data_check.html')
+
+
 
 @login_required
 @require_http_methods(['GET'])
