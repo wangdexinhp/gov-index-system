@@ -25,6 +25,7 @@ from .models import UserSettings, SubscriptionPlan
 @login_required
 @require_http_methods(['GET'])
 def dashboard_home(request):
+    print(f"用户 {request.user.profile.membership_level} 访问了仪表盘首页")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
     return render(request, 'dashboard/home.html')
@@ -32,6 +33,7 @@ def dashboard_home(request):
 @login_required
 @require_http_methods(['GET'])
 def area_input(request):
+    print(f"用户 {request.user.profile.membership_level} 访问了区域输入页面")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
     return render(request, 'dashboard/input_area.html')
