@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>指标数据核对查询 | 数据指标管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<style>
+    body {
+        background: #f0f4f9;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 表格容器支持横向滚动 */
+    .table-wrapper {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 65vh;
+        width: 100%;
+        border-radius: 1rem;
+    }
+    
+    /* 数据表格样式 */
+    .data-table {
+        min-width: 800px;
+        width: max-content;
+        border-collapse: collapse;
+    }
+    
+    /* 固定第一列（城市/区县） */
+    .data-table th:first-child,
+    .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #ffffff;
+        z-index: 10;
+        box-shadow: 4px 0 8px -4px rgba(0, 80, 120, 0.15);
+    }
+    
+    .data-table thead th:first-child {
+        z-index: 11;
+        background: #f0f9ff;
+    }
+    
+    .data-table th,
+    .data-table td {
+        border: 1px solid #bfdbfe;
+        padding: 10px 14px;
+        vertical-align: middle;
+    }
+    
+    .data-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #1e40af;
+    }
+    
+    /* 状态标签样式 */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-imported {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    .status-missing {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .status-partial {
+        background: #fef9c3;
+        color: #a16207;
+    }
+    
+    /* 数值单元格样式 */
+    .value-cell {
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-weight: 500;
+    }
+    .value-present {
+        color: #1e40af;
+    }
+    .value-absent {
+        color: #94a3b8;
+        font-style: italic;
+    }
+    
+    /* 滚动条 */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 10px;
+    }
+    
+    input:focus, select:focus {
+        outline: none;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    
+    /* 折叠面板 */
+    .collapsible-header {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .collapsible-content {
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+</style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
+
+<!-- 导航栏 -->
+<header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+<div class="flex items-center space-x-3">
+    <div class="bg-blue-600 rounded-xl p-2 shadow-md">
+        <iconify-icon class="text-white text-2xl" icon="mdi:chart-line"></iconify-icon>
+    </div>
+    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">数据指标管理系统</h1>
+</div>
+<div class="ml-auto flex items-center space-x-4">
+    <div class="flex space-x-3 mr-6">
+        <a href="/dashboard/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all">指标录入</a>
+        <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">订单价格配置</a>
+        <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
+        <a href="/dashboard/single-indicator-city-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市</a>
+        <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标</a>
+    </div>
+    <div class="text-right">
+        <div class="flex-shrink-0 flex items-center">
+            <a href="{% url 'landing:home' %}" class="flex items-center">
+                <span class="text-xl font-medium tracking-wide text-blue-800">城策智库</span>
+            </a>
+        </div>
+    </div>
+    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner">
+        <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
+    </div>
+</div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+    <div class="flex items-center space-x-3 mb-6">
+        <div class="bg-blue-100 p-2 rounded-xl">
+            <iconify-icon class="text-blue-600 text-2xl" icon="fluent:database-search-24-filled"></iconify-icon>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/dashboard/" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">地市指标录入</a>
+            <a href="/dashboard/area_input" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">区县指标录入</a>
+            <a href="/dashboard/indicator-check" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">指标校验</a>
+        </div>
+    </div>
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-3">
+            <!-- <div class="bg-blue-100 p-2 rounded-xl">
+                <iconify-icon class="text-blue-600 text-2xl" icon="mdi:clipboard-list"></iconify-icon>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800">指标数据核对查询</h1>
+            <span class="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">查看各指标录入状态与数值</span> -->
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="exportBtn" class="bg-white border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium py-2 px-4 rounded-xl text-sm transition flex items-center gap-2">
+                <iconify-icon icon="mdi:download"></iconify-icon> 导出核对表
+            </button>
+        </div>
+    </div>
+
+    <!-- 筛选卡片 -->
+    <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
+            <div>
+                <label class="block text-sm font-semibold text-blue-700 mb-2">📅 选择年份</label>
+                <select id="yearSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+                    <option value="">所有年份</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-blue-700 mb-2">📍 选择省份</label>
+                <select id="provinceSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+                    <option value="">全部省份</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-blue-700 mb-2">🏙️ 选择城市</label>
+                <select id="citySelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+                    <option value="">全部城市</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-blue-700 mb-2">📊 指标组筛选</label>
+                <select id="groupSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+                    <option value="">全部指标组</option>
+                    <option value="admin">行政区域数据</option>
+                    <option value="population">人口数据</option>
+                    <option value="economic_growth">经济增长数据</option>
+                    <option value="finance">财政指标数据</option>
+                    <option value="education_tech">教育科技数据</option>
+                    <option value="employment">就业数据</option>
+                    <option value="ecology">生态环保数据</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-blue-700 mb-2">🔍 录入状态</label>
+                <select id="statusFilter" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+                    <option value="">全部</option>
+                    <option value="imported">已录入</option>
+                    <option value="missing">未录入</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end mt-5">
+            <button id="queryBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-8 rounded-xl shadow-md transition-all flex items-center gap-2">
+                <iconify-icon icon="mdi:refresh"></iconify-icon> 查询核对
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-blue-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm">指标总数</p>
+                    <p class="text-2xl font-bold text-slate-800" id="totalIndicators">0</p>
+                </div>
+                <div class="bg-blue-100 p-2 rounded-lg">
+                    <iconify-icon class="text-blue-600 text-xl" icon="mdi:counter"></iconify-icon>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white border border-green-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm">已录入指标数</p>
+                    <p class="text-2xl font-bold text-green-600" id="importedCount">0</p>
+                </div>
+                <div class="bg-green-100 p-2 rounded-lg">
+                    <iconify-icon class="text-green-600 text-xl" icon="mdi:check-circle"></iconify-icon>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white border border-red-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm">未录入指标数</p>
+                    <p class="text-2xl font-bold text-red-500" id="missingCount">0</p>
+                </div>
+                <div class="bg-red-100 p-2 rounded-lg">
+                    <iconify-icon class="text-red-500 text-xl" icon="mdi:alert-circle"></iconify-icon>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white border border-yellow-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm">录入覆盖率</p>
+                    <p class="text-2xl font-bold text-yellow-600" id="coverageRate">0%</p>
+                </div>
+                <div class="bg-yellow-100 p-2 rounded-lg">
+                    <iconify-icon class="text-yellow-600 text-xl" icon="mdi:chart-donut"></iconify-icon>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据表格 - 指标维度视图 -->
+    <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-200 bg-slate-50 flex justify-between items-center">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <iconify-icon icon="mdi:table-eye"></iconify-icon>
+                指标录入明细表
+            </h2>
+            <div class="text-xs text-slate-400" id="tableInfo">请选择条件后点击查询</div>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table w-full" id="dataTable">
+                <thead>
+                    <tr id="tableHeader">
+                        <th class="min-w-[120px]">城市</th>
+                        <th class="min-w-[150px]">指标名称</th>
+                        <th class="min-w-[100px]">年份</th>
+                        <th class="min-w-[150px]">录入数值</th>
+                        <th class="min-w-[120px]">单位</th>
+                        <th class="min-w-[120px]">录入状态</th>
+                        <th class="min-w-[150px]">数据来源</th>
+                        <th class="min-w-[100px]">备注</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="8" class="text-center text-slate-400 py-12">请选择条件后点击查询按钮</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- 分页 -->
+        <div class="px-6 py-3 bg-slate-50 border-t border-blue-200 flex justify-between items-center">
+            <div class="text-sm text-slate-500" id="paginationInfo"></div>
+            <div class="flex gap-2">
+                <button id="prevPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm hover:bg-slate-100 transition disabled:opacity-50">上一页</button>
+                <button id="nextPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm hover:bg-slate-100 transition disabled:opacity-50">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 汇总卡片 - 按指标组统计 -->
+    <div class="mt-6 bg-white border border-blue-200 rounded-2xl shadow-md p-5">
+        <div class="flex items-center gap-2 mb-4">
+            <iconify-icon icon="mdi:chart-box" class="text-blue-600 text-xl"></iconify-icon>
+            <h3 class="font-bold text-slate-800">按指标组统计录入情况</h3>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="groupStats">
+            <!-- 动态生成组统计卡片 -->
+        </div>
+    </div>
+</main>
+
+<script>
+    // ==================== 模拟数据接口（实际应替换为真实后端API） ====================
+    // 城市列表（模拟）
+    const citiesList = ["北京市", "上海市", "广州市", "深圳市", "杭州市", "成都市", "武汉市", "南京市", "苏州市", "天津市"];
+    
+    // 指标列表（部分常用指标）
+    const indicatorsList = [
+        "常住人口数", "城镇人口数", "GDP", "人均GDP", "一般公共预算收入", "固定资产投资总额",
+        "社会消费品零售总额", "进出口总额", "高新技术企业产值", "专利授权数量", "教育支出",
+        "医疗卫生支出", "城镇登记失业率", "城镇化率", "城镇居民人均可支配收入"
+    ];
+    
+    // 指标分组映射
+    const indicatorGroupMap = {
+        "常住人口数": "population", "城镇人口数": "population", "GDP": "economic_growth", "人均GDP": "economic_growth",
+        "一般公共预算收入": "finance", "固定资产投资总额": "economic_growth", "社会消费品零售总额": "economic_growth",
+        "进出口总额": "economic_growth", "高新技术企业产值": "education_tech", "专利授权数量": "education_tech",
+        "教育支出": "finance", "医疗卫生支出": "finance", "城镇登记失业率": "employment", "城镇化率": "population",
+        "城镇居民人均可支配收入": "economic_growth"
+    };
+    
+    // 生成模拟数据：随机标记部分已录入，部分缺失
+    function generateMockData() {
+        const records = [];
+        const years = [2023, 2024, 2025];
+        
+        for (const city of citiesList) {
+            for (const indicator of indicatorsList) {
+                for (const year of years) {
+                    // 随机决定是否已录入（约65%录入率）
+                    const isImported = Math.random() > 0.35;
+                    const value = isImported ? (Math.random() * 5000 + 100).toFixed(2) : null;
+                    const unit = indicator.includes("人口") ? "万人" : 
+                                 (indicator.includes("GDP") || indicator.includes("收入") ? "亿元" : 
+                                 (indicator.includes("率") ? "%" : ""));
+                    const sources = ["地市统计年鉴", "省级统计年鉴", "政府工作报告", "专项报告"];
+                    records.push({
+                        id: `${city}_${indicator}_${year}`,
+                        city: city,
+                        indicator: indicator,
+                        year: year,
+                        value: value,
+                        unit: unit,
+                        status: isImported ? "imported" : "missing",
+                        source: isImported ? sources[Math.floor(Math.random() * sources.length)] : "",
+                        remark: isImported ? "" : "暂无数据"
+                    });
+                }
+            }
+        }
+        return records;
+    }
+    
+    let allData = generateMockData();
+    let filteredData = [];
+    let currentPage = 1;
+    const pageSize = 15;
+    
+    // 省份-城市映射（用于筛选）
+    const provinceCityMap = {
+        "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], "浙江省": ["杭州市"],
+        "四川省": ["成都市"], "湖北省": ["武汉市"], "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
+    };
+    
+    // 初始化年份下拉
+    function initYearSelect() {
+        const yearSelect = document.getElementById('yearSelect');
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = '<option value="">所有年份</option>';
+        for (let y = 2020; y <= currentYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y + '年';
+            yearSelect.appendChild(opt);
+        }
+        yearSelect.value = 2025;
+    }
+    
+    // 初始化省份下拉
+    function initProvinceSelect() {
+        const provSelect = document.getElementById('provinceSelect');
+        const provinces = Object.keys(provinceCityMap);
+        provSelect.innerHTML = '<option value="">全部省份</option>';
+        provinces.forEach(prov => {
+            const opt = document.createElement('option');
+            opt.value = prov;
+            opt.textContent = prov;
+            provSelect.appendChild(opt);
+        });
+    }
+    
+    // 省份联动城市
+    function updateCitySelect() {
+        const province = document.getElementById('provinceSelect').value;
+        const citySelect = document.getElementById('citySelect');
+        let cities = [];
+        if (province && provinceCityMap[province]) {
+            cities = provinceCityMap[province];
+        } else {
+            cities = citiesList;
+        }
+        citySelect.innerHTML = '<option value="">全部城市</option>';
+        cities.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+    }
+    
+    // 查询过滤
+    function filterData() {
+        const year = document.getElementById('yearSelect').value;
+        const province = document.getElementById('provinceSelect').value;
+        const city = document.getElementById('citySelect').value;
+        const group = document.getElementById('groupSelect').value;
+        const status = document.getElementById('statusFilter').value;
+        
+        // 根据省份获取城市列表
+        let targetCities = [];
+        if (city) {
+            targetCities = [city];
+        } else if (province && provinceCityMap[province]) {
+            targetCities = provinceCityMap[province];
+        } else {
+            targetCities = citiesList;
+        }
+        
+        filteredData = allData.filter(record => {
+            if (year && record.year !== parseInt(year)) return false;
+            if (!targetCities.includes(record.city)) return false;
+            if (group) {
+                const indicatorGroup = indicatorGroupMap[record.indicator];
+                if (indicatorGroup !== group) return false;
+            }
+            if (status && record.status !== status) return false;
+            return true;
+        });
+        
+        // 更新统计数据
+        updateStatistics();
+        updateGroupStats();
+        
+        currentPage = 1;
+        renderTable();
+    }
+    
+    // 更新统计卡片
+    function updateStatistics() {
+        const total = filteredData.length;
+        const imported = filteredData.filter(d => d.status === 'imported').length;
+        const missing = total - imported;
+        const coverage = total > 0 ? ((imported / total) * 100).toFixed(1) : 0;
+        
+        document.getElementById('totalIndicators').innerText = total;
+        document.getElementById('importedCount').innerText = imported;
+        document.getElementById('missingCount').innerText = missing;
+        document.getElementById('coverageRate').innerText = coverage + '%';
+    }
+    
+    // 按指标组统计
+    function updateGroupStats() {
+        const groups = {
+            'admin': '行政区域', 'population': '人口数据', 'economic_growth': '经济增长',
+            'finance': '财政指标', 'education_tech': '教育科技', 'employment': '就业数据',
+            'ecology': '生态环保'
+        };
+        const groupStats = {};
+        
+        for (const [groupKey, groupName] of Object.entries(groups)) {
+            const groupRecords = filteredData.filter(d => indicatorGroupMap[d.indicator] === groupKey);
+            const total = groupRecords.length;
+            const imported = groupRecords.filter(d => d.status === 'imported').length;
+            groupStats[groupKey] = { name: groupName, total, imported, rate: total > 0 ? (imported/total*100).toFixed(0) : 0 };
+        }
+        
+        const container = document.getElementById('groupStats');
+        container.innerHTML = '';
+        for (const [key, stat] of Object.entries(groupStats)) {
+            if (stat.total === 0 && stat.imported === 0) continue;
+            const colorClass = stat.rate >= 80 ? 'border-green-200 bg-green-50' : (stat.rate >= 50 ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50');
+            const textColor = stat.rate >= 80 ? 'text-green-700' : (stat.rate >= 50 ? 'text-yellow-700' : 'text-red-700');
+            container.innerHTML += `
+                <div class="border ${colorClass} rounded-xl p-3 text-center">
+                    <div class="text-xs text-slate-500">${stat.name}</div>
+                    <div class="text-xl font-bold ${textColor}">${stat.rate}%</div>
+                    <div class="text-xs text-slate-400">${stat.imported}/${stat.total}</div>
+                </div>
+            `;
+        }
+    }
+    
+    // 渲染表格
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const pageData = filteredData.slice(start, end);
+        
+        if (pageData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-12">暂无数据，请调整筛选条件</td></tr>';
+            document.getElementById('paginationInfo').innerText = '';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        pageData.forEach(record => {
+            const statusBadge = record.status === 'imported' 
+                ? '<span class="status-badge status-imported"><iconify-icon icon="mdi:check-circle" width="14"></iconify-icon>已录入</span>'
+                : '<span class="status-badge status-missing"><iconify-icon icon="mdi:close-circle" width="14"></iconify-icon>未录入</span>';
+            
+            const valueDisplay = record.value 
+                ? `<span class="value-cell value-present font-medium">${parseFloat(record.value).toLocaleString()}</span>`
+                : '<span class="value-cell value-absent">— 未录入 —</span>';
+            
+            const sourceDisplay = record.source ? record.source : '—';
+            const remarkDisplay = record.remark ? record.remark : '—';
+            
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-blue-50/30 transition-colors';
+            row.innerHTML = `
+                <td class="font-medium text-slate-800">${record.city}</td>
+                <td class="text-slate-700">${record.indicator}</td>
+                <td class="text-slate-600">${record.year}年</td>
+                <td class="text-right">${valueDisplay}</td>
+                <td class="text-slate-500 text-sm">${record.unit || '—'}</td>
+                <td>${statusBadge}</td>
+                <td class="text-slate-500 text-sm">${sourceDisplay}</td>
+                <td class="text-slate-500 text-sm max-w-[150px] truncate" title="${remarkDisplay}">${remarkDisplay}</td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        const totalPages = Math.ceil(filteredData.length / pageSize);
+        document.getElementById('paginationInfo').innerText = `第 ${currentPage} / ${totalPages || 1} 页，共 ${filteredData.length} 条记录`;
+        
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+    }
+    
+    // 导出CSV
+    function exportToCSV() {
+        if (filteredData.length === 0) {
+            alert('暂无数据可导出');
+            return;
+        }
+        const headers = ['城市', '指标名称', '年份', '录入数值', '单位', '录入状态', '数据来源', '备注'];
+        const rows = filteredData.map(record => [
+            record.city,
+            record.indicator,
+            record.year,
+            record.value || '',
+            record.unit || '',
+            record.status === 'imported' ? '已录入' : '未录入',
+            record.source || '',
+            record.remark || ''
+        ]);
+        
+        const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `指标核对数据_${new Date().toISOString().slice(0,19)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+    
+    // 重置并查询
+    function performQuery() {
+        filterData();
+    }
+    
+    // 页面初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initYearSelect();
+        initProvinceSelect();
+        updateCitySelect();
+        
+        // 事件绑定
+        document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+        document.getElementById('queryBtn').addEventListener('click', performQuery);
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; renderTable(); }
+        });
+        document.getElementById('nextPage').addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (currentPage < totalPages) { currentPage++; renderTable(); }
+        });
+        
+        // 默认查询一次
+        performQuery();
+    });
+</script>
+</body>
+</html>

@@ -6,6 +6,8 @@ app_name = 'dashboard'
 urlpatterns = [
     path('', views.dashboard_home, name='home'),
     path('area_input', views.area_input, name='area_input'),
+    path('indicator-check', views.indicator_check, name='indicator_check'),  
+
 
     # 城市数据查询路径
     path('get-city-map/', views.get_city_map, name='city_map_query'),
@@ -13,7 +15,7 @@ urlpatterns = [
     
     path('single-indicator-year-query/', views.dashboard_single_query, name='single_query'),
     path('single-indicator-year-query-area/', views.dashboard_single_query_area, name='single_query_area'),
-
+    path('order-price/', views.dashboard_order_price, name='order_price'),
     path('single-indicator-city-query/', views.dashboard_single_indicator_city_query, name='single_indicator_query'),
     path('many-indicator-query/', views.dashboard_many_indicator_query, name='many_indicator_query'),
 
@@ -27,6 +29,7 @@ urlpatterns = [
 
     path('submit/', views.submit_data, name='submit_data'),
     path('submit-area/', views.submit_area_data, name='submit_area_data'),
+
     path('single_indicator_query/', views.single_indicator_query, name='single_indicator_query'),
     path('single_indicator_area_query/', views.single_indicator_area_query, name='single_indicator_area_query'),
     path('single_indicator_city_query/', views.single_indicator_city_query, name='single_indicator_city_query'),

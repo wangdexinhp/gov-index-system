@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.db import IntegrityError
@@ -21,15 +21,29 @@ from datetime import datetime
 import secrets
 from .models import UserSettings, SubscriptionPlan
 
+
 @login_required
 @require_http_methods(['GET'])
 def dashboard_home(request):
+    print(f"用户 {request.user.profile.membership_level} 访问了仪表盘首页")
+    if request.user.profile.membership_level != 'admin':
+        return redirect('/') 
     return render(request, 'dashboard/home.html')
 
 @login_required
 @require_http_methods(['GET'])
 def area_input(request):
+    print(f"用户 {request.user.profile.membership_level} 访问了区域输入页面")
+    if request.user.profile.membership_level != 'admin':
+        return redirect('/') 
     return render(request, 'dashboard/input_area.html')
+
+@login_required
+@require_http_methods(['GET'])
+def indicator_check(request):
+
+    return render(request, 'dashboard/indic_data_check.html')
+
 
 
 @login_required
@@ -42,6 +56,13 @@ def dashboard_single_query(request):
 def dashboard_single_query_area(request):
     return render(request, 'dashboard/single_query_area.html')
 
+@login_required
+@require_http_methods(['GET'])
+def dashboard_order_price(request):
+    return render(request, 'dashboard/order_price.html')
+
+
+
 # @login_required
 # @require_http_methods(['GET'])
 # def dashboard_single_indicator_city_query(request):
@@ -50,7 +71,7 @@ def dashboard_single_query_area(request):
 @login_required
 @require_http_methods(['GET'])
 def dashboard_single_indicator_city_query(request):
-    return render(request, 'dashboard/single_query_city_copy.html')
+    return render(request, 'dashboard/single_indicator_city_query.html')
 
 
 
@@ -230,6 +251,7 @@ def start_trial(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)  
 @require_http_methods(['POST'])
 def submit_data(request):
     """处理表单提交"""
