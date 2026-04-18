@@ -393,11 +393,23 @@
     let currentPage = 1;
     const pageSize = 15;
     
-    // 省份-城市映射（用于筛选）
-    const provinceCityMap = {
-        "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], "浙江省": ["杭州市"],
-        "四川省": ["成都市"], "湖北省": ["武汉市"], "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
-    };
+    // // 省份-城市映射（用于筛选）
+    // const provinceCityMap = {
+    //     "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], "浙江省": ["杭州市"],
+    //     "四川省": ["成都市"], "湖北省": ["武汉市"], "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
+    // };
+    function loadProvinceCityMap() { 
+        return fetch('/dashboard/get-city-map/')
+            .then(res=>res.json())
+            .then(data=>{ provinceCityMap=data||{}; })
+            .catch(()=>{ provinceCityMap={
+                "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
+                "江苏省": ["南京市", "苏州市", "无锡市", "常州市"],
+                "浙江省": ["杭州市", "宁波市", "温州市"],
+                "广东省": ["广州市", "深圳市", "珠海市", "佛山市"]
+            }; });
+    }
+
     
     // 初始化年份下拉
     function initYearSelect() {
@@ -638,6 +650,7 @@
     
     // 页面初始化
     document.addEventListener('DOMContentLoaded', function() {
+        loadProvinceCityMap();
         initYearSelect();
         initProvinceSelect();
         updateCitySelect();
@@ -657,6 +670,9 @@
         // 默认查询一次
         performQuery();
     });
+
+
+
 </script>
 </body>
 </html>
