@@ -257,6 +257,7 @@ def submit_data(request):
     """处理表单提交"""
     try:
         # 获取表单数据
+        print("=== 接收到的POST数据 ===",request.POST.dict())
         rows_json = request.POST.get('rows_json', '[]')
         rows_data = json.loads(rows_json)
         
@@ -671,6 +672,9 @@ def get_city_name_by_code(city_code):
     return f"未知城市({city_code})"
 
 
+# === 指标数据核对查询API ===
+
+
 
 # 城市上传文件
 @login_required
@@ -1079,3 +1083,230 @@ def many_indicator_city_query(request):
         'success': True,
         'data': result_data
     })
+
+
+
+
+
+
+
+# ==================== 核心接口：指标录入核对查询 ====================
+@login_required
+@require_http_methods(["GET"])
+def indicator_audit_check(request):
+    """
+    指标录入核对查询接口
+    GET /dashboard/indicator-audit-check/
+    
+    请求参数：
+        - year: 年份 (可选)
+        - province: 省份名称 (可选)
+        - city: 城市名称 (可选)
+        - indicator_group: 指标组代码 (可选)
+        - status: imported/missing (可选)
+        - page: 页码 (可选，默认1)
+        - page_size: 每页数量 (可选，默认20)
+    """
+    try:
+        # ========== 1. 获取请求参数 ==========
+        year = request.GET.get('year')
+        province_name = request.GET.get('province')
+        city_name = request.GET.get('city')
+        indicator_group = request.GET.get('indicator_group')
+        status_filter = request.GET.get('status')
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        
+        # ========== 2. 确定查询范围 ==========
+        # 2.1 城市列表
+        city_ids, city_names = _get_city_list(province_name, city_name)
+        
+        # 2.2 年份列表
+        years = _get_year_list(year)
+        
+        # 2.3 指标列表
+        indicators = _get_indicator_list(indicator_group)
+        
+        # ========== 3. 查询已录入数据 ==========
+        query = Q()
+        if year:
+            query &= Q(year=year)
+        if city_ids:
+            query &= Q(city_id__in=city_ids)
+        if indicator_group:
+            indicators_in_group = _get_indicators_by_group(indicator_group)
+            if indicators_in_group:
+                query &= Q(name_zh__in=indicators_in_group)
+        
+        # 从数据库查询已录入的数据
+        existing_records = coredata_indicator.objects.filter(query).values(
+            'year', 'city_id', 'name_zh', 'value', 'source', 'note'
+        )
+        
+        # 转换为字典，方便快速查找
+        existing_map = {}
+        for record in existing_records:
+            city_name_local = CITY_NAME_MAP.get(record['city_id'], str(record['city_id']))
+            key = f"{city_name_local}_{record['name_zh']}_{record['year']}"
+            existing_map[key] = record
+        
+        # ========== 4. 构建完整网格 ==========
+        result_data = []
+        
+        for city_id, city in city_names.items():
+            for indicator in indicators:
+                for y in years:
+                    key = f"{city}_{indicator}_{y}"
+                    
+                    if key in existing_map:
+                        # 已录入
+                        record = existing_map[key]
+                        result_data.append({
+                            "id": key,
+                            "city": city,
+                            "indicator": indicator,
+                            "year": y,
+                            "value": float(record['value']) if record['value'] is not None else None,
+                            "unit": INDICATOR_UNIT_MAP.get(indicator, ""),
+                            "status": "imported",
+                            "source": record['source'] or "",
+                            "remark": record['note'] or ""
+                        })
+                    else:
+                        # 未录入
+                        result_data.append({
+                            "id": key,
+                            "city": city,
+                            "indicator": indicator,
+                            "year": y,
+                            "value": None,
+                            "unit": INDICATOR_UNIT_MAP.get(indicator, ""),
+                            "status": "missing",
+                            "source": "",
+                            "remark": "暂无数据"
+                        })
+        
+        # ========== 5. 状态筛选 ==========
+        if status_filter:
+            result_data = [d for d in result_data if d['status'] == status_filter]
+        
+        # ========== 6. 分页 ==========
+        total = len(result_data)
+        paginator = Paginator(result_data, page_size)
+        page_data = paginator.get_page(page)
+        
+        # ========== 7. 统计汇总 ==========
+        imported_count = len([d for d in result_data if d['status'] == 'imported'])
+        missing_count = total - imported_count
+        coverage_rate = round((imported_count / total * 100), 1) if total > 0 else 0
+        
+        # ========== 8. 返回结果 ==========
+        return JsonResponse({
+            "success": True,
+            "data": list(page_data),
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": paginator.num_pages,
+            "summary": {
+                "total": total,
+                "imported": imported_count,
+                "missing": missing_count,
+                "coverage_rate": coverage_rate
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            "success": False,
+            "message": str(e),
+            "data": []
+        })
+
+# === 指标数据核对查询API ===
+@login_required
+@require_http_methods(['GET'])
+def check_data_api(request):
+    """
+    指标数据核对查询API
+    返回格式与前端期望匹配
+    """
+    try:
+        # 指标分组映射
+        indicator_group_map = {
+            "常住人口数": "population", "城镇人口数": "population", "GDP": "economic_growth", 
+            "人均GDP": "economic_growth", "一般公共预算收入": "finance", "固定资产投资总额": "economic_growth", 
+            "社会消费品零售总额": "economic_growth", "进出口总额": "economic_growth", "高新技术企业产值": "education_tech", 
+            "专利授权数量": "education_tech", "教育支出": "finance", "医疗卫生支出": "finance", 
+            "城镇登记失业率": "employment", "城镇化率": "population", "城镇居民人均可支配收入": "economic_growth"
+        }
+        
+        # 获取筛选参数
+        year = request.GET.get('year')
+        province = request.GET.get('province')
+        city = request.GET.get('city')
+        group = request.GET.get('group')
+        status = request.GET.get('status')
+        
+        # 构建查询条件
+        filters = {}
+        if year:
+            filters['year'] = year
+        if province:
+            # 根据省份获取城市ID列表
+            province_city_map = {
+                "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], 
+                "浙江省": ["杭州市"], "四川省": ["成都市"], "湖北省": ["武汉市"], 
+                "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
+            }
+            cities_in_province = province_city_map.get(province, [])
+            city_name_to_code = get_city_name_to_code()
+            city_ids = [city_name_to_code.get(c.replace('市', ''), 0) for c in cities_in_province if city_name_to_code.get(c.replace('市', ''), 0)]
+            if city_ids:
+                filters['city_id__in'] = city_ids
+        if city:
+            city_name_to_code = get_city_name_to_code()
+            city_id = city_name_to_code.get(city.replace('市', ''), 0)
+            if city_id:
+                filters['city_id'] = city_id
+        
+        # 查询数据
+        indicators = Indicator.objects.filter(**filters).select_related()
+        
+        # 格式化数据
+        records = []
+        for ind in indicators:
+            city_name = get_city_name_by_code(ind.city_id) or f"城市{ind.city_id}"
+            indicator_group = indicator_group_map.get(ind.name_zh, 'other')
+            if group and indicator_group != group:
+                continue
+            if status and ((status == 'imported' and not ind.value) or (status == 'missing' and ind.value)):
+                continue
+            
+            records.append({
+                'id': f"{city_name}_{ind.name_zh}_{ind.year}",
+                'city': city_name,
+                'indicator': ind.name_zh,
+                'year': ind.year,
+                'value': ind.value,
+                'unit': INDIMAP_UNIT.get(ind.name_en, {}).get('unit', ''),
+                'status': 'imported' if ind.value else 'missing',
+                'source': ind.source or '',
+                'remark': ind.note or ''
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'records': records
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'records': []
+        })
+
+

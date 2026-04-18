@@ -796,40 +796,117 @@
         }
     }
 
-    function setupFormSubmit() {
-        const form = document.getElementById('manual-form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const submitBtn = document.getElementById('submit-button');
-                const originalText = submitBtn.textContent;
-                submitBtn.textContent = '提交中...';
-                submitBtn.disabled = true;
+
+
+function setupFormSubmit() {
+    const form = document.getElementById('manual-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // ========== 收集表格数据构建 rows_json ==========
+            const rows = (function collectRowsData() {
+                const out = [];
+                const tbody = document.querySelector('#manual-section .data-table tbody');
+                if (!tbody) return out;
                 
-                const formData = new FormData(form);
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ 提交成功！');
-                        setTimeout(() => window.location.reload(), 500);
-                    } else {
-                        alert('❌ 提交失败：' + (data.message || '未知错误'));
-                        submitBtn.textContent = originalText;
-                        submitBtn.disabled = false;
+                // 获取年份和省份
+                const yearSel = document.getElementById('year-select');
+                let year = '';
+                if (yearSel) {
+                    const ytxt = yearSel.value || yearSel.options[yearSel.selectedIndex]?.text || '';
+                    year = ytxt.replace(/[^\d]/g, '');
+                }
+                const provSel = document.getElementById('province-select');
+                const province = provSel ? provSel.value : '';
+                
+                // 获取所有指标中文名
+                const headerEls = document.querySelectorAll('#manual-section .data-table thead th[data-indicator]');
+                const indicatorNames = Array.from(headerEls).map(h => h.getAttribute('data-indicator'));
+                
+                // 遍历每一行（每个城市）
+                const rowsList = tbody.querySelectorAll('tr');
+                for (let tr of rowsList) {
+                    const cityCell = tr.children[0];
+                    if (!cityCell) continue;
+                    const city = cityCell.textContent.trim();
+                    if (!city || city === '请在上方选择城市') continue;
+                    
+                    let cursor = 1; // 跳过第一列（城市列）
+                    const groups = [];
+                    
+                    for (let g = 0; g < indicatorNames.length; g++) {
+                        const valTd = tr.children[cursor];
+                        const noteTd = tr.children[cursor + 1];
+                        const sourceTd = tr.children[cursor + 2];
+                        const refTd = tr.children[cursor + 3];
+                        
+                        const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                        const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                        const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                        const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
+                        const name_zh = indicatorNames[g] || '';
+                        
+                        groups.push({
+                            value: val,
+                            note: note,
+                            source: source,
+                            reference: reference,
+                            name_zh: name_zh
+                        });
+                        cursor += 4;
                     }
-                })
-                .catch(error => {
-                    alert('❌ 网络错误');
+                    
+                    out.push({
+                        city: city,
+                        province: province,
+                        year: year,
+                        groups: groups
+                    });
+                }
+                return out;
+            })();
+            
+            // 将 rows_json 写入隐藏字段
+            const hiddenInput = document.getElementById('rows-json');
+            if (hiddenInput) {
+                hiddenInput.value = JSON.stringify(rows);
+            }
+            
+            // 提交表单
+            const submitBtn = document.getElementById('submit-button');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '提交中...';
+            submitBtn.disabled = true;
+            
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ 提交成功！');
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    alert('❌ 提交失败：' + (data.message || '未知错误'));
                     submitBtn.textContent = originalText;
                     submitBtn.disabled = false;
-                });
+                }
+            })
+            .catch(error => {
+                console.error('错误:', error);
+                alert('❌ 网络错误');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             });
-        }
+        });
     }
+}
+
+ 
 
     document.addEventListener('DOMContentLoaded', async function() {
         await loadProvinceCityMap();

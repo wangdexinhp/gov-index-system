@@ -453,33 +453,59 @@
         const group = document.getElementById('groupSelect').value;
         const status = document.getElementById('statusFilter').value;
         
-        // 根据省份获取城市列表
-        let targetCities = [];
-        if (city) {
-            targetCities = [city];
-        } else if (province && provinceCityMap[province]) {
-            targetCities = provinceCityMap[province];
-        } else {
-            targetCities = citiesList;
-        }
-        
-        filteredData = allData.filter(record => {
-            if (year && record.year !== parseInt(year)) return false;
-            if (!targetCities.includes(record.city)) return false;
-            if (group) {
-                const indicatorGroup = indicatorGroupMap[record.indicator];
-                if (indicatorGroup !== group) return false;
-            }
-            if (status && record.status !== status) return false;
-            return true;
+        // 构建查询参数
+        const params = new URLSearchParams({
+            year: year || '',
+            province: province || '',
+            city: city || '',
+            group: group || '',
+            status: status || ''
         });
         
-        // 更新统计数据
-        updateStatistics();
-        updateGroupStats();
+        // 显示加载状态
+        const queryBtn = document.getElementById('queryBtn');
+        const originalText = queryBtn.innerHTML;
+        queryBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 查询中...';
+        queryBtn.disabled = true;
         
-        currentPage = 1;
-        renderTable();
+        // 发送API请求
+        fetch(`/dashboard/api/check-data/?${params}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // 处理返回的数据
+            filteredData = data.records || [];
+            allData = filteredData; // 更新全局数据
+            
+            // 更新统计数据
+            updateStatistics();
+            updateGroupStats();
+            
+            currentPage = 1;
+            renderTable();
+            
+            // 恢复按钮状态
+            queryBtn.innerHTML = originalText;
+            queryBtn.disabled = false;
+        })
+        .catch(error => {
+            console.error('查询失败:', error);
+            alert('查询失败，请稍后重试');
+            
+            // 恢复按钮状态
+            queryBtn.innerHTML = originalText;
+            queryBtn.disabled = false;
+        });
     }
     
     // 更新统计卡片
