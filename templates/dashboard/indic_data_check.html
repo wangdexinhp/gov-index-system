@@ -356,61 +356,43 @@
         "城镇居民人均可支配收入": "economic_growth"
     };
     
-    // 生成模拟数据：随机标记部分已录入，部分缺失
-    function generateMockData() {
-        const records = [];
-        const years = [2023, 2024, 2025];
-        
-        for (const city of citiesList) {
-            for (const indicator of indicatorsList) {
-                for (const year of years) {
-                    // 随机决定是否已录入（约65%录入率）
-                    const isImported = Math.random() > 0.35;
-                    const value = isImported ? (Math.random() * 5000 + 100).toFixed(2) : null;
-                    const unit = indicator.includes("人口") ? "万人" : 
-                                 (indicator.includes("GDP") || indicator.includes("收入") ? "亿元" : 
-                                 (indicator.includes("率") ? "%" : ""));
-                    const sources = ["地市统计年鉴", "省级统计年鉴", "政府工作报告", "专项报告"];
-                    records.push({
-                        id: `${city}_${indicator}_${year}`,
-                        city: city,
-                        indicator: indicator,
-                        year: year,
-                        value: value,
-                        unit: unit,
-                        status: isImported ? "imported" : "missing",
-                        source: isImported ? sources[Math.floor(Math.random() * sources.length)] : "",
-                        remark: isImported ? "" : "暂无数据"
-                    });
-                }
-            }
-        }
-        return records;
-    }
-    
-    let allData = generateMockData();
+    // 全局变量
+    let provinceCityMap = {};
+    let allData = [];
     let filteredData = [];
     let currentPage = 1;
     const pageSize = 15;
     
-    // 省份-城市映射（用于筛选）
-    const provinceCityMap = {
-        "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], "浙江省": ["杭州市"],
-        "四川省": ["成都市"], "湖北省": ["武汉市"], "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
-    };
+    // // 省份-城市映射（用于筛选）
+    // const provinceCityMap = {
+    //     "北京市": ["北京市"], "上海市": ["上海市"], "广东省": ["广州市", "深圳市"], "浙江省": ["杭州市"],
+    //     "四川省": ["成都市"], "湖北省": ["武汉市"], "江苏省": ["南京市", "苏州市"], "天津市": ["天津市"]
+    // };
+    function loadProvinceCityMap() { 
+        return fetch('/dashboard/get-city-map/')
+            .then(res=>res.json())
+            .then(data=>{ provinceCityMap=data||{}; })
+            .catch(()=>{ provinceCityMap={
+                "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
+                "江苏省": ["南京市", "苏州市", "无锡市", "常州市"],
+                "浙江省": ["杭州市", "宁波市", "温州市"],
+                "广东省": ["广州市", "深圳市", "珠海市", "佛山市"]
+            }; });
+    }
+
     
     // 初始化年份下拉
     function initYearSelect() {
         const yearSelect = document.getElementById('yearSelect');
         const currentYear = new Date().getFullYear();
         yearSelect.innerHTML = '<option value="">所有年份</option>';
-        for (let y = 2020; y <= currentYear; y++) {
+        for (let y = 1990; y <= currentYear; y++) {
             const opt = document.createElement('option');
             opt.value = y;
             opt.textContent = y + '年';
             yearSelect.appendChild(opt);
         }
-        yearSelect.value = 2025;
+        yearSelect.value = 2026;
     }
     
     // 初始化省份下拉
@@ -638,25 +620,58 @@
     
     // 页面初始化
     document.addEventListener('DOMContentLoaded', function() {
-        initYearSelect();
-        initProvinceSelect();
-        updateCitySelect();
-        
-        // 事件绑定
-        document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
-        document.getElementById('queryBtn').addEventListener('click', performQuery);
-        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-        document.getElementById('prevPage').addEventListener('click', () => {
-            if (currentPage > 1) { currentPage--; renderTable(); }
+        // 先加载省份城市映射数据，然后初始化其他组件
+        loadProvinceCityMap().then(() => {
+            initYearSelect();
+            initProvinceSelect();
+            updateCitySelect();
+            
+            // 事件绑定
+            document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+            document.getElementById('queryBtn').addEventListener('click', performQuery);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--; renderTable(); }
+            });
+            document.getElementById('nextPage').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                if (currentPage < totalPages) { currentPage++; renderTable(); }
+            });
+            
+            // 默认查询一次
+            performQuery();
+        }).catch(error => {
+            console.error('加载省份城市数据失败:', error);
+            // 使用默认数据继续初始化
+            provinceCityMap = {
+                "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
+                "江苏省": ["南京市", "苏州市", "无锡市", "常州市"],
+                "浙江省": ["杭州市", "宁波市", "温州市"],
+                "广东省": ["广州市", "深圳市", "珠海市", "佛山市"]
+            };
+            initYearSelect();
+            initProvinceSelect();
+            updateCitySelect();
+            
+            // 事件绑定
+            document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+            document.getElementById('queryBtn').addEventListener('click', performQuery);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--; renderTable(); }
+            });
+            document.getElementById('nextPage').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                if (currentPage < totalPages) { currentPage++; renderTable(); }
+            });
+            
+            // 默认查询一次
+            performQuery();
         });
-        document.getElementById('nextPage').addEventListener('click', () => {
-            const totalPages = Math.ceil(filteredData.length / pageSize);
-            if (currentPage < totalPages) { currentPage++; renderTable(); }
-        });
-        
-        // 默认查询一次
-        performQuery();
     });
+
+
+
 </script>
 </body>
 </html>
