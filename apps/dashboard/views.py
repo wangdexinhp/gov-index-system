@@ -257,6 +257,7 @@ def submit_data(request):
     """处理表单提交"""
     try:
         # 获取表单数据
+        print("=== 接收到的POST数据 ===",request.POST.dict())
         rows_json = request.POST.get('rows_json', '[]')
         rows_data = json.loads(rows_json)
         
