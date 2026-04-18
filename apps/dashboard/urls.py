@@ -38,6 +38,9 @@ urlpatterns = [
     path('upload_excel/', views.upload_excel, name='upload_excel'),
     path('upload_excel_area/', views.upload_excel_area, name='upload_excel_area'),
 
+    # 核查指标API接口
+    path('api/check-data/', views.check_data_api, name='check_data_api'),
+
 
 
 
