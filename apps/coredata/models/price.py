@@ -1,6 +1,4 @@
-# dashboard/models.py
 from django.db import models
-
 
 class PricingConfig(models.Model):
     """价格配置表"""
