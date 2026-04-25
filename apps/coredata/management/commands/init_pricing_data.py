@@ -1,7 +1,6 @@
 # dashboard/management/commands/init_pricing_data.py
 from django.core.management.base import BaseCommand
-from dashboard.models import PricingConfig, IndicatorConfig, DurationMultiplierConfig
-
+from coredata.models.price import PricingConfig, IndicatorConfig, DurationMultiplierConfig
 
 class Command(BaseCommand):
     help = '初始化定价配置数据'
