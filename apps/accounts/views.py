@@ -85,8 +85,7 @@ class SendSmsCodeView(View):
         #     cache.delete(rate_limit_key)
         #     return JsonResponse({'status': 'error', 'msg': f'系统错误: {str(e)}'})
 
-        mobile = "15039114310"
-        sms_code = "123456"
+        sms_code = sms_code
         cache_key = f"sms_{mobile}"
         rate_limit_key = f"sms_limit_{mobile}"
 
