@@ -17,7 +17,8 @@ from .forms import CustomSignupForm
 
 from alibabacloud_tea_openapi.models import Config  
 from alibabacloud_dysmsapi20170525.client import Client
-
+from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
+from alibabacloud_tea_util import models as util_models
 
 
 
@@ -89,33 +90,36 @@ class SendSmsCodeView(View):
         cache_key = f"sms_{mobile}"
         rate_limit_key = f"sms_limit_{mobile}"
 
-        # ========== 你自己的 AK/SK ==========
-        # 
+        # AK/SK 从环境变量获取
         AK = os.getenv("ALIBABA_CLOUD_AK")
         SK = os.getenv("ALIBABA_CLOUD_SK")
 
         try:
-            # 新版 SDK 创建客户端
+            # 配置
             config = Config(access_key_id=AK, access_key_secret=SK)
             config.endpoint = "dysmsapi.aliyuncs.com"
             client = Client(config)
-
-            # 新版发送（必须用 JSON 字符串，不能用字典！）
-            result = client.send_sms(
-                phoneNumbers=mobile,
-                signName="阿里云",                # 测试签名
-                templateCode="SMS_153055065",     # 测试模板
-                templateParam=json.dumps({"code": sms_code})
+            
+            # 创建发送请求对象
+            send_sms_request = dysmsapi_models.SendSmsRequest(
+                phone_numbers=mobile,           # 注意：下划线命名
+                sign_name="阿里云",
+                template_code="SMS_153055065",
+                template_param=json.dumps({"code": sms_code})
             )
-
-            # 新版判断返回值
+            
+            # 发送短信（可选：添加运行时配置）
+            runtime = util_models.RuntimeOptions()
+            result = client.send_sms_with_options(send_sms_request, runtime)
+            
+            # 判断结果
             if result.body.code == "OK":
                 return JsonResponse({'status': 'success', 'msg': '发送成功'})
             else:
                 cache.delete(cache_key)
                 cache.delete(rate_limit_key)
-                return JsonResponse({'status': 'error', 'msg': '发送失败'})
-
+                return JsonResponse({'status': 'error', 'msg': result.body.message})
+                
         except Exception as e:
             cache.delete(cache_key)
             cache.delete(rate_limit_key)
