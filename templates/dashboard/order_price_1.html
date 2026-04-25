@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>价格与指标配置中心 | 数据指标管理系统</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="/static/js/tailwindcss.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <style>
         body {
             background: #f0f4f9;
@@ -27,7 +27,7 @@
         
         /* 价格输入框 */
         .price-input {
-            width: 140px;
+            width: 150px;
             padding: 8px 12px;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
@@ -74,37 +74,11 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        
-        /* 价格表格样式 */
-        .price-table-wrapper {
-            overflow-x: auto;
-        }
-        .price-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        .price-table th {
-            background: #f1f5f9;
-            padding: 12px 16px;
-            font-weight: 600;
-            color: #1e40af;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .price-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .price-category {
-            font-weight: 600;
-            color: #475569;
-            background-color: #f8fafc;
-        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-blue-50">
 
-<!-- 导航栏 -->
+<!-- 导航栏 - 蓝色商务风格 与主系统统一 -->
 <header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
     <div class="flex items-center space-x-3">
         <div class="bg-blue-600 rounded-xl p-2 shadow-md">
@@ -181,22 +155,18 @@
                 <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
                     <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-5">
                         <iconify-icon icon="mdi:tag" class="text-blue-500"></iconify-icon>
-                        产品定价配置（单位：元）
+                        地域权限价格（元/年）
                     </h3>
-                    <div class="price-table-wrapper">
-                        <table class="price-table">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
                             <thead>
-                                <tr>
-                                    <th class="min-w-[120px]">权限级别</th>
-                                    <th class="min-w-[100px]">用户类型</th>
-                                    <th class="min-w-[100px]">时长</th>
-                                    <th class="min-w-[120px]">价格（元）</th>
-                                    <th class="min-w-[100px]">天数</th>
+                                <tr class="border-b border-slate-200">
+                                    <th class="text-left py-3 px-2 text-slate-600 font-semibold">权限级别</th>
+                                    <th class="text-left py-3 px-2 text-slate-600 font-semibold">名称</th>
+                                    <th class="text-left py-3 px-2 text-slate-600 font-semibold">价格（元/年）</th>
                                 </tr>
                             </thead>
-                            <tbody id="priceTableBody">
-                                <!-- 价格数据由JS动态渲染 -->
-                            </tbody>
+                            <tbody id="priceTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -261,39 +231,22 @@
 </main>
 
 <script>
-    // ==================== 价格数据结构（基于您的定价表格） ====================
-    const defaultPriceList = [
-        // 全国级别
-        { level: "全国", userType: "个人用户", duration: "年", price: 19999, days: 365, category: "national" },
-        { level: "全国", userType: "机构用户", duration: "年", price: 29999, days: 365, category: "national" },
-        { level: "全国", userType: "个人用户", duration: "月", price: 1999, days: 30, category: "national" },
-        { level: "全国", userType: "机构用户", duration: "月", price: 2999, days: 30, category: "national" },
-        { level: "全国", userType: "个人用户", duration: "15天", price: 1199, days: 15, category: "national" },
-        { level: "全国", userType: "机构用户", duration: "15天", price: 1799, days: 15, category: "national" },
-        // 地区级别
-        { level: "地区", userType: "个人用户", duration: "年", price: 7999, days: 365, category: "region" },
-        { level: "地区", userType: "机构用户", duration: "年", price: 9999, days: 365, category: "region" },
-        { level: "地区", userType: "个人用户", duration: "月", price: 799, days: 30, category: "region" },
-        { level: "地区", userType: "机构用户", duration: "月", price: 999, days: 30, category: "region" },
-        // 省份级别
-        { level: "省", userType: "个人用户", duration: "年", price: 2999, days: 365, category: "province" },
-        { level: "省", userType: "机构用户", duration: "年", price: 3999, days: 365, category: "province" },
-        { level: "省", userType: "个人用户", duration: "月", price: 299, days: 30, category: "province" },
-        { level: "省", userType: "机构用户", duration: "月", price: 399, days: 30, category: "province" },
-        { level: "省", userType: "个人用户", duration: "周", price: 149, days: 7, category: "province" },
-        { level: "省", userType: "机构用户", duration: "周", price: 199, days: 7, category: "province" },
-        { level: "省", userType: "个人用户", duration: "24小时", price: 59, days: 1, category: "province" },
-        { level: "省", userType: "机构用户", duration: "24小时", price: 79, days: 1, category: "province" },
-        // 直辖市级别（24小时）
-        { level: "直辖市", userType: "个人用户", duration: "24小时", price: 49, days: 1, category: "municipality" },
-        { level: "直辖市", userType: "机构用户", duration: "24小时", price: 69, days: 1, category: "municipality" },
-        // 城市级别（24小时）
-        { level: "市", userType: "个人用户", duration: "24小时", price: 29, days: 1, category: "city" },
-        { level: "市", userType: "机构用户", duration: "24小时", price: 49, days: 1, category: "city" }
-    ];
-
-    // ==================== 指标配置默认数据 ====================
-    const defaultIndicators = {
+    // ==================== 默认配置数据 ====================
+    const defaultConfig = {
+        prices: {
+            national: { name: '全国', price: 5000 },
+            regions: [
+                { id: 'region_northeast', name: '东北地区', price: 1200 },
+                { id: 'region_north', name: '华北地区', price: 1200 },
+                { id: 'region_east', name: '华东地区', price: 1200 },
+                { id: 'region_central', name: '华中地区', price: 1200 },
+                { id: 'region_south', name: '华南地区', price: 1200 },
+                { id: 'region_southwest', name: '西南地区', price: 1200 },
+                { id: 'region_northwest', name: '西北地区', price: 1200 }
+            ],
+            provincePrice: 300,
+            cityPrice: 80
+        },
         personalIndicators: [
             { id: 'p1', name: '基础指标（GDP、人口、面积）', desc: '宏观经济基础数据' },
             { id: 'p2', name: '行业趋势概览', desc: '各行业发展趋势分析' },
@@ -315,28 +268,18 @@
             { id: 'o10', name: '定制化分析报告', desc: '专属定制报告' },
             { id: 'o11', name: '竞品对比分析', desc: '竞品数据对比' },
             { id: 'o12', name: '实时监控数据', desc: '实时数据监控' }
-        ]
+        ],
+        durationMultipliers: { year: 1.0, month: 0.1, day: 0.004 }
     };
 
-    // ==================== 时长系数配置 ====================
-    const defaultDurationMultipliers = { year: 1.0, month: 0.1, day: 0.004, week: 0.025, hour15: 0.06 };
-
-    // 当前配置
-    let currentPriceList = JSON.parse(JSON.stringify(defaultPriceList));
-    let currentPersonalIndicators = JSON.parse(JSON.stringify(defaultIndicators.personalIndicators));
-    let currentOrgIndicators = JSON.parse(JSON.stringify(defaultIndicators.orgIndicators));
-    let currentDurationMultipliers = JSON.parse(JSON.stringify(defaultDurationMultipliers));
+    let currentConfig = JSON.parse(JSON.stringify(defaultConfig));
 
     // 加载保存的配置
     function loadConfig() {
         const saved = localStorage.getItem('indicatorPurchaseConfig');
         if (saved) {
             try {
-                const parsed = JSON.parse(saved);
-                currentPriceList = parsed.priceList || currentPriceList;
-                currentPersonalIndicators = parsed.personalIndicators || currentPersonalIndicators;
-                currentOrgIndicators = parsed.orgIndicators || currentOrgIndicators;
-                currentDurationMultipliers = parsed.durationMultipliers || currentDurationMultipliers;
+                currentConfig = JSON.parse(saved);
                 showToast('已加载保存的配置', 'success');
             } catch(e) { console.error(e); }
         }
@@ -344,13 +287,7 @@
     }
 
     function saveConfig() {
-        const config = {
-            priceList: currentPriceList,
-            personalIndicators: currentPersonalIndicators,
-            orgIndicators: currentOrgIndicators,
-            durationMultipliers: currentDurationMultipliers
-        };
-        localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(config));
+        localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(currentConfig));
         const statusSpan = document.getElementById('saveStatus');
         statusSpan.classList.remove('hidden');
         statusSpan.innerHTML = '✓ 已保存到本地';
@@ -360,10 +297,7 @@
 
     function resetConfig() {
         if (confirm('确认重置所有配置为默认值吗？')) {
-            currentPriceList = JSON.parse(JSON.stringify(defaultPriceList));
-            currentPersonalIndicators = JSON.parse(JSON.stringify(defaultIndicators.personalIndicators));
-            currentOrgIndicators = JSON.parse(JSON.stringify(defaultIndicators.orgIndicators));
-            currentDurationMultipliers = JSON.parse(JSON.stringify(defaultDurationMultipliers));
+            currentConfig = JSON.parse(JSON.stringify(defaultConfig));
             renderAllPanels();
             saveConfig();
             showToast('已重置为默认配置', 'info');
@@ -371,76 +305,71 @@
     }
 
     function testConfig() {
-        const totalPersonal = currentPersonalIndicators.length;
-        const totalOrg = currentOrgIndicators.length;
-        const nationalPrice = currentPriceList.find(p => p.level === '全国' && p.userType === '个人用户' && p.duration === '年')?.price || 0;
-        
         alert(`📊 配置测试\n\n` +
-              `个人指标数量：${totalPersonal}项\n` +
-              `机构指标数量：${totalOrg}项\n` +
-              `全国年卡价格（个人）：¥${nationalPrice.toLocaleString()}/年\n` +
-              `总定价方案数量：${currentPriceList.length}个\n\n` +
+              `个人指标数量：${currentConfig.personalIndicators.length}项\n` +
+              `机构指标数量：${currentConfig.orgIndicators.length}项\n` +
+              `全国价格：¥${currentConfig.prices.national.price}/年\n` +
+              `地区价格：¥${currentConfig.prices.regions[0].price}/年\n` +
+              `省份价格：¥${currentConfig.prices.provincePrice}/年\n` +
+              `城市价格：¥${currentConfig.prices.cityPrice}/年\n` +
+              `时长系数：年 ${currentConfig.durationMultipliers.year}，月 ${currentConfig.durationMultipliers.month}，日 ${currentConfig.durationMultipliers.day}\n\n` +
               `✅ 配置有效！保存后可在购买页面使用。`);
     }
 
     // 渲染价格面板
     function renderPricePanel() {
         const tbody = document.getElementById('priceTableBody');
-        
-        // 按级别分组显示
-        const levelOrder = ['全国', '地区', '省', '直辖市', '市'];
-        let html = '';
-        
-        for (const level of levelOrder) {
-            const levelItems = currentPriceList.filter(p => p.level === level);
-            if (levelItems.length === 0) continue;
-            
-            // 按用户类型和时长排序
-            const userTypeOrder = ['个人用户', '机构用户'];
-            const durationOrder = ['年', '月', '周', '15天', '24小时'];
-            
-            for (const userType of userTypeOrder) {
-                for (const duration of durationOrder) {
-                    const item = levelItems.find(p => p.userType === userType && p.duration === duration);
-                    if (item) {
-                        const rowSpan = (userType === '个人用户' && duration === '年') ? levelItems.length : 1;
-                        const showLevelLabel = (userType === '个人用户' && duration === '年');
-                        html += `
-                            <tr class="hover:bg-blue-50/30 transition">
-                                ${showLevelLabel ? `<td class="price-category" rowspan="${levelItems.length}">${level}</td>` : ''}
-                                <td>${userType}</td>
-                                <td>${duration}</td>
-                                <td><input type="number" class="price-input" data-level="${level}" data-user="${userType}" data-duration="${duration}" value="${item.price}" step="100"></td>
-                                <td>${item.days}天</td>
-                            </tr>
-                        `;
-                    }
-                }
-            }
-        }
-        
+        let html = `
+            <tr class="border-b border-slate-200">
+                <td class="py-3 px-2 font-medium text-slate-700">全国</td>
+                <td class="py-3 px-2 text-slate-600">🌏 全国（覆盖所有地区）</td>
+                <td class="py-3 px-2"><input type="number" id="nationalPrice" class="price-input" value="${currentConfig.prices.national.price}" step="100"></td>
+            </tr>
+        `;
+        currentConfig.prices.regions.forEach((region, idx) => {
+            html += `
+                <tr class="border-b border-slate-200">
+                    <td class="py-3 px-2 font-medium text-slate-700">地区</td>
+                    <td class="py-3 px-2 text-slate-600">🗺️ ${region.name}</td>
+                    <td class="py-3 px-2"><input type="number" class="price-input" data-region-idx="${idx}" value="${region.price}" step="50"></td>
+                </tr>
+            `;
+        });
+        html += `
+            <tr class="border-b border-slate-200">
+                <td class="py-3 px-2 font-medium text-slate-700">省份</td>
+                <td class="py-3 px-2 text-slate-600">🏙️ 各省份</td>
+                <td class="py-3 px-2"><input type="number" id="provincePrice" class="price-input" value="${currentConfig.prices.provincePrice}" step="50"></td>
+            </tr>
+            <tr>
+                <td class="py-3 px-2 font-medium text-slate-700">城市</td>
+                <td class="py-3 px-2 text-slate-600">🏢 各城市</td>
+                <td class="py-3 px-2"><input type="number" id="cityPrice" class="price-input" value="${currentConfig.prices.cityPrice}" step="20"></td>
+            </tr>
+        `;
         tbody.innerHTML = html;
         
-        // 绑定价格输入事件
-        document.querySelectorAll('.price-input').forEach(input => {
+        document.getElementById('nationalPrice')?.addEventListener('change', (e) => {
+            currentConfig.prices.national.price = parseInt(e.target.value) || 5000;
+        });
+        document.querySelectorAll('[data-region-idx]').forEach(input => {
             input.addEventListener('change', (e) => {
-                const level = input.getAttribute('data-level');
-                const userType = input.getAttribute('data-user');
-                const duration = input.getAttribute('data-duration');
-                const newPrice = parseInt(e.target.value) || 0;
-                
-                const item = currentPriceList.find(p => p.level === level && p.userType === userType && p.duration === duration);
-                if (item) {
-                    item.price = newPrice;
-                }
+                const idx = parseInt(input.getAttribute('data-region-idx'));
+                currentConfig.prices.regions[idx].price = parseInt(e.target.value) || 1200;
             });
+        });
+        document.getElementById('provincePrice')?.addEventListener('change', (e) => {
+            currentConfig.prices.provincePrice = parseInt(e.target.value) || 300;
+        });
+        document.getElementById('cityPrice')?.addEventListener('change', (e) => {
+            currentConfig.prices.cityPrice = parseInt(e.target.value) || 80;
         });
     }
 
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'); }); }
 
     window.editIndicator = function(type, idx) {
-        const indicators = type === 'personal' ? currentPersonalIndicators : currentOrgIndicators;
+        const indicators = type === 'personal' ? currentConfig.personalIndicators : currentConfig.orgIndicators;
         const indicator = indicators[idx];
         const newName = prompt('请输入指标名称：', indicator.name);
         if (newName && newName.trim()) {
@@ -453,18 +382,18 @@
     
     window.deleteIndicator = function(type, idx) {
         if (confirm('确认删除该指标吗？')) {
-            if (type === 'personal') currentPersonalIndicators.splice(idx, 1);
-            else currentOrgIndicators.splice(idx, 1);
+            if (type === 'personal') currentConfig.personalIndicators.splice(idx, 1);
+            else currentConfig.orgIndicators.splice(idx, 1);
             renderIndicators();
         }
     };
 
     function renderIndicators() {
         const personalContainer = document.getElementById('personalIndicatorsList');
-        if (currentPersonalIndicators.length === 0) {
+        if (currentConfig.personalIndicators.length === 0) {
             personalContainer.innerHTML = '<div class="text-center py-8 text-slate-400">暂无指标，请点击上方按钮添加</div>';
         } else {
-            personalContainer.innerHTML = currentPersonalIndicators.map((ind, idx) => `
+            personalContainer.innerHTML = currentConfig.personalIndicators.map((ind, idx) => `
                 <div class="indicator-item bg-white rounded-xl p-4 border border-slate-200 flex justify-between items-center">
                     <div>
                         <div class="font-semibold text-slate-800">${escapeHtml(ind.name)}</div>
@@ -479,10 +408,10 @@
         }
         
         const orgContainer = document.getElementById('orgIndicatorsList');
-        if (currentOrgIndicators.length === 0) {
+        if (currentConfig.orgIndicators.length === 0) {
             orgContainer.innerHTML = '<div class="text-center py-8 text-slate-400">暂无指标，请点击上方按钮添加</div>';
         } else {
-            orgContainer.innerHTML = currentOrgIndicators.map((ind, idx) => `
+            orgContainer.innerHTML = currentConfig.orgIndicators.map((ind, idx) => `
                 <div class="indicator-item bg-white rounded-xl p-4 border border-slate-200 flex justify-between items-center">
                     <div>
                         <div class="font-semibold text-slate-800">${escapeHtml(ind.name)}</div>
@@ -502,8 +431,8 @@
         if (name && name.trim()) {
             const desc = prompt('请输入指标描述（可选）：');
             const newIndicator = { id: Date.now() + Math.random(), name: name.trim(), desc: desc ? desc.trim() : '' };
-            if (type === 'personal') currentPersonalIndicators.push(newIndicator);
-            else currentOrgIndicators.push(newIndicator);
+            if (type === 'personal') currentConfig.personalIndicators.push(newIndicator);
+            else currentConfig.orgIndicators.push(newIndicator);
             renderIndicators();
             showToast('指标已添加', 'success');
         }
@@ -514,29 +443,28 @@
         container.innerHTML = `
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
                 <div class="text-lg font-bold text-slate-800 mb-2">📅 年卡</div>
-                <input type="number" id="yearMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.year}" step="0.1" min="0">
+                <input type="number" id="yearMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentConfig.durationMultipliers.year}" step="0.1" min="0">
                 <div class="text-xs text-slate-400 mt-2">系数：1.0 = 原价</div>
             </div>
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
                 <div class="text-lg font-bold text-slate-800 mb-2">📆 月卡</div>
-                <input type="number" id="monthMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.month}" step="0.01" min="0">
+                <input type="number" id="monthMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentConfig.durationMultipliers.month}" step="0.01" min="0">
                 <div class="text-xs text-slate-400 mt-2">建议 0.08-0.12</div>
             </div>
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
-                <div class="text-lg font-bold text-slate-800 mb-2">⚡ 周卡</div>
-                <input type="number" id="weekMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.week || 0.025}" step="0.001" min="0">
-                <div class="text-xs text-slate-400 mt-2">建议 0.023-0.027</div>
+                <div class="text-lg font-bold text-slate-800 mb-2">⚡ 日卡</div>
+                <input type="number" id="dayMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentConfig.durationMultipliers.day}" step="0.001" min="0">
+                <div class="text-xs text-slate-400 mt-2">建议 0.003-0.005</div>
             </div>
         `;
-        
         document.getElementById('yearMultiplier')?.addEventListener('change', (e) => {
-            currentDurationMultipliers.year = parseFloat(e.target.value) || 1.0;
+            currentConfig.durationMultipliers.year = parseFloat(e.target.value) || 1.0;
         });
         document.getElementById('monthMultiplier')?.addEventListener('change', (e) => {
-            currentDurationMultipliers.month = parseFloat(e.target.value) || 0.1;
+            currentConfig.durationMultipliers.month = parseFloat(e.target.value) || 0.1;
         });
-        document.getElementById('weekMultiplier')?.addEventListener('change', (e) => {
-            currentDurationMultipliers.week = parseFloat(e.target.value) || 0.025;
+        document.getElementById('dayMultiplier')?.addEventListener('change', (e) => {
+            currentConfig.durationMultipliers.day = parseFloat(e.target.value) || 0.004;
         });
     }
 
@@ -582,8 +510,8 @@
     }
 
     function viewPurchasePage() {
-        alert('购买页面功能开发中\n\n提示：配置已保存，购买页面将自动读取最新配置');
-        // window.open('/dashboard/purchase/', '_blank');
+        alert('购买页面已打开，请在新窗口查看\n\n提示：配置已保存，购买页面会自动读取最新配置');
+        window.open('/dashboard/purchase/', '_blank');
     }
 
     function init() {
