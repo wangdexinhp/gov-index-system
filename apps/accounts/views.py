@@ -101,11 +101,20 @@ class SendSmsCodeView(View):
             client = Client(config)
             
             # 创建发送请求对象
+            # send_sms_request = dysmsapi_models.SendSmsRequest(
+            #     phone_numbers=mobile,           # 注意：下划线命名
+            #     sign_name="阿里云",
+            #     template_code="SMS_154950909",
+            #     template_param=json.dumps({"code": sms_code})
+            # )
             send_sms_request = dysmsapi_models.SendSmsRequest(
-                phone_numbers=mobile,           # 注意：下划线命名
-                sign_name="阿里云",
-                template_code="SMS_154950909",
-                template_param=json.dumps({"code": sms_code})
+                phone_numbers=mobile,
+                sign_name="阿里云",                     # 测试专用签名，必须是“阿里云”
+                template_code="SMS_154950909",         # 测试专用模板CODE
+                template_param=json.dumps({
+                    "code": sms_code,                  # 模板里的${code}变量
+                    "minute": "5"                      # 模板里的${minute}变量
+                })
             )
             
             # 发送短信（可选：添加运行时配置）
