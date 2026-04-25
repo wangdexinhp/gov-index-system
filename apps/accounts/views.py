@@ -15,6 +15,11 @@ from captcha.helpers import captcha_image_url
 from allauth.account.views import SignupView
 from .forms import CustomSignupForm
 
+from alibabacloud_tea_openapi.models import Config  
+from alibabacloud_dysmsapi20170525.client import Client
+
+
+
 
 class CustomSignupView(SignupView):
     form_class = CustomSignupForm
