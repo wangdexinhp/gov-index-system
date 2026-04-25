@@ -104,7 +104,7 @@ class SendSmsCodeView(View):
             send_sms_request = dysmsapi_models.SendSmsRequest(
                 phone_numbers=mobile,           # 注意：下划线命名
                 sign_name="阿里云",
-                template_code="SMS_153055065",
+                template_code="SMS_154950909",
                 template_param=json.dumps({"code": sms_code})
             )
             
