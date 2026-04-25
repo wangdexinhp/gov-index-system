@@ -102,10 +102,10 @@ class SendSmsCodeView(View):
 
             # 新版发送（必须用 JSON 字符串，不能用字典！）
             result = client.send_sms(
-                phone_numbers=mobile,
-                sign_name="阿里云",                # 测试签名
-                template_code="SMS_153055065",     # 测试模板
-                template_param=json.dumps({"code": sms_code})
+                phoneNumbers=mobile,
+                signName="阿里云",                # 测试签名
+                templateCode="SMS_153055065",     # 测试模板
+                templateParam=json.dumps({"code": sms_code})
             )
 
             # 新版判断返回值
