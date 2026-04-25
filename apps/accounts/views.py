@@ -2,7 +2,7 @@
 import json
 import random
 import string
-import re
+import re,os
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -80,7 +80,44 @@ class SendSmsCodeView(View):
         #     cache.delete(rate_limit_key)
         #     return JsonResponse({'status': 'error', 'msg': f'系统错误: {str(e)}'})
 
-        return JsonResponse({'status': 'success', 'msg': '验证码发送成功'})
+        mobile = "15039114310"
+        sms_code = "123456"
+        cache_key = f"sms_{mobile}"
+        rate_limit_key = f"sms_limit_{mobile}"
+
+        # ========== 你自己的 AK/SK ==========
+        # 
+        AK = os.getenv("ALIBABA_CLOUD_AK")
+        SK = os.getenv("ALIBABA_CLOUD_SK")
+
+        try:
+            # 新版 SDK 创建客户端
+            config = Config(access_key_id=AK, access_key_secret=SK)
+            config.endpoint = "dysmsapi.aliyuncs.com"
+            client = Client(config)
+
+            # 新版发送（必须用 JSON 字符串，不能用字典！）
+            result = client.send_sms(
+                phone_numbers=mobile,
+                sign_name="阿里云",                # 测试签名
+                template_code="SMS_153055065",     # 测试模板
+                template_param=json.dumps({"code": sms_code})
+            )
+
+            # 新版判断返回值
+            if result.body.code == "OK":
+                return JsonResponse({'status': 'success', 'msg': '发送成功'})
+            else:
+                cache.delete(cache_key)
+                cache.delete(rate_limit_key)
+                return JsonResponse({'status': 'error', 'msg': '发送失败'})
+
+        except Exception as e:
+            cache.delete(cache_key)
+            cache.delete(rate_limit_key)
+            return JsonResponse({'status': 'error', 'msg': f'错误：{str(e)}'})
+
+        # return JsonResponse({'status': 'success', 'msg': '验证码发送成功'})
 
 
 @method_decorator(csrf_exempt, name='dispatch')
