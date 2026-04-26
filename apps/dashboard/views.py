@@ -9,6 +9,7 @@ from django.http import JsonResponse, HttpResponse
 import json,re
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.models.indicator import IndicatorArea
+from apps.coredata.models.price import PricingConfig, IndicatorConfig, DurationMultiplierConfig
 
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map,html_area_Map
     
@@ -1309,4 +1310,60 @@ def check_data_api(request):
             'records': []
         })
 
+
+
+
+
+# ==================== 价格配置接口（返回前端需要的格式） ====================
+@require_http_methods(["GET"])
+def get_pricing_config(request):
+    """
+    获取价格配置，返回前端期望的格式
+    GET /api/coredata/pricing-config/
+    
+    返回格式:
+        {
+            "success": true,
+            "data": [
+                { "level": "全国", "userType": "个人用户", "duration": "年", "price": 19999, "days": 365, "category": "national" },
+                ...
+            ]
+        }
+    """
+    try:
+        # 从数据库查询所有启用的价格配置
+        pricing_list = PricingConfig.objects.filter(is_active=True).order_by('sort_order')
+        
+        # 转换为前端期望的格式
+        result = []
+        for item in pricing_list:
+            # 映射 level_code 到 category
+            category_map = {
+                'national': 'national',
+                'region': 'region', 
+                'province': 'province',
+                'municipality': 'municipality',
+                'city': 'city'
+            }
+            
+            result.append({
+                'level': item.level,
+                'userType': item.user_type_name,
+                'duration': item.duration_name,
+                'price': float(item.price),
+                'days': item.days,
+                'category': category_map.get(item.level_code, item.level_code)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'data': result
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
 

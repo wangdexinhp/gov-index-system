@@ -43,6 +43,10 @@ urlpatterns = [
 
 
 
+    path('api/pricing-config/', views.get_pricing_config, name='get_pricing_config'),
+
+
+
 
 
 ] 
