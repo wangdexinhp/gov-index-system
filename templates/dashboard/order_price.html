@@ -195,7 +195,7 @@
                                 </tr>
                             </thead>
                             <tbody id="priceTableBody">
-                                <!-- 价格数据由JS动态渲染 -->
+                                <tr><td colspan="5" class="text-center py-8 text-slate-400">加载中...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -242,10 +242,8 @@
                 </div>
             </div>
 
-            <!-- 操作按钮组 -->
-            <div class="flex justify-end gap-4 mt-8 pt-6 border-t border-slate-200">
-                <button id="resetBtn" class="px-6 py-2.5 border border-slate-300 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition">重置默认配置</button>
-                <button id="testBtn" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition shadow-sm">测试配置</button>
+            <!-- 操作按钮组（只保留保存按钮） -->
+            <div class="flex justify-end mt-8 pt-6 border-t border-slate-200">
                 <button id="saveBtn" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition shadow-md flex items-center gap-2">
                     <iconify-icon icon="mdi:content-save"></iconify-icon> 保存配置
                 </button>
@@ -261,21 +259,18 @@
 </main>
 
 <script>
-    // ==================== 价格数据结构（基于您的定价表格） ====================
-    const defaultPriceList = [
-        // 全国级别
+    // ==================== 后备默认价格配置（接口失败时使用） ====================
+    const fallbackPriceList = [
         { level: "全国", userType: "个人用户", duration: "年", price: 19999, days: 365, category: "national" },
         { level: "全国", userType: "机构用户", duration: "年", price: 29999, days: 365, category: "national" },
         { level: "全国", userType: "个人用户", duration: "月", price: 1999, days: 30, category: "national" },
         { level: "全国", userType: "机构用户", duration: "月", price: 2999, days: 30, category: "national" },
         { level: "全国", userType: "个人用户", duration: "15天", price: 1199, days: 15, category: "national" },
         { level: "全国", userType: "机构用户", duration: "15天", price: 1799, days: 15, category: "national" },
-        // 地区级别
         { level: "地区", userType: "个人用户", duration: "年", price: 7999, days: 365, category: "region" },
         { level: "地区", userType: "机构用户", duration: "年", price: 9999, days: 365, category: "region" },
         { level: "地区", userType: "个人用户", duration: "月", price: 799, days: 30, category: "region" },
         { level: "地区", userType: "机构用户", duration: "月", price: 999, days: 30, category: "region" },
-        // 省份级别
         { level: "省", userType: "个人用户", duration: "年", price: 2999, days: 365, category: "province" },
         { level: "省", userType: "机构用户", duration: "年", price: 3999, days: 365, category: "province" },
         { level: "省", userType: "个人用户", duration: "月", price: 299, days: 30, category: "province" },
@@ -284,10 +279,8 @@
         { level: "省", userType: "机构用户", duration: "周", price: 199, days: 7, category: "province" },
         { level: "省", userType: "个人用户", duration: "24小时", price: 59, days: 1, category: "province" },
         { level: "省", userType: "机构用户", duration: "24小时", price: 79, days: 1, category: "province" },
-        // 直辖市级别（24小时）
         { level: "直辖市", userType: "个人用户", duration: "24小时", price: 49, days: 1, category: "municipality" },
         { level: "直辖市", userType: "机构用户", duration: "24小时", price: 69, days: 1, category: "municipality" },
-        // 城市级别（24小时）
         { level: "市", userType: "个人用户", duration: "24小时", price: 29, days: 1, category: "city" },
         { level: "市", userType: "机构用户", duration: "24小时", price: 49, days: 1, category: "city" }
     ];
@@ -319,73 +312,109 @@
     };
 
     // ==================== 时长系数配置 ====================
-    const defaultDurationMultipliers = { year: 1.0, month: 0.1, day: 0.004, week: 0.025, hour15: 0.06 };
+    const defaultDurationMultipliers = { year: 1.0, month: 0.1, week: 0.025 };
 
     // 当前配置
-    let currentPriceList = JSON.parse(JSON.stringify(defaultPriceList));
+    let currentPriceList = [];
     let currentPersonalIndicators = JSON.parse(JSON.stringify(defaultIndicators.personalIndicators));
     let currentOrgIndicators = JSON.parse(JSON.stringify(defaultIndicators.orgIndicators));
     let currentDurationMultipliers = JSON.parse(JSON.stringify(defaultDurationMultipliers));
 
-    // 加载保存的配置
+    // ==================== 从接口加载价格配置 ====================
+    function loadPriceConfig() {
+        fetch('/dashboard/api/pricing-config/')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.data && result.data.length > 0) {
+                    currentPriceList = result.data;
+                    console.log('价格配置加载成功，共', currentPriceList.length, '条');
+                } else {
+                    console.warn('接口返回数据为空，使用后备配置');
+                    currentPriceList = JSON.parse(JSON.stringify(fallbackPriceList));
+                }
+                renderPricePanel();
+            })
+            .catch(error => {
+                console.error('加载价格配置网络错误:', error);
+                currentPriceList = JSON.parse(JSON.stringify(fallbackPriceList));
+                renderPricePanel();
+                showToast('加载价格配置失败，使用默认配置', 'error');
+            });
+    }
+
+    // ==================== 加载保存的配置 ====================
     function loadConfig() {
+        // 先从接口加载价格配置
+        loadPriceConfig();
+        
+        // 指标和时长系数从 localStorage 加载
         const saved = localStorage.getItem('indicatorPurchaseConfig');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                currentPriceList = parsed.priceList || currentPriceList;
-                currentPersonalIndicators = parsed.personalIndicators || currentPersonalIndicators;
-                currentOrgIndicators = parsed.orgIndicators || currentOrgIndicators;
-                currentDurationMultipliers = parsed.durationMultipliers || currentDurationMultipliers;
-                showToast('已加载保存的配置', 'success');
+                if (parsed.personalIndicators) currentPersonalIndicators = parsed.personalIndicators;
+                if (parsed.orgIndicators) currentOrgIndicators = parsed.orgIndicators;
+                if (parsed.durationMultipliers) currentDurationMultipliers = parsed.durationMultipliers;
+                showToast('已加载保存的指标配置', 'success');
             } catch(e) { console.error(e); }
         }
-        renderAllPanels();
+        
+        // 渲染指标和时长系数面板
+        renderIndicators();
+        renderDurationPanel();
     }
 
     function saveConfig() {
+        // 保存指标和时长系数到 localStorage
         const config = {
-            priceList: currentPriceList,
             personalIndicators: currentPersonalIndicators,
             orgIndicators: currentOrgIndicators,
             durationMultipliers: currentDurationMultipliers
         };
         localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(config));
+        
+        // 保存价格配置到服务器
+        savePriceConfigToServer();
+        
         const statusSpan = document.getElementById('saveStatus');
         statusSpan.classList.remove('hidden');
-        statusSpan.innerHTML = '✓ 已保存到本地';
-        showToast('配置已保存！购买页面将使用新配置', 'success');
+        statusSpan.innerHTML = '✓ 已保存';
+        showToast('配置已保存！', 'success');
         setTimeout(() => statusSpan.classList.add('hidden'), 2000);
     }
-
-    function resetConfig() {
-        if (confirm('确认重置所有配置为默认值吗？')) {
-            currentPriceList = JSON.parse(JSON.stringify(defaultPriceList));
-            currentPersonalIndicators = JSON.parse(JSON.stringify(defaultIndicators.personalIndicators));
-            currentOrgIndicators = JSON.parse(JSON.stringify(defaultIndicators.orgIndicators));
-            currentDurationMultipliers = JSON.parse(JSON.stringify(defaultDurationMultipliers));
-            renderAllPanels();
-            saveConfig();
-            showToast('已重置为默认配置', 'info');
-        }
-    }
-
-    function testConfig() {
-        const totalPersonal = currentPersonalIndicators.length;
-        const totalOrg = currentOrgIndicators.length;
-        const nationalPrice = currentPriceList.find(p => p.level === '全国' && p.userType === '个人用户' && p.duration === '年')?.price || 0;
-        
-        alert(`📊 配置测试\n\n` +
-              `个人指标数量：${totalPersonal}项\n` +
-              `机构指标数量：${totalOrg}项\n` +
-              `全国年卡价格（个人）：¥${nationalPrice.toLocaleString()}/年\n` +
-              `总定价方案数量：${currentPriceList.length}个\n\n` +
-              `✅ 配置有效！保存后可在购买页面使用。`);
+    
+    // ==================== 保存价格配置到服务器 ====================
+    function savePriceConfigToServer() {
+        fetch('/dashboard/api/update-pricing-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                price_list: currentPriceList
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (!result.success) {
+                console.error('保存价格配置失败:', result.message);
+                showToast('保存价格配置失败: ' + result.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('保存价格配置网络错误:', error);
+            showToast('保存价格配置失败，网络错误', 'error');
+        });
     }
 
     // 渲染价格面板
     function renderPricePanel() {
         const tbody = document.getElementById('priceTableBody');
+        
+        if (!currentPriceList || currentPriceList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">暂无价格数据</td></tr>';
+            return;
+        }
         
         // 按级别分组显示
         const levelOrder = ['全国', '地区', '省', '直辖市', '市'];
@@ -395,25 +424,24 @@
             const levelItems = currentPriceList.filter(p => p.level === level);
             if (levelItems.length === 0) continue;
             
-            // 按用户类型和时长排序
             const userTypeOrder = ['个人用户', '机构用户'];
             const durationOrder = ['年', '月', '周', '15天', '24小时'];
+            let isFirstRow = true;
             
             for (const userType of userTypeOrder) {
                 for (const duration of durationOrder) {
                     const item = levelItems.find(p => p.userType === userType && p.duration === duration);
                     if (item) {
-                        const rowSpan = (userType === '个人用户' && duration === '年') ? levelItems.length : 1;
-                        const showLevelLabel = (userType === '个人用户' && duration === '年');
                         html += `
                             <tr class="hover:bg-blue-50/30 transition">
-                                ${showLevelLabel ? `<td class="price-category" rowspan="${levelItems.length}">${level}</td>` : ''}
+                                ${isFirstRow ? `<td class="price-category" rowspan="${levelItems.length}">${level}</td>` : ''}
                                 <td>${userType}</td>
                                 <td>${duration}</td>
                                 <td><input type="number" class="price-input" data-level="${level}" data-user="${userType}" data-duration="${duration}" value="${item.price}" step="100"></td>
                                 <td>${item.days}天</td>
                             </tr>
                         `;
+                        isFirstRow = false;
                     }
                 }
             }
@@ -423,18 +451,21 @@
         
         // 绑定价格输入事件
         document.querySelectorAll('.price-input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const level = input.getAttribute('data-level');
-                const userType = input.getAttribute('data-user');
-                const duration = input.getAttribute('data-duration');
-                const newPrice = parseInt(e.target.value) || 0;
-                
-                const item = currentPriceList.find(p => p.level === level && p.userType === userType && p.duration === duration);
-                if (item) {
-                    item.price = newPrice;
-                }
-            });
+            input.removeEventListener('change', handlePriceChange);
+            input.addEventListener('change', handlePriceChange);
         });
+    }
+    
+    function handlePriceChange(e) {
+        const level = e.target.getAttribute('data-level');
+        const userType = e.target.getAttribute('data-user');
+        const duration = e.target.getAttribute('data-duration');
+        const newPrice = parseInt(e.target.value) || 0;
+        
+        const item = currentPriceList.find(p => p.level === level && p.userType === userType && p.duration === duration);
+        if (item) {
+            item.price = newPrice;
+        }
     }
 
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'); }); }
@@ -514,12 +545,12 @@
         container.innerHTML = `
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
                 <div class="text-lg font-bold text-slate-800 mb-2">📅 年卡</div>
-                <input type="number" id="yearMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.year}" step="0.1" min="0">
+                <input type="number" id="yearMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.year || 1.0}" step="0.1" min="0">
                 <div class="text-xs text-slate-400 mt-2">系数：1.0 = 原价</div>
             </div>
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
                 <div class="text-lg font-bold text-slate-800 mb-2">📆 月卡</div>
-                <input type="number" id="monthMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.month}" step="0.01" min="0">
+                <input type="number" id="monthMultiplier" class="w-32 text-center px-3 py-2 border border-slate-300 rounded-lg" value="${currentDurationMultipliers.month || 0.1}" step="0.01" min="0">
                 <div class="text-xs text-slate-400 mt-2">建议 0.08-0.12</div>
             </div>
             <div class="duration-card bg-white rounded-xl p-5 text-center border border-slate-200 shadow-sm">
@@ -538,12 +569,6 @@
         document.getElementById('weekMultiplier')?.addEventListener('change', (e) => {
             currentDurationMultipliers.week = parseFloat(e.target.value) || 0.025;
         });
-    }
-
-    function renderAllPanels() {
-        renderPricePanel();
-        renderIndicators();
-        renderDurationPanel();
     }
 
     function showToast(message, type = 'success') {
@@ -583,15 +608,13 @@
 
     function viewPurchasePage() {
         alert('购买页面功能开发中\n\n提示：配置已保存，购买页面将自动读取最新配置');
-        // window.open('/dashboard/purchase/', '_blank');
     }
 
     function init() {
-        loadConfig();
         initTabs();
+        loadConfig();
+        
         document.getElementById('saveBtn').addEventListener('click', saveConfig);
-        document.getElementById('resetBtn').addEventListener('click', resetConfig);
-        document.getElementById('testBtn').addEventListener('click', testConfig);
         document.getElementById('addPersonalIndicator').addEventListener('click', () => addIndicator('personal'));
         document.getElementById('addOrgIndicator').addEventListener('click', () => addIndicator('org'));
         document.getElementById('viewPurchasePage').addEventListener('click', (e) => { e.preventDefault(); viewPurchasePage(); });
