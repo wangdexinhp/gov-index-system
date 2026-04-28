@@ -41,9 +41,9 @@ urlpatterns = [
     # 核查指标API接口
     path('api/check-data/', views.check_data_api, name='check_data_api'),
 
-
-
+    # 价格配置API接口
     path('api/pricing-config/', views.get_pricing_config, name='get_pricing_config'),
+    path('api/update-pricing-config/', views.update_pricing_config, name='update_pricing_config'),
 
 
 

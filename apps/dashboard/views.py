@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.db import IntegrityError
 
@@ -1312,6 +1313,92 @@ def check_data_api(request):
 
 
 
+
+
+# ==================== 保存价格配置接口（接收前端修改后的价格数据） ====================
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def update_pricing_config(request):
+    """
+    更新价格配置，从前端接收修改后的价格数据并保存到数据库
+    POST /dashboard/api/update-pricing-config/
+    
+    请求体:
+        {
+            "price_list": [
+                { "level": "全国", "userType": "个人用户", "duration": "年", "price": 19999, "days": 365, "category": "national" },
+                ...
+            ]
+        }
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        price_list = data.get('price_list', [])
+        
+        # 映射前端 duration -> 数据库 duration code
+        duration_map = {
+            '年': 'year',
+            '月': 'month', 
+            '周': 'week',
+            '15天': '15days',
+            '24小时': '24hour',
+        }
+        
+        # 映射前端 userType -> 数据库 user_type
+        user_type_map = {
+            '个人用户': 'personal',
+            '机构用户': 'org',
+        }
+        
+        # 映射前端 category -> 数据库 level_code
+        level_code_map = {
+            'national': 'national',
+            'region': 'region',
+            'province': 'province',
+            'municipality': 'municipality',
+            'city': 'city',
+        }
+        
+        updated_count = 0
+        for item in price_list:
+            level_code = level_code_map.get(item.get('category', ''))
+            user_type = user_type_map.get(item.get('userType', ''))
+            duration = duration_map.get(item.get('duration', ''))
+            new_price = item.get('price')
+            
+            if not level_code or not user_type or not duration or new_price is None:
+                print(f"跳过无效配置项: {item}")
+                continue
+            
+            # 查找匹配的记录并更新价格
+            updated = PricingConfig.objects.filter(
+                level_code=level_code,
+                user_type=user_type,
+                duration=duration,
+            ).update(price=new_price)
+            
+            if updated > 0:
+                updated_count += updated
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'成功更新 {updated_count} 条价格配置',
+            'updated_count': updated_count
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '请求数据格式错误'
+        }, status=400)
+    except Exception as e:
+        print(f"更新价格配置时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'更新价格配置失败: {str(e)}'
+        }, status=500)
 
 
 # ==================== 价格配置接口（返回前端需要的格式） ====================
