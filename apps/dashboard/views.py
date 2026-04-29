@@ -1531,6 +1531,7 @@ def activate_membership(request):
         
         # 时长映射
         duration_map = {
+            'day': ('day', 1, '日会员'),
             'week': ('week', 7, '周会员'),
             'month': ('month', 30, '月会员'),
             'year': ('year', 365, '年会员'),
