@@ -41,12 +41,20 @@ class Command(BaseCommand):
             ('省', 'province', 'org', '机构用户', '24hour', '24小时', 79.00, 1, 37),
             
             # 直辖市级别
-            ('直辖市', 'municipality', 'personal', '个人用户', '24hour', '24小时', 49.00, 1, 40),
-            ('直辖市', 'municipality', 'org', '机构用户', '24hour', '24小时', 69.00, 1, 41),
+            ('直辖市', 'municipality', 'personal', '个人用户', 'year', '年', 2999.00, 365, 40),
+            ('直辖市', 'municipality', 'org', '机构用户', 'year', '年', 3999.00, 365, 41),
+            ('直辖市', 'municipality', 'personal', '个人用户', 'month', '月', 299.00, 30, 42),
+            ('直辖市', 'municipality', 'org', '机构用户', 'month', '月', 399.00, 30, 43),
+            ('直辖市', 'municipality', 'personal', '个人用户', '24hour', '24小时', 49.00, 1, 44),
+            ('直辖市', 'municipality', 'org', '机构用户', '24hour', '24小时', 69.00, 1, 45),
             
             # 城市级别
-            ('市', 'city', 'personal', '个人用户', '24hour', '24小时', 29.00, 1, 50),
-            ('市', 'city', 'org', '机构用户', '24hour', '24小时', 49.00, 1, 51),
+            ('市', 'city', 'personal', '个人用户', 'year', '年', 799.00, 365, 50),
+            ('市', 'city', 'org', '机构用户', 'year', '年', 999.00, 365, 51),
+            ('市', 'city', 'personal', '个人用户', 'month', '月', 79.00, 30, 52),
+            ('市', 'city', 'org', '机构用户', 'month', '月', 99.00, 30, 53),
+            ('市', 'city', 'personal', '个人用户', '24hour', '24小时', 29.00, 1, 54),
+            ('市', 'city', 'org', '机构用户', '24hour', '24小时', 49.00, 1, 55),
         ]
         
         for data in pricing_data:
