@@ -45,8 +45,9 @@ urlpatterns = [
     path('api/pricing-config/', views.get_pricing_config, name='get_pricing_config'),
     path('api/update-pricing-config/', views.update_pricing_config, name='update_pricing_config'),
 
+    # 指标配置API接口
+    path('api/org-indicator-config/', views.org_indicator_config, name='org_indicator_config'),
+    path('api/personal-indicator-config/', views.personal_indicator_config, name='personal_indicator_config'),
 
 
-
-
-] 
+]

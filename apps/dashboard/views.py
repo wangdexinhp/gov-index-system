@@ -1454,3 +1454,52 @@ def get_pricing_config(request):
             'data': []
         })
 
+
+# ==================== 指标配置接口（返回前端需要的指标列表） ====================
+@require_http_methods(["GET"])
+def org_indicator_config(request):
+    """
+    获取机构用户可查看的指标列表
+    GET /dashboard/api/org-indicator-config/
+    """
+    try:
+        indicators = IndicatorConfig.objects.filter(
+            user_type='org',
+            is_active=True
+        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
+        
+        return JsonResponse({
+            'success': True,
+            'data': list(indicators)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
+
+
+@require_http_methods(["GET"])
+def personal_indicator_config(request):
+    """
+    获取个人用户可查看的指标列表
+    GET /dashboard/api/personal-indicator-config/
+    """
+    try:
+        indicators = IndicatorConfig.objects.filter(
+            user_type='personal',
+            is_active=True
+        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
+        
+        return JsonResponse({
+            'success': True,
+            'data': list(indicators)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
+
