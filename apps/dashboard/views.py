@@ -1503,3 +1503,85 @@ def personal_indicator_config(request):
             'data': []
         })
 
+
+# ==================== 会员激活接口 ====================
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def activate_membership(request):
+    """
+    支付成功后激活会员，更新 UserProfile 中的会员等级、过期时间和权限范围
+    POST /dashboard/api/activate-membership/
+    
+    请求体:
+        {
+            "duration": "year",       // 会员时长: week / month / year
+            "cities": ["北京市", "上海市"],  // 可查看的城市列表
+            "indicators": ["GDP", "人均GDP"]  // 可查看的指标列表
+        }
+    """
+    try:
+        import json
+        from datetime import timedelta
+        
+        data = json.loads(request.body)
+        duration = data.get('duration', 'month')  # week / month / year
+        cities = data.get('cities', [])
+        indicators = data.get('indicators', [])
+        
+        # 时长映射
+        duration_map = {
+            'week': ('week', 7, '周会员'),
+            'month': ('month', 30, '月会员'),
+            'year': ('year', 365, '年会员'),
+        }
+        
+        if duration not in duration_map:
+            return JsonResponse({
+                'success': False,
+                'message': f'不支持的会员时长: {duration}'
+            }, status=400)
+        
+        level_code, days, level_name = duration_map[duration]
+        
+        profile = request.user.profile
+        
+        # 如果已有会员且未过期，在剩余时间基础上叠加
+        now = timezone.now()
+        if profile.is_membership_active and profile.membership_expires_at > now:
+            # 从当前过期时间开始叠加
+            new_expiry = profile.membership_expires_at + timedelta(days=days)
+        else:
+            # 从当前时间开始
+            new_expiry = now + timedelta(days=days)
+        
+        # 更新会员信息
+        profile.membership_level = level_code
+        profile.membership_expires_at = new_expiry
+        profile.membership_scope_city = json.dumps(cities, ensure_ascii=False)
+        profile.membership_scope_item = json.dumps(indicators, ensure_ascii=False)
+        profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'会员已激活，有效期至 {new_expiry.strftime("%Y-%m-%d %H:%M")}',
+            'data': {
+                'membership_level': level_code,
+                'membership_level_name': level_name,
+                'expires_at': new_expiry.strftime('%Y-%m-%d %H:%M:%S'),
+                'cities': cities,
+                'indicators': indicators,
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '请求数据格式错误'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'激活会员失败: {str(e)}'
+        }, status=500)
+

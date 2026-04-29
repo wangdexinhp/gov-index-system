@@ -1176,7 +1176,31 @@
             });
         }
         
-        function showPaymentSuccess(orderInfo) {
+        async function showPaymentSuccess(orderInfo) {
+            // 调用会员激活接口
+            try {
+                const cityNames = selectedPermissions.map(p => p.name);
+                const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;
+                
+                const response = await fetch('/dashboard/api/activate-membership/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        duration: currentDuration,
+                        cities: cityNames,
+                        indicators: indicators,
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log('会员激活成功:', result.message);
+                } else {
+                    console.warn('会员激活失败:', result.message);
+                }
+            } catch (error) {
+                console.error('调用会员激活接口失败:', error);
+            }
+            
             const successModal = document.createElement('div');
             successModal.className = 'modal-overlay';
             const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;

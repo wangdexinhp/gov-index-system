@@ -49,5 +49,8 @@ urlpatterns = [
     path('api/org-indicator-config/', views.org_indicator_config, name='org_indicator_config'),
     path('api/personal-indicator-config/', views.personal_indicator_config, name='personal_indicator_config'),
 
+    # 会员激活接口
+    path('api/activate-membership/', views.activate_membership, name='activate_membership'),
+
 
 ]
