@@ -149,3 +149,40 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING('个人指标: 无（空列表）'))
 
 
+
+
+
+price_list =  [
+    { level: "全国", userType: "个人用户", duration: "year", price: 19999, days: 365, pricePerDay: 54.79 },
+    { level: "全国", userType: "机构用户", duration: "year", price: 29999, days: 365, pricePerDay: 82.19 },
+    { level: "全国", userType: "个人用户", duration: "month", price: 1999, days: 30, pricePerDay: 66.63 },
+    { level: "全国", userType: "机构用户", duration: "month", price: 2999, days: 30, pricePerDay: 99.97 },
+
+    { level: "地区", userType: "个人用户", duration: "year", price: 7999, days: 365, pricePerDay: 21.92 },
+    { level: "地区", userType: "机构用户", duration: "year", price: 9999, days: 365, pricePerDay: 27.39 },
+    { level: "地区", userType: "个人用户", duration: "month", price: 799, days: 30, pricePerDay: 26.63 },
+    { level: "地区", userType: "机构用户", duration: "month", price: 999, days: 30, pricePerDay: 33.30 },
+
+    { level: "省", userType: "个人用户", duration: "year", price: 2999, days: 365, pricePerDay: 8.22 },
+    { level: "省", userType: "机构用户", duration: "year", price: 3999, days: 365, pricePerDay: 10.96 },
+    { level: "省", userType: "个人用户", duration: "month", price: 299, days: 30, pricePerDay: 9.97 },
+    { level: "省", userType: "机构用户", duration: "month", price: 399, days: 30, pricePerDay: 13.30 },
+    { level: "省", userType: "个人用户", duration: "week", price: 149, days: 7, pricePerDay: 21.29 },
+    { level: "省", userType: "机构用户", duration: "week", price: 199, days: 7, pricePerDay: 28.43 },
+    { level: "省", userType: "个人用户", duration: "day", price: 59, days: 1, pricePerDay: 59.00 },
+    { level: "省", userType: "机构用户", duration: "day", price: 79, days: 1, pricePerDay: 79.00 },
+
+    { level: "直辖市", userType: "个人用户", duration: "year", price: 2999, days: 365, pricePerDay: 8.22 },
+    { level: "直辖市", userType: "机构用户", duration: "year", price: 3999, days: 365, pricePerDay: 10.96 },
+    { level: "直辖市", userType: "个人用户", duration: "month", price: 299, days: 30, pricePerDay: 9.97 },
+    { level: "直辖市", userType: "机构用户", duration: "month", price: 399, days: 30, pricePerDay: 13.30 },
+    { level: "直辖市", userType: "个人用户", duration: "day", price: 49, days: 1, pricePerDay: 49.00 },
+    { level: "直辖市", userType: "机构用户", duration: "day", price: 69, days: 1, pricePerDay: 69.00 },
+
+    { level: "市", userType: "个人用户", duration: "year", price: 799, days: 365, pricePerDay: 2.19 },
+    { level: "市", userType: "机构用户", duration: "year", price: 999, days: 365, pricePerDay: 2.74 },
+    { level: "市", userType: "个人用户", duration: "month", price: 79, days: 30, pricePerDay: 2.63 },
+    { level: "市", userType: "机构用户", duration: "month", price: 99, days: 30, pricePerDay: 3.30 },
+    { level: "市", userType: "个人用户", duration: "day", price: 29, days: 1, pricePerDay: 29.00 },
+    { level: "市", userType: "机构用户", duration: "day", price: 49, days: 1, pricePerDay: 49.00 }
+];

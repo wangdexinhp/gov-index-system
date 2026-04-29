@@ -716,7 +716,24 @@
                 const response = await fetch('/dashboard/api/pricing-config/');
                 const result = await response.json();
                 if (result.success && result.data) {
-                    priceList = result.data;
+                    // 接口返回的 duration 是中文（如"年"、"月"），转为英文代码
+                    const durationMap = {
+                        '年': 'year',
+                        '月': 'month', 
+                        '周': 'week',
+                        '15天': '15days',
+                        '24小时': '24hour',
+                    };
+                    priceList = result.data.map(item => {
+                        // 处理duration：如果是中文则转换，否则保留原值
+                        const engDuration = durationMap[item.duration] || item.duration;
+                        // 也保留原始中文 duration 用于显示
+                        return {
+                            ...item,
+                            duration: engDuration,
+                            durationCN: item.duration,
+                        };
+                    });
                     console.log('价格配置加载成功，共', priceList.length, '条');
                     updateDynamicSelect();
                 } else {
