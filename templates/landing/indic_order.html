@@ -681,16 +681,37 @@
             '青海', '宁夏', '新疆', '内蒙古'
         ];
         
-        const municipalityList = ['北京市', '上海市', '天津市', '重庆市'];
-        
-        const cityList = [
-            '广州市', '深圳市', '珠海市', '佛山市', '惠州市', '东莞市', '中山市',
-            '南京市', '苏州市', '无锡市', '常州市', '杭州市', '宁波市', '温州市',
-            '成都市', '武汉市', '西安市', '沈阳市', '大连市', '青岛市', '厦门市'
-        ];
+        let municipalityList = [];   // 从后端 API 加载
+        let cityList = [];           // 从后端 API 加载
+
+        // ==================== 从接口加载直辖市和城市数据 ====================
+        async function loadCityData() {
+            try {
+                const [muniRes, cityRes] = await Promise.all([
+                    fetch('/landing/api/municipality-city/'),
+                    fetch('/landing/api/not-municipality-city/')
+                ]);
+                const muniResult = await muniRes.json();
+                const cityResult = await cityRes.json();
+                
+                if (muniResult.success && muniResult.data) {
+                    municipalityList = muniResult.data.map(item => item.name);
+                }
+                if (cityResult.success && cityResult.data) {
+                    cityList = cityResult.data.map(item => item.name);
+                }
+                console.log('城市数据加载成功：直辖市', municipalityList.length, '个，普通城市', cityList.length, '个');
+            } catch (error) {
+                console.error('加载城市数据失败:', error);
+                // 使用少量备用数据
+                municipalityList = ['北京市', '上海市', '天津市', '重庆市'];
+                cityList = ['石家庄市', '唐山市', '太原市', '呼和浩特市'];
+            }
+        }
 
         // ==================== 从接口加载价格配置 ====================
         async function loadPriceConfig() {
+        
             try {
                 const response = await fetch('/dashboard/api/pricing-config/');
                 const result = await response.json();
@@ -1188,6 +1209,7 @@
         
         // 初始化
         async function init() {
+            await loadCityData();
             await loadPriceConfig();
             await loadIndicators();
             
