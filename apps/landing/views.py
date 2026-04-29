@@ -46,12 +46,12 @@ def home(request):
 
 @require_http_methods(['GET'])
 def pricing(request):
-    return render(request, 'landing/pricing.html')
-
-# @require_http_methods(['GET'])
-# def features(request):
-#     return render(request, 'landing/features.html') 
+    return render(request, 'landing/indic_order.html')
 
 @require_http_methods(['GET'])
 def features(request):
-    return render(request, 'landing/indic_order.html') 
+    return render(request, 'landing/features.html') 
+
+# @require_http_methods(['GET'])
+# def features(request):
+#     return render(request, 'landing/indic_order.html') 

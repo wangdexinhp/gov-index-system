@@ -51,10 +51,10 @@
                         </a>
                     </div>
                     <div class="hidden sm:ml-10 sm:flex sm:space-x-8">
-                        <a href="{% url 'landing:features' %}" class="inline-flex items-center px-1 pt-1 border-b-2 {% if request.resolver_match.url_name == 'features' %}border-black text-black{% else %}border-transparent text-gray hover:border-light-gray hover:text-dark-gray{% endif %} text-sm font-medium uppercase tracking-wider">
+                        <a href="{% url 'landing:pricing' %}" class="inline-flex items-center px-1 pt-1 border-b-2 {% if request.resolver_match.url_name == 'features' %}border-black text-black{% else %}border-transparent text-gray hover:border-light-gray hover:text-dark-gray{% endif %} text-sm font-medium uppercase tracking-wider">
                             购买
                         </a>
-                        <a href="{% url 'landing:pricing' %}" class="inline-flex items-center px-1 pt-1 border-b-2 {% if request.resolver_match.url_name == 'pricing' %}border-black text-black{% else %}border-transparent text-gray hover:border-light-gray hover:text-dark-gray{% endif %} text-sm font-medium uppercase tracking-wider">
+                        <a href="{% url 'landing:features' %}" class="inline-flex items-center px-1 pt-1 border-b-2 {% if request.resolver_match.url_name == 'pricing' %}border-black text-black{% else %}border-transparent text-gray hover:border-light-gray hover:text-dark-gray{% endif %} text-sm font-medium uppercase tracking-wider">
                             关于我们
                         </a>
                     </div>
