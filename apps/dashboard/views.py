@@ -21,7 +21,84 @@ import pandas as pd
 from datetime import datetime
 
 import secrets
+from functools import wraps
 from .models import UserSettings, SubscriptionPlan
+
+
+# ==================== 会员权限验证装饰器 ====================
+def check_membership(view_func):
+    """
+    会员权限验证装饰器
+    验证用户是否有权限查看请求的城市和指标数据
+    从 GET 参数中提取 city 和 name_zh 进行校验
+    """
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        profile = request.user.profile
+        
+        # 管理员可以查看所有数据
+        if profile.membership_level == 'admin':
+            return view_func(request, *args, **kwargs)
+        
+        # 检查会员是否过期
+        if not profile.is_membership_active:
+            return JsonResponse({
+                'success': False,
+                'message': '您的会员已过期，请续费后继续使用',
+                'code': 'membership_expired'
+            }, status=403)
+        
+        # 解析会员权限范围
+        import json as _json
+        try:
+            allowed_cities = _json.loads(profile.membership_scope_city or '[]')
+            allowed_indicators = _json.loads(profile.membership_scope_item or '[]')
+        except (json.JSONDecodeError, TypeError):
+            allowed_cities = []
+            allowed_indicators = []
+        
+        # 从 GET 参数中提取请求的城市
+        requested_cities = []
+        city_param = request.GET.get('city', '')
+        if city_param:
+            requested_cities = [c.strip() for c in city_param.split(',') if c.strip()]
+        
+        # 从 GET 参数中提取请求的指标
+        requested_indicators = []
+        indicator_param = request.GET.get('name_zh', '')
+        if indicator_param:
+            requested_indicators = [ind.strip() for ind in indicator_param.split(',') if ind.strip()]
+        
+        # 检查城市权限
+        if requested_cities:
+            # 如果用户购买了"全国"权限，允许查看所有城市
+            if '全国' not in allowed_cities:
+                unauthorized_cities = [c for c in requested_cities if c not in allowed_cities]
+                if unauthorized_cities:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'您没有以下城市的查看权限: {", ".join(unauthorized_cities)}',
+                        'code': 'city_not_allowed',
+                        'unauthorized_cities': unauthorized_cities,
+                        'allowed_cities': allowed_cities,
+                    }, status=403)
+        
+        # 检查指标权限
+        if requested_indicators:
+            unauthorized_indicators = [ind for ind in requested_indicators if ind not in allowed_indicators]
+            if unauthorized_indicators:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'您没有以下指标的查看权限: {", ".join(unauthorized_indicators)}',
+                    'code': 'indicator_not_allowed',
+                    'unauthorized_indicators': unauthorized_indicators,
+                    'allowed_indicators': allowed_indicators,
+                }, status=403)
+        
+        return view_func(request, *args, **kwargs)
+    
+    return _wrapped_view
 
 
 @login_required
@@ -458,7 +535,7 @@ def submit_area_data(request):
 
 
 # === 单一指标历年查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_query(request):
     # indicator_en = request.GET.get('name_en')
@@ -525,7 +602,7 @@ def single_indicator_query(request):
 
 
 # === 区县单一指标历年查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_area_query(request):
     indicator_zh = request.GET.get('name_zh')
@@ -595,7 +672,7 @@ def single_indicator_area_query(request):
     })
 
 # === 单一指标多城市查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_city_query(request):
     indicator_zh = request.GET.get('name_zh')
@@ -969,7 +1046,7 @@ def save_area_df_to_database(rows_data, year):
 
 
 # === 多指标多城市查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def many_indicator_city_query(request):
     # 获取多个指标（用逗号分隔）
@@ -1228,7 +1305,7 @@ def indicator_audit_check(request):
         })
 
 # === 指标数据核对查询API ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def check_data_api(request):
     """
