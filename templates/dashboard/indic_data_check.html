@@ -460,11 +460,32 @@
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json().then(errData => {
+                    throw errData;
+                }).catch(err => {
+                    if (err && err.code) throw err;
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
             }
             return response.json();
         })
         .then(data => {
+            if (!data.success) {
+                if (data.code === 'membership_expired' || data.code === 'city_not_allowed' || data.code === 'indicator_not_allowed') {
+                    alert('⚠️ ' + data.message);
+                    queryBtn.innerHTML = originalText;
+                    queryBtn.disabled = false;
+                    return;
+                }
+                filteredData = [];
+                allData = [];
+                updateStatistics();
+                updateGroupStats();
+                renderTable();
+                queryBtn.innerHTML = originalText;
+                queryBtn.disabled = false;
+                return;
+            }
             // 处理返回的数据
             filteredData = data.records || [];
             allData = filteredData; // 更新全局数据
@@ -482,7 +503,11 @@
         })
         .catch(error => {
             console.error('查询失败:', error);
-            alert('查询失败，请稍后重试');
+            if (error.code === 'membership_expired' || error.code === 'city_not_allowed' || error.code === 'indicator_not_allowed') {
+                alert('⚠️ ' + error.message);
+            } else {
+                alert('查询失败，请稍后重试');
+            }
             
             // 恢复按钮状态
             queryBtn.innerHTML = originalText;
