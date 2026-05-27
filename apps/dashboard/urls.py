@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.dashboard_home, name='home'),
     path('area_input', views.area_input, name='area_input'),
     path('indicator-check', views.indicator_check, name='indicator_check'),  
+    path('indicator-check-2', views.indicator_check_2, name='indicator_check_2'),  
 
 
     # 城市数据查询路径
