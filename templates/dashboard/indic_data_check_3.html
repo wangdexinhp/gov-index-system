@@ -77,6 +77,29 @@
         box-shadow: 0 8px 20px -6px rgba(0,0,0,0.1);
     }
     
+    /* 状态标签 */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-imported {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    .status-missing {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .status-partial {
+        background: #fef9c3;
+        color: #a16207;
+    }
+    
     /* 滚动条 */
     ::-webkit-scrollbar {
         width: 6px;
@@ -89,6 +112,22 @@
     ::-webkit-scrollbar-thumb {
         background: #3b82f6;
         border-radius: 10px;
+    }
+    
+    /* 筛选栏 */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .filter-select {
+        padding: 6px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 13px;
+        background: white;
+        cursor: pointer;
     }
 </style>
 </head>
@@ -131,7 +170,7 @@
         </div>
         <div class="flex space-x-3">
             <a href="/dashboard/indicator-check" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">指标校验</a>
-            <a href="/dashboard/data-coverage" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">数据覆盖查询</a>
+            <a href="/dashboard/indicator-check-2" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">数据覆盖查询</a>
         </div>
     </div>
 
@@ -257,13 +296,29 @@
         </div>
     </div>
 
-    <!-- 指标覆盖率表格 -->
+    <!-- 指标覆盖率表格（带指标组筛选） -->
     <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
         <div class="px-6 py-4 border-b border-blue-200 bg-slate-50">
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <iconify-icon icon="mdi:table-chart" class="text-blue-500"></iconify-icon>
-                指标覆盖率明细
-            </h2>
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div class="flex items-center gap-2">
+                    <iconify-icon icon="mdi:table-chart" class="text-blue-500 text-xl"></iconify-icon>
+                    <h2 class="text-lg font-bold text-slate-800">指标覆盖率明细</h2>
+                </div>
+                <div class="filter-bar">
+                    <span class="text-sm text-slate-500">按指标组筛选：</span>
+                    <select id="indicatorGroupFilter" class="filter-select">
+                        <option value="all">全部指标组</option>
+                        <option value="population">人口数据</option>
+                        <option value="economic_growth">经济增长数据</option>
+                        <option value="finance">财政指标数据</option>
+                        <option value="education_tech">教育科技数据</option>
+                        <option value="employment">就业数据</option>
+                        <option value="ecology">生态环保数据</option>
+                        <option value="other">其他</option>
+                    </select>
+                    <span id="filteredCount" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full"></span>
+                </div>
+            </div>
             <p class="text-xs text-slate-400 mt-1">各指标在全国336个地市中的录入覆盖率</p>
         </div>
         <div class="table-wrapper">
@@ -289,17 +344,54 @@
 <script>
     // ==================== 全局变量 ====================
     let provinceCityMap = {};
-    let cityCompletionData = [];      // 地市完成率数据 { city, province, completed, total, rate }
-    let indicatorCoverageData = [];   // 指标覆盖率数据 { indicator, group, covered, total, rate }
-    let totalCities = 336;            // 地市级总数
-    let totalIndicators = 0;          // 指标总数
+    let cityCompletionData = [];
+    let indicatorCoverageData = [];
+    let filteredIndicatorData = [];
+    let totalCities = 336;
+    let totalIndicators = 0;
     let myChart = null;
     
-    // 静态城市列表（模拟336个地市的简化版，实际应从后端获取）
-    const citiesList = ["北京市", "上海市", "广州市", "深圳市", "杭州市", "成都市", "武汉市", "南京市", "苏州市", "天津市", 
-                        "重庆市", "西安市", "长沙市", "青岛市", "宁波市", "无锡市", "佛山市", "合肥市", "大连市", "沈阳市",
-                        "济南市", "厦门市", "福州市", "昆明市", "哈尔滨市", "长春市", "石家庄市", "南昌市", "太原市", "郑州市",
-                        "南宁市", "乌鲁木齐市", "贵阳市", "兰州市", "海口市", "银川市", "西宁市", "呼和浩特市", "拉萨市"];
+    // 指标分组映射（完整版）
+    const indicatorGroupMap = {
+        // 人口数据
+        "常住人口数": "population", "城镇人口数": "population", "乡村人口数": "population",
+        "户籍人口数": "population", "年末总人口": "population", "年末总户数": "population",
+        "15-19岁人口数": "population", "60岁以上人口数": "population", "出生人口性别比": "population",
+        "人口出生率": "population", "城镇化率": "population",
+        // 经济增长数据
+        "GDP": "economic_growth", "人均GDP": "economic_growth", "GDP增长率": "economic_growth",
+        "固定资产投资总额": "economic_growth", "固定资产投资总额增长率": "economic_growth",
+        "全社会消费品零售总额": "economic_growth", "全社会消费品零售总额增长率": "economic_growth",
+        "进出口总额": "economic_growth", "进出口总额增长率": "economic_growth",
+        "实际利用外资金额": "economic_growth", "实际利用外资金额增长率": "economic_growth",
+        "规模以上工业企业增加值": "economic_growth", "第二产业增加值占GDP比重": "economic_growth",
+        "第三产业增加值占GDP比重": "economic_growth", "城镇居民人均可支配收入": "economic_growth",
+        // 财政指标
+        "一般公共预算收入": "finance", "财政总收入": "finance", "财政总收入增长率": "finance",
+        "一般公共预算支出": "finance", "一般公共服务支出": "finance", "科学技术支出": "finance",
+        "公共安全支出": "finance", "文化体育传媒支出": "finance", "环保支出": "finance",
+        "社会保障和就业支出": "finance", "教育支出": "finance", "医疗卫生支出": "finance",
+        // 教育科技
+        "高新技术企业产值": "education_tech", "高新技术企业增加值": "education_tech",
+        "专利授权数量": "education_tech", "有效发明专利量": "education_tech",
+        "R&D经费": "education_tech", "普通小学在校学生数": "education_tech",
+        "普通中学在校学生数": "education_tech", "高中学在校学生数": "education_tech",
+        // 就业数据
+        "城镇登记失业率": "employment", "城镇登记失业人员数": "employment",
+        "城镇新增就业人数": "employment", "城镇就业人数": "employment",
+        "采矿（掘)业就业人员人数": "employment", "制造业就业人员人数": "employment",
+        // 生态环保
+        "森林覆盖率": "ecology", "PM2.5": "ecology", "PM10": "ecology",
+        "二氧化硫排放总量": "ecology", "工业废水排放总量": "ecology",
+        "生活垃圾无害化处理率": "ecology", "园林绿地面积": "ecology"
+    };
+    
+    // 指标组中文名称
+    const groupNames = {
+        'population': '人口数据', 'economic_growth': '经济增长', 'finance': '财政指标',
+        'education_tech': '教育科技', 'employment': '就业数据', 'ecology': '生态环保',
+        'other': '其他'
+    };
     
     // 省份城市映射
     const defaultProvinceCityMap = {
@@ -325,23 +417,11 @@
         "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"]
     };
     
-    // 指标列表（模拟）
-    const indicatorsList = [
-        "常住人口数", "城镇人口数", "GDP", "人均GDP", "一般公共预算收入", "固定资产投资总额",
-        "社会消费品零售总额", "进出口总额", "高新技术企业产值", "专利授权数量", "教育支出",
-        "医疗卫生支出", "城镇登记失业率", "城镇化率", "城镇居民人均可支配收入"
-    ];
+    // 指标列表
+    const indicatorsList = Object.keys(indicatorGroupMap);
+    totalIndicators = indicatorsList.length;
     
-    // 指标分组映射
-    const indicatorGroupMap = {
-        "常住人口数": "population", "城镇人口数": "population", "GDP": "economic_growth", "人均GDP": "economic_growth",
-        "一般公共预算收入": "finance", "固定资产投资总额": "economic_growth", "社会消费品零售总额": "economic_growth",
-        "进出口总额": "economic_growth", "高新技术企业产值": "education_tech", "专利授权数量": "education_tech",
-        "教育支出": "finance", "医疗卫生支出": "finance", "城镇登记失业率": "employment", "城镇化率": "population",
-        "城镇居民人均可支配收入": "economic_growth"
-    };
-    
-    // 生成模拟数据（实际应从后端获取）
+    // 生成模拟数据
     function generateMockData() {
         // 生成地市完成率数据
         cityCompletionData = [];
@@ -352,7 +432,6 @@
         totalCities = allCities.length;
         
         allCities.forEach(city => {
-            // 随机生成完成率 30%-100%
             const rate = 30 + Math.random() * 70;
             const completed = Math.floor(rate / 100 * indicatorsList.length);
             cityCompletionData.push({
@@ -364,15 +443,11 @@
             });
         });
         
-        // 按完成率排序
         cityCompletionData.sort((a, b) => b.rate - a.rate);
         
         // 生成指标覆盖率数据
         indicatorCoverageData = [];
-        totalIndicators = indicatorsList.length;
-        
         indicatorsList.forEach(indicator => {
-            // 随机生成覆盖率 20%-95%
             const rate = 20 + Math.random() * 75;
             const covered = Math.floor(rate / 100 * totalCities);
             indicatorCoverageData.push({
@@ -384,13 +459,30 @@
             });
         });
         
-        // 按覆盖率排序
         indicatorCoverageData.sort((a, b) => b.rate - a.rate);
+        
+        // 初始化筛选数据
+        applyIndicatorGroupFilter();
         
         updateStatistics();
         renderCityRanking();
-        renderIndicatorCoverage();
         renderChinaMap();
+    }
+    
+    // 应用指标组筛选
+    function applyIndicatorGroupFilter() {
+        const selectedGroup = document.getElementById('indicatorGroupFilter').value;
+        if (selectedGroup === 'all') {
+            filteredIndicatorData = [...indicatorCoverageData];
+        } else {
+            filteredIndicatorData = indicatorCoverageData.filter(item => item.group === selectedGroup);
+        }
+        renderIndicatorCoverage();
+        
+        const countSpan = document.getElementById('filteredCount');
+        if (countSpan) {
+            countSpan.textContent = `共 ${filteredIndicatorData.length} 项指标`;
+        }
     }
     
     function getProvinceByCity(city) {
@@ -402,7 +494,6 @@
         return "其他";
     }
     
-    // 更新统计卡片
     function updateStatistics() {
         const avgCompletion = cityCompletionData.reduce((sum, c) => sum + c.rate, 0) / cityCompletionData.length;
         const avgCoverage = indicatorCoverageData.reduce((sum, i) => sum + i.rate, 0) / indicatorCoverageData.length;
@@ -413,7 +504,6 @@
         document.getElementById('avgCoverageRate').innerText = avgCoverage.toFixed(1) + '%';
     }
     
-    // 渲染地市排行榜
     function renderCityRanking() {
         const tbody = document.getElementById('cityRankingBody');
         if (!cityCompletionData.length) {
@@ -445,20 +535,14 @@
         }).join('');
     }
     
-    // 渲染指标覆盖率
     function renderIndicatorCoverage() {
         const tbody = document.getElementById('indicatorCoverageBody');
-        if (!indicatorCoverageData.length) {
+        if (!filteredIndicatorData.length) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-400 py-8">暂无数据</td></tr>';
             return;
         }
         
-        const groupNames = {
-            'population': '人口数据', 'economic_growth': '经济增长', 'finance': '财政指标',
-            'education_tech': '教育科技', 'employment': '就业数据', 'other': '其他'
-        };
-        
-        tbody.innerHTML = indicatorCoverageData.map((item, idx) => {
+        tbody.innerHTML = filteredIndicatorData.map((item, idx) => {
             let progressClass = 'low';
             if (item.rate >= 70) progressClass = 'high';
             else if (item.rate >= 40) progressClass = 'medium';
@@ -487,32 +571,20 @@
         }).join('');
     }
     
-    // 渲染中国地图
     function renderChinaMap() {
         const dom = document.getElementById('chinaMap');
         if (!dom) return;
-        
-        if (myChart) {
-            myChart.dispose();
-        }
-        
+        if (myChart) myChart.dispose();
         myChart = echarts.init(dom);
         
-        // 准备地图数据
-        const mapData = [];
-        cityCompletionData.forEach(item => {
-            mapData.push({
-                name: item.city,
-                value: item.rate,
-                completed: item.completed,
-                total: item.total
-            });
-        });
+        const mapData = cityCompletionData.map(item => ({
+            name: item.city,
+            value: item.rate,
+            completed: item.completed,
+            total: item.total
+        }));
         
-        const option = {
-            title: {
-                show: false
-            },
+        myChart.setOption({
             tooltip: {
                 trigger: 'item',
                 formatter: function(params) {
@@ -523,64 +595,26 @@
                 }
             },
             visualMap: {
-                min: 0,
-                max: 100,
-                calculable: true,
-                inRange: {
-                    color: ['#fef0d9', '#fdcc8a', '#fc8d59', '#d7301f', '#7f0000']
-                },
-                outOfRange: {
-                    color: ['#e2e8f0']
-                },
-                text: ['高', '低'],
-                textStyle: {
-                    color: '#475569'
-                }
+                min: 0, max: 100, calculable: true,
+                inRange: { color: ['#fef0d9', '#fdcc8a', '#fc8d59', '#d7301f', '#7f0000'] },
+                outOfRange: { color: ['#e2e8f0'] },
+                text: ['高', '低']
             },
             series: [{
                 name: '地市数据录入完成率',
-                type: 'map',
-                map: 'china',
-                roam: true,
-                zoom: 1.2,
-                scaleLimit: {
-                    min: 0.8,
-                    max: 2
-                },
-                label: {
-                    normal: {
-                        show: false
-                    },
-                    emphasis: {
-                        show: true,
-                        color: '#1e40af'
-                    }
-                },
+                type: 'map', map: 'china', roam: true, zoom: 1.2,
+                data: mapData,
+                label: { normal: { show: false }, emphasis: { show: true, color: '#1e40af' } },
                 itemStyle: {
-                    normal: {
-                        borderColor: '#cbd5e1',
-                        borderWidth: 0.5,
-                        areaColor: '#e2e8f0'
-                    },
-                    emphasis: {
-                        areaColor: '#bfdbfe',
-                        borderWidth: 1,
-                        borderColor: '#3b82f6'
-                    }
-                },
-                data: mapData
+                    normal: { borderColor: '#cbd5e1', borderWidth: 0.5, areaColor: '#e2e8f0' },
+                    emphasis: { areaColor: '#bfdbfe', borderWidth: 1, borderColor: '#3b82f6' }
+                }
             }]
-        };
-        
-        myChart.setOption(option);
-        
-        // 响应式调整
-        window.addEventListener('resize', () => {
-            if (myChart) myChart.resize();
         });
+        
+        window.addEventListener('resize', () => myChart?.resize());
     }
     
-    // 排序功能
     function sortByRateDesc() {
         cityCompletionData.sort((a, b) => b.rate - a.rate);
         renderCityRanking();
@@ -591,21 +625,13 @@
         renderCityRanking();
     }
     
-    // 加载省份城市映射
     function loadProvinceCityMap() {
         return fetch('/dashboard/get-city-map/')
             .then(res => res.json())
-            .then(data => {
-                provinceCityMap = data || defaultProvinceCityMap;
-                return provinceCityMap;
-            })
-            .catch(() => {
-                provinceCityMap = defaultProvinceCityMap;
-                return provinceCityMap;
-            });
+            .then(data => { provinceCityMap = data || defaultProvinceCityMap; return provinceCityMap; })
+            .catch(() => { provinceCityMap = defaultProvinceCityMap; return provinceCityMap; });
     }
     
-    // 初始化年份下拉框
     function initYearSelect() {
         const yearSelect = document.getElementById('yearSelect');
         const currentYear = new Date().getFullYear();
@@ -619,7 +645,6 @@
         }
     }
     
-    // 初始化省份下拉框
     function initProvinceSelect() {
         const provSelect = document.getElementById('provinceSelect');
         const provinces = Object.keys(provinceCityMap);
@@ -632,7 +657,6 @@
         });
     }
     
-    // 省份联动城市
     function updateCitySelect() {
         const province = document.getElementById('provinceSelect').value;
         const citySelect = document.getElementById('citySelect');
@@ -640,9 +664,7 @@
         if (province && provinceCityMap[province]) {
             cities = provinceCityMap[province];
         } else {
-            for (const p in provinceCityMap) {
-                cities = cities.concat(provinceCityMap[p]);
-            }
+            for (const p in provinceCityMap) cities = cities.concat(provinceCityMap[p]);
         }
         citySelect.innerHTML = '<option value="">全部城市</option>';
         cities.slice(0, 50).forEach(city => {
@@ -653,44 +675,31 @@
         });
     }
     
-    // 查询数据（实际应从后端获取）
     function performQuery() {
-        // 显示加载状态
         const queryBtn = document.getElementById('queryBtn');
         const originalText = queryBtn.innerHTML;
         queryBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 查询中...';
         queryBtn.disabled = true;
         
-        // 模拟API请求
         setTimeout(() => {
             generateMockData();
             queryBtn.innerHTML = originalText;
             queryBtn.disabled = false;
         }, 500);
-        
-        // 实际应调用后端接口：
-        // const year = document.getElementById('yearSelect').value;
-        // const province = document.getElementById('provinceSelect').value;
-        // const city = document.getElementById('citySelect').value;
-        // fetch('/dashboard/api/coverage-data/?year=' + year + '&province=' + province + '&city=' + city)
-        //   .then(res => res.json())
-        //   .then(data => { ... });
     }
     
-    // 初始化
     document.addEventListener('DOMContentLoaded', function() {
         loadProvinceCityMap().then(() => {
             initYearSelect();
             initProvinceSelect();
             updateCitySelect();
             
-            // 事件绑定
             document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
             document.getElementById('queryBtn').addEventListener('click', performQuery);
             document.getElementById('sortByRateDesc').addEventListener('click', sortByRateDesc);
             document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
+            document.getElementById('indicatorGroupFilter').addEventListener('change', applyIndicatorGroupFilter);
             
-            // 加载模拟数据
             generateMockData();
         });
     });
