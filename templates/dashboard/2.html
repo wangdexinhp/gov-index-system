@@ -7,168 +7,47 @@
 <script src="/static/js/tailwindcss.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
-<!-- 引入 ECharts -->
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-<!-- 引入中国地图 -->
 <script src="https://cdn.jsdelivr.net/npm/echarts-map/js/china.js"></script>
 <style>
-    body {
-        background: #f0f4f9;
-    }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* 表格样式 */
-    .table-wrapper {
-        overflow-x: auto;
-        overflow-y: auto;
-        max-height: 55vh;
-        width: 100%;
-        border-radius: 1rem;
-    }
-    
-    .data-table {
-        min-width: 600px;
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .data-table th,
-    .data-table td {
-        border: 1px solid #bfdbfe;
-        padding: 10px 12px;
-        vertical-align: middle;
-    }
-    
-    .data-table th {
-        background: #f8fafc;
-        font-weight: 600;
-        color: #1e40af;
-    }
-    
-    /* 进度条样式 */
-    .progress-bar {
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .progress-fill {
-        height: 100%;
-        border-radius: 10px;
-        transition: width 0.3s ease;
-    }
-    .progress-fill.high {
-        background: #10b981;
-    }
-    .progress-fill.medium {
-        background: #f59e0b;
-    }
-    .progress-fill.low {
-        background: #ef4444;
-    }
-    
-    /* 统计卡片 */
-    .stat-card {
-        transition: all 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.1);
-    }
-    
-    /* 状态标签 */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .status-imported {
-        background: #dcfce7;
-        color: #15803d;
-    }
-    .status-missing {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-    .status-partial {
-        background: #fef9c3;
-        color: #a16207;
-    }
-    
-    /* 滚动条 */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 10px;
-    }
-    
-    /* 筛选栏 */
-    .filter-bar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    .filter-select {
-        padding: 6px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 13px;
-        background: white;
-        cursor: pointer;
-    }
-    
-    /* 补录模式样式 */
-    .replenish-input {
-        padding: 6px 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 13px;
-        width: 100%;
-        min-width: 100px;
-    }
-    .replenish-input:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-    }
-    .replenish-select {
-        padding: 6px 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 13px;
-        background: white;
-        cursor: pointer;
-    }
-    .btn-replenish {
-        background: #10b981;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: none;
-    }
-    .btn-replenish:hover {
-        background: #059669;
-    }
-    .btn-replenish:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-    }
+    body { background: #f0f4f9; }
+    .table-wrapper { overflow-x: auto; overflow-y: auto; max-height: 55vh; width: 100%; border-radius: 1rem; }
+    .data-table { min-width: 600px; width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { border: 1px solid #bfdbfe; padding: 10px 12px; vertical-align: middle; }
+    .data-table th { background: #f8fafc; font-weight: 600; color: #1e40af; }
+    .progress-bar { height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 10px; transition: width 0.3s ease; }
+    .progress-fill.high { background: #10b981; }
+    .progress-fill.medium { background: #f59e0b; }
+    .progress-fill.low { background: #ef4444; }
+    .stat-card { transition: all 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(0,0,0,0.1); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+    .filter-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .filter-select { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; }
+    .replenish-input { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; min-width: 100px; }
+    .replenish-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+    .replenish-select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; }
+    .btn-replenish { background: #10b981; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: none; }
+    .btn-replenish:hover { background: #059669; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background-color: white; width: 90%; max-width: 700px; border-radius: 1rem; box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2); overflow: hidden; }
+    .modal-header { background: #1e3a8a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 1.2rem; font-weight: 600; }
+    .close-btn { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; line-height: 1; opacity: 0.8; }
+    .close-btn:hover { opacity: 1; }
+    .modal-body { padding: 20px; }
+    .two-columns { display: flex; gap: 20px; height: 350px; }
+    .column { flex: 1; display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; background: white; }
+    .column-header { background: #f8fafc; padding: 12px; font-weight: 600; color: #1e293b; border-bottom: 1px solid #e2e8f0; }
+    .column-content { flex: 1; overflow-y: auto; }
+    .item { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.15s; color: #334155; }
+    .item:hover { background-color: #eff6ff; }
+    .item.selected { background-color: #dbeafe; border-left: 3px solid #3b82f6; color: #1e40af; font-weight: 500; }
+    .no-data { padding: 30px 20px; color: #94a3b8; text-align: center; }
+    .selection-result { background-color: #f8fafc; border-radius: 0.75rem; padding: 12px 16px; margin-top: 20px; border-left: 4px solid #3b82f6; }
 </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
@@ -214,7 +93,6 @@
                 <a href="/dashboard/indicator-check-2" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">数据覆盖查询</a>
             </div>
         </div>
-        <!-- 模式切换复选框 -->
         <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-blue-200 shadow-sm">
             <iconify-icon icon="mdi:swap-horizontal" class="text-blue-500"></iconify-icon>
             <label class="flex items-center gap-2 cursor-pointer">
@@ -255,56 +133,35 @@
     </div>
 
     <!-- 统计摘要卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="statsCards">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="stat-card bg-white border border-blue-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">地市级总数</p>
-                    <p class="text-2xl font-bold text-slate-800" id="totalCities">0</p>
-                </div>
-                <div class="bg-blue-100 p-2 rounded-lg">
-                    <iconify-icon class="text-blue-600 text-xl" icon="mdi:city"></iconify-icon>
-                </div>
+                <div><p class="text-slate-500 text-sm">地市级总数</p><p class="text-2xl font-bold text-slate-800" id="totalCities">0</p></div>
+                <div class="bg-blue-100 p-2 rounded-lg"><iconify-icon class="text-blue-600 text-xl" icon="mdi:city"></iconify-icon></div>
             </div>
         </div>
         <div class="stat-card bg-white border border-green-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">平均完成率</p>
-                    <p class="text-2xl font-bold text-green-600" id="avgCompletionRate">0%</p>
-                </div>
-                <div class="bg-green-100 p-2 rounded-lg">
-                    <iconify-icon class="text-green-600 text-xl" icon="mdi:chart-line"></iconify-icon>
-                </div>
+                <div><p class="text-slate-500 text-sm">平均完成率</p><p class="text-2xl font-bold text-green-600" id="avgCompletionRate">0%</p></div>
+                <div class="bg-green-100 p-2 rounded-lg"><iconify-icon class="text-green-600 text-xl" icon="mdi:chart-line"></iconify-icon></div>
             </div>
         </div>
         <div class="stat-card bg-white border border-yellow-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">指标总数</p>
-                    <p class="text-2xl font-bold text-yellow-600" id="totalIndicators">0</p>
-                </div>
-                <div class="bg-yellow-100 p-2 rounded-lg">
-                    <iconify-icon class="text-yellow-600 text-xl" icon="mdi:counter"></iconify-icon>
-                </div>
+                <div><p class="text-slate-500 text-sm">指标总数</p><p class="text-2xl font-bold text-yellow-600" id="totalIndicators">0</p></div>
+                <div class="bg-yellow-100 p-2 rounded-lg"><iconify-icon class="text-yellow-600 text-xl" icon="mdi:counter"></iconify-icon></div>
             </div>
         </div>
         <div class="stat-card bg-white border border-purple-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">平均覆盖率</p>
-                    <p class="text-2xl font-bold text-purple-600" id="avgCoverageRate">0%</p>
-                </div>
-                <div class="bg-purple-100 p-2 rounded-lg">
-                    <iconify-icon icon="mdi:chart-donut" class="text-purple-600 text-xl"></iconify-icon>
-                </div>
+                <div><p class="text-slate-500 text-sm">平均覆盖率</p><p class="text-2xl font-bold text-purple-600" id="avgCoverageRate">0%</p></div>
+                <div class="bg-purple-100 p-2 rounded-lg"><iconify-icon icon="mdi:chart-donut" class="text-purple-600 text-xl"></iconify-icon></div>
             </div>
         </div>
     </div>
 
     <!-- 地图和图表区域（覆盖查询模式显示） -->
     <div id="coverageModeContent" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- 中国地图可视化 -->
         <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
             <div class="px-6 py-4 border-b border-blue-200 bg-slate-50">
                 <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -315,8 +172,6 @@
             </div>
             <div id="chinaMap" style="height: 450px; width: 100%;"></div>
         </div>
-
-        <!-- 地市完成率排行榜 -->
         <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
             <div class="px-6 py-4 border-b border-blue-200 bg-slate-50 flex justify-between items-center">
                 <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -330,18 +185,8 @@
             </div>
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="w-16">排名</th>
-                            <th>城市</th>
-                            <th class="w-32">所属省份</th>
-                            <th class="w-32">已录入指标</th>
-                            <th class="w-32">完成率</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cityRankingBody">
-                        <tr><td colspan="5" class="text-center text-slate-400 py-8">加载中...</td></tr>
-                    </tbody>
+                    <thead><tr><th class="w-16">排名</th><th>城市</th><th class="w-32">所属省份</th><th class="w-32">已录入指标</th><th class="w-32">完成率</th></tr></thead>
+                    <tbody id="cityRankingBody"><tr><td colspan="5" class="text-center text-slate-400 py-8">加载中...<\/td><\/tr></tbody>
                 </table>
             </div>
         </div>
@@ -374,24 +219,13 @@
         </div>
         <div class="table-wrapper">
             <table class="data-table">
-                <thead>
-                    <tr>
-                        <th class="w-16">排名</th>
-                        <th>指标名称</th>
-                        <th class="w-32">所属指标组</th>
-                        <th class="w-32">已录入城市数</th>
-                        <th class="w-48">覆盖率</th>
-                        <th class="w-32">录入状态</th>
-                    </tr>
-                </thead>
-                <tbody id="indicatorCoverageBody">
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">加载中...</td></tr>
-                </tbody>
+                <thead><tr><th class="w-16">排名</th><th>指标名称</th><th class="w-32">所属指标组</th><th class="w-32">已录入城市数</th><th class="w-48">覆盖率</th></tr></thead>
+                <tbody id="indicatorCoverageBody"><tr><td colspan="5" class="text-center text-slate-400 py-8">加载中...<\/td><\/tr></tbody>
             </table>
         </div>
     </div>
 
-    <!-- 补录模式内容（初始隐藏） -->
+    <!-- 补录模式内容 -->
     <div id="replenishModeContent" class="hidden">
         <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
             <div class="px-6 py-4 border-b border-blue-200 bg-slate-50">
@@ -401,21 +235,15 @@
                         <h2 class="text-lg font-bold text-slate-800">缺失指标补录清单</h2>
                     </div>
                     <div class="filter-bar">
-                        <span class="text-sm text-slate-500">按指标组筛选：</span>
-                        <select id="replenishGroupFilter" class="filter-select">
-                            <option value="all">全部指标组</option>
-                            <option value="population">人口数据</option>
-                            <option value="economic_growth">经济增长数据</option>
-                            <option value="finance">财政指标数据</option>
-                            <option value="education_tech">教育科技数据</option>
-                            <option value="employment">就业数据</option>
-                            <option value="ecology">生态环保数据</option>
-                            <option value="other">其他</option>
+                        <span class="text-sm font-semibold text-blue-600">🔍 按指标筛选：</span>
+                        <select id="replenishIndicatorSelect" class="filter-select" style="min-width: 200px;">
+                            <option value="">全部指标</option>
+                            <option value="custom-selector">打开指标项</option>
                         </select>
                         <span id="replenishCount" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full"></span>
                     </div>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">显示各地市未录入的指标，可进行补录操作</p>
+                <p class="text-xs text-slate-400 mt-1">显示各地市未录入的指标，支持按指标筛选，可进行补录操作</p>
             </div>
             <div class="table-wrapper">
                 <table class="data-table">
@@ -430,14 +258,40 @@
                             <th class="w-24">操作</th>
                         </tr>
                     </thead>
-                    <tbody id="replenishTableBody">
-                        <tr><td colspan="7" class="text-center text-slate-400 py-8">加载中...</td></tr>
-                    </tbody>
+                    <tbody id="replenishTableBody"><tr><td colspan="7" class="text-center text-slate-400 py-8">加载中...<\/td><\/tr></tbody>
                 </table>
             </div>
         </div>
     </div>
 </main>
+
+<!-- 指标选择弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">选择指标</div>
+            <button class="close-btn" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="two-columns">
+                <div class="column">
+                    <div class="column-header">分类</div>
+                    <div class="column-content" id="firstColumn"></div>
+                </div>
+                <div class="column">
+                    <div class="column-header">指标项</div>
+                    <div class="column-content" id="secondColumn"><div class="no-data">请选择左侧分类</div></div>
+                </div>
+            </div>
+            <div class="selection-result" id="modalSelectionResult">
+                <p id="modalResultContent">请选择分类</p>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button id="confirmBtn" style="padding: 8px 24px; background: #2563eb; color: white; border: none; border-radius: 0.75rem; cursor: pointer; font-weight: 500;">确认选择</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     // ==================== 全局变量 ====================
@@ -445,14 +299,18 @@
     let cityCompletionData = [];
     let indicatorCoverageData = [];
     let filteredIndicatorData = [];
-    let missingDataList = [];           // 缺失指标数据（用于补录模式）
+    let missingDataList = [];
     let filteredMissingData = [];
     let totalCities = 336;
     let totalIndicators = 0;
     let myChart = null;
-    let currentMode = 'coverage';      // 'coverage' 或 'replenish'
+    let currentMode = 'coverage';
+    let selectedReplenishIndicator = '';      // 补录模式选中的指标
+    let selectedProvince = '';                 // 选中的省份
+    let selectedCity = '';                     // 选中的城市
+    let selectedYear = '';                     // 选中的年份
     
-    // 指标分组映射（完整版）
+    // 指标分组映射
     const indicatorGroupMap = {
         "常住人口数": "population", "城镇人口数": "population", "乡村人口数": "population",
         "户籍人口数": "population", "年末总人口": "population", "年末总户数": "population",
@@ -487,6 +345,16 @@
         'other': '其他'
     };
     
+    // 指标字典（用于弹窗）
+    const dataDict = {
+        '人口数据': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数', '出生人口性别比', '人口出生率', '城镇化率'],
+        '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '固定资产投资总额', '固定资产投资总额增长率', '全社会消费品零售总额', '全社会消费品零售总额增长率', '进出口总额', '进出口总额增长率', '实际利用外资金额', '实际利用外资金额增长率', '规模以上工业企业增加值', '第二产业增加值占GDP比重', '第三产业增加值占GDP比重', '城镇居民人均可支配收入'],
+        '财政指标数据': ['一般公共预算收入', '财政总收入', '财政总收入增长率', '一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出'],
+        '教育科技数据': ['高新技术企业产值', '高新技术企业增加值', '专利授权数量', '有效发明专利量', 'R&D经费', '普通小学在校学生数', '普通中学在校学生数', '高中学在校学生数'],
+        '就业数据': ['城镇登记失业率', '城镇登记失业人员数', '城镇新增就业人数', '城镇就业人数', '采矿（掘)业就业人员人数', '制造业就业人员人数'],
+        '生态环保数据': ['森林覆盖率', 'PM2.5', 'PM10', '二氧化硫排放总量', '工业废水排放总量', '生活垃圾无害化处理率', '园林绿地面积']
+    };
+    
     const defaultProvinceCityMap = {
         "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
         "江苏省": ["南京市", "苏州市", "无锡市", "常州市", "镇江市", "南通市", "扬州市", "盐城市", "徐州市", "淮安市", "连云港市", "泰州市", "宿迁市"],
@@ -510,10 +378,125 @@
         "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"]
     };
     
-    const indicatorsList = Object.keys(indicatorGroupMap);
-    totalIndicators = indicatorsList.length;
+    const allIndicatorsList = Object.keys(indicatorGroupMap);
+    totalIndicators = allIndicatorsList.length;
     
-    // 生成模拟数据
+    // ==================== 弹窗逻辑 ====================
+    function initModal() {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const closeModalBtn = document.getElementById('closeModal');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const firstColumn = document.getElementById('firstColumn');
+        const secondColumn = document.getElementById('secondColumn');
+        const modalResultContent = document.getElementById('modalResultContent');
+        let selectedCategory = null;
+        let selectedValue = null;
+        
+        function populateFirstColumn() {
+            firstColumn.innerHTML = '';
+            Object.keys(dataDict).forEach(category => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = category;
+                itemDiv.addEventListener('click', () => {
+                    selectedCategory = category;
+                    selectedValue = null;
+                    document.querySelectorAll('#firstColumn .item').forEach(i => i.classList.remove('selected'));
+                    itemDiv.classList.add('selected');
+                    populateSecondColumn(category);
+                });
+                firstColumn.appendChild(itemDiv);
+            });
+            if (Object.keys(dataDict)[0]) {
+                selectedCategory = Object.keys(dataDict)[0];
+                firstColumn.children[0]?.classList.add('selected');
+                populateSecondColumn(selectedCategory);
+            }
+        }
+        
+        function populateSecondColumn(category) {
+            secondColumn.innerHTML = '';
+            if (!category || !dataDict[category]) {
+                secondColumn.innerHTML = '<div class="no-data">无数据</div>';
+                return;
+            }
+            dataDict[category].forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.textContent = item;
+                if (selectedValue === item) itemDiv.classList.add('selected');
+                itemDiv.addEventListener('click', () => {
+                    selectedValue = item;
+                    document.querySelectorAll('#secondColumn .item').forEach(i => i.classList.remove('selected'));
+                    itemDiv.classList.add('selected');
+                    modalResultContent.innerHTML = `已选择: ${category} -> ${item}`;
+                });
+                secondColumn.appendChild(itemDiv);
+            });
+            modalResultContent.innerHTML = `已选择分类: ${category}，请从右侧选择具体指标`;
+        }
+        
+        populateFirstColumn();
+        
+        closeModalBtn.onclick = () => { modalOverlay.style.display = 'none'; };
+        modalOverlay.onclick = (e) => { if (e.target === modalOverlay) modalOverlay.style.display = 'none'; };
+        confirmBtn.onclick = () => {
+            if (selectedValue) {
+                modalOverlay.style.display = 'none';
+                const indicatorSelect = document.getElementById('replenishIndicatorSelect');
+                // 更新下拉框，将选中指标移到第一位
+                const options = Array.from(indicatorSelect.options);
+                const existingOption = options.find(opt => opt.value === selectedValue);
+                if (!existingOption) {
+                    const newOption = document.createElement('option');
+                    newOption.value = selectedValue;
+                    newOption.textContent = selectedValue;
+                    indicatorSelect.insertBefore(newOption, indicatorSelect.options[1]);
+                }
+                indicatorSelect.value = selectedValue;
+                selectedReplenishIndicator = selectedValue;
+                applyReplenishFilters();
+            } else {
+                alert('请先选择一个指标');
+            }
+        };
+    }
+    
+    function initIndicatorSelect() {
+        const indicatorSelect = document.getElementById('replenishIndicatorSelect');
+        // 初始填充指标列表
+        allIndicatorsList.sort().forEach(indicator => {
+            const opt = document.createElement('option');
+            opt.value = indicator;
+            opt.textContent = indicator;
+            indicatorSelect.appendChild(opt);
+        });
+        
+        indicatorSelect.addEventListener('change', function() {
+            if (this.value === 'custom-selector') {
+                document.getElementById('modalOverlay').style.display = 'flex';
+            } else if (this.value) {
+                selectedReplenishIndicator = this.value;
+                applyReplenishFilters();
+            } else {
+                selectedReplenishIndicator = '';
+                applyReplenishFilters();
+            }
+        });
+    }
+    
+    // 根据省份和城市筛选城市列表
+    function filterCitiesByProvinceAndCity(allCities) {
+        if (selectedCity) {
+            return allCities.filter(city => city === selectedCity);
+        }
+        if (selectedProvince && defaultProvinceCityMap[selectedProvince]) {
+            const provinceCities = defaultProvinceCityMap[selectedProvince];
+            return allCities.filter(city => provinceCities.includes(city));
+        }
+        return allCities;
+    }
+    
     function generateMockData() {
         let allCities = [];
         for (const province in defaultProvinceCityMap) {
@@ -521,62 +504,67 @@
         }
         totalCities = allCities.length;
         
-        // 生成地市完成率数据
+        // 应用省份/城市筛选
+        let filteredCities = filterCitiesByProvinceAndCity(allCities);
+        if (filteredCities.length === 0) filteredCities = allCities;
+        
         cityCompletionData = [];
-        allCities.forEach(city => {
+        filteredCities.forEach(city => {
             const rate = 30 + Math.random() * 70;
-            const completed = Math.floor(rate / 100 * indicatorsList.length);
-            cityCompletionData.push({
-                city: city,
-                province: getProvinceByCity(city),
-                completed: completed,
-                total: indicatorsList.length,
-                rate: parseFloat(rate.toFixed(1))
-            });
+            const completed = Math.floor(rate / 100 * allIndicatorsList.length);
+            cityCompletionData.push({ city, province: getProvinceByCity(city), completed, total: allIndicatorsList.length, rate: parseFloat(rate.toFixed(1)) });
         });
         cityCompletionData.sort((a, b) => b.rate - a.rate);
         
-        // 生成指标覆盖率数据
         indicatorCoverageData = [];
-        indicatorsList.forEach(indicator => {
+        allIndicatorsList.forEach(indicator => {
             const rate = 20 + Math.random() * 75;
             const covered = Math.floor(rate / 100 * totalCities);
-            indicatorCoverageData.push({
-                indicator: indicator,
-                group: indicatorGroupMap[indicator] || 'other',
-                covered: covered,
-                total: totalCities,
-                rate: parseFloat(rate.toFixed(1))
-            });
+            indicatorCoverageData.push({ indicator, group: indicatorGroupMap[indicator] || 'other', covered, total: totalCities, rate: parseFloat(rate.toFixed(1)) });
         });
         indicatorCoverageData.sort((a, b) => b.rate - a.rate);
         
-        // 生成缺失指标数据（用于补录模式）
         missingDataList = [];
-        allCities.forEach(city => {
+        filteredCities.forEach(city => {
             const cityRate = cityCompletionData.find(c => c.city === city)?.rate || 50;
-            const missingCount = Math.floor(indicatorsList.length * (1 - cityRate / 100));
-            const shuffledIndicators = [...indicatorsList].sort(() => 0.5 - Math.random());
+            const missingCount = Math.floor(allIndicatorsList.length * (1 - cityRate / 100));
+            const shuffledIndicators = [...allIndicatorsList].sort(() => 0.5 - Math.random());
             for (let i = 0; i < Math.min(missingCount, 30); i++) {
                 missingDataList.push({
                     id: `${city}_${shuffledIndicators[i]}_${new Date().getFullYear()}`,
-                    city: city,
-                    province: getProvinceByCity(city),
+                    city, province: getProvinceByCity(city),
                     indicator: shuffledIndicators[i],
                     group: indicatorGroupMap[shuffledIndicators[i]] || 'other',
-                    year: new Date().getFullYear(),
-                    value: '',
-                    source: ''
+                    year: new Date().getFullYear(), value: '', source: ''
                 });
             }
         });
         
         applyIndicatorGroupFilter();
-        applyReplenishGroupFilter();
+        applyReplenishFilters();
         updateStatistics();
         renderCityRanking();
         renderChinaMap();
+    }
+    
+    function applyReplenishFilters() {
+        let filtered = [...missingDataList];
+        if (selectedReplenishIndicator) {
+            filtered = filtered.filter(item => item.indicator === selectedReplenishIndicator);
+        }
+        // 应用省份/城市筛选到补录数据
+        let allCities = [];
+        for (const province in defaultProvinceCityMap) {
+            allCities = allCities.concat(defaultProvinceCityMap[province]);
+        }
+        let targetCities = filterCitiesByProvinceAndCity(allCities);
+        if (targetCities.length > 0) {
+            filtered = filtered.filter(item => targetCities.includes(item.city));
+        }
+        filteredMissingData = filtered;
         renderReplenishTable();
+        const countSpan = document.getElementById('replenishCount');
+        if (countSpan) countSpan.textContent = `共 ${filteredMissingData.length} 条记录`;
     }
     
     function applyIndicatorGroupFilter() {
@@ -587,20 +575,7 @@
             filteredIndicatorData = indicatorCoverageData.filter(item => item.group === selectedGroup);
         }
         renderIndicatorCoverage();
-        const countSpan = document.getElementById('filteredCount');
-        if (countSpan) countSpan.textContent = `共 ${filteredIndicatorData.length} 项指标`;
-    }
-    
-    function applyReplenishGroupFilter() {
-        const selectedGroup = document.getElementById('replenishGroupFilter').value;
-        if (selectedGroup === 'all') {
-            filteredMissingData = [...missingDataList];
-        } else {
-            filteredMissingData = missingDataList.filter(item => item.group === selectedGroup);
-        }
-        renderReplenishTable();
-        const countSpan = document.getElementById('replenishCount');
-        if (countSpan) countSpan.textContent = `共 ${filteredMissingData.length} 条缺失记录`;
+        document.getElementById('filteredCount').textContent = `共 ${filteredIndicatorData.length} 项指标`;
     }
     
     function getProvinceByCity(city) {
@@ -611,9 +586,9 @@
     }
     
     function updateStatistics() {
-        const avgCompletion = cityCompletionData.reduce((sum, c) => sum + c.rate, 0) / cityCompletionData.length;
-        const avgCoverage = indicatorCoverageData.reduce((sum, i) => sum + i.rate, 0) / indicatorCoverageData.length;
-        document.getElementById('totalCities').innerText = totalCities;
+        const avgCompletion = cityCompletionData.reduce((sum, c) => sum + c.rate, 0) / (cityCompletionData.length || 1);
+        const avgCoverage = indicatorCoverageData.reduce((sum, i) => sum + i.rate, 0) / (indicatorCoverageData.length || 1);
+        document.getElementById('totalCities').innerText = cityCompletionData.length;
         document.getElementById('avgCompletionRate').innerText = avgCompletion.toFixed(1) + '%';
         document.getElementById('totalIndicators').innerText = totalIndicators;
         document.getElementById('avgCoverageRate').innerText = avgCoverage.toFixed(1) + '%';
@@ -640,19 +615,17 @@
     function renderIndicatorCoverage() {
         const tbody = document.getElementById('indicatorCoverageBody');
         if (!filteredIndicatorData.length) {
-            tbody.innerHTML = '<td><td colspan="6" class="text-center text-slate-400 py-8">暂无数据<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-400 py-8">暂无数据<\/td><\/tr>';
             return;
         }
         tbody.innerHTML = filteredIndicatorData.map((item, idx) => {
             let progressClass = item.rate >= 70 ? 'high' : (item.rate >= 40 ? 'medium' : 'low');
-            const statusBadge = item.rate >= 70 ? '<span class="status-badge status-imported">覆盖率较高</span>' : (item.rate >= 40 ? '<span class="status-badge status-partial">部分覆盖</span>' : '<span class="status-badge status-missing">覆盖率较低</span>');
             return `<tr class="hover:bg-blue-50/30 transition">
                 <td class="text-center font-medium">${idx + 1}<\/td>
                 <td class="font-medium text-slate-800">${item.indicator}<\/td>
                 <td class="text-slate-600">${groupNames[item.group] || '其他'}<\/td>
                 <td class="text-center">${item.covered}/${item.total}<\/td>
                 <td class="min-w-[180px]"><div class="flex items-center gap-2"><div class="progress-bar flex-1"><div class="progress-fill ${progressClass}" style="width: ${item.rate}%"><\/div><\/div><span class="text-sm font-medium ${item.rate >= 70 ? 'text-green-600' : (item.rate >= 40 ? 'text-yellow-600' : 'text-red-500')}">${item.rate}%<\/span><\/div><\/td>
-                <td>${statusBadge}<\/td>
             <\/tr>`;
         }).join('');
     }
@@ -671,35 +644,23 @@
                 <td class="text-slate-600">${item.year}<\/td>
                 <td><input type="text" class="replenish-input" id="val_${item.id}" placeholder="请输入数值"><\/td>
                 <td><select class="replenish-select" id="src_${item.id}"><option value="">选择来源</option><option value="地市统计年鉴">地市统计年鉴</option><option value="省级统计年鉴">省级统计年鉴</option><option value="政府工作报告">政府工作报告</option><option value="专项报告">专项报告</option></select><\/td>
-                <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', ${item.year})">补录</button><\/td>
+                <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', ${item.year})">补录<\/button><\/td>
             <\/tr>
         `).join('');
     }
     
-    // 补录提交函数
     window.submitReplenish = function(id, city, indicator, year) {
         const valueInput = document.getElementById(`val_${id}`);
         const sourceSelect = document.getElementById(`src_${id}`);
         const value = valueInput?.value.trim();
         const source = sourceSelect?.value;
-        
-        if (!value) {
-            alert('请填写数值');
-            return;
-        }
-        if (!source) {
-            alert('请选择数据来源');
-            return;
-        }
-        
-        // 模拟提交
+        if (!value) { alert('请填写数值'); return; }
+        if (!source) { alert('请选择数据来源'); return; }
         alert(`✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}\n数值：${value}\n来源：${source}`);
-        
-        // 从缺失列表中移除
         const index = missingDataList.findIndex(item => item.id === id);
         if (index !== -1) missingDataList.splice(index, 1);
-        applyReplenishGroupFilter();
-        generateMockData(); // 刷新覆盖查询数据
+        applyReplenishFilters();
+        generateMockData();
     };
     
     function renderChinaMap() {
@@ -709,7 +670,7 @@
         myChart = echarts.init(dom);
         const mapData = cityCompletionData.map(item => ({ name: item.city, value: item.rate, completed: item.completed, total: item.total }));
         myChart.setOption({
-            tooltip: { trigger: 'item', formatter: function(params) { return params.data ? `${params.name}<br/>完成率: ${params.data.value}%<br/>已录入: ${params.data.completed}/${params.data.total}` : params.name; } },
+            tooltip: { trigger: 'item', formatter: (params) => params.data ? `${params.name}<br/>完成率: ${params.data.value}%<br/>已录入: ${params.data.completed}/${params.data.total}` : params.name },
             visualMap: { min: 0, max: 100, calculable: true, inRange: { color: ['#fef0d9', '#fdcc8a', '#fc8d59', '#d7301f', '#7f0000'] }, outOfRange: { color: ['#e2e8f0'] }, text: ['高', '低'] },
             series: [{ name: '地市数据录入完成率', type: 'map', map: 'china', roam: true, zoom: 1.2, data: mapData, label: { normal: { show: false }, emphasis: { show: true, color: '#1e40af' } }, itemStyle: { normal: { borderColor: '#cbd5e1', borderWidth: 0.5, areaColor: '#e2e8f0' }, emphasis: { areaColor: '#bfdbfe', borderWidth: 1, borderColor: '#3b82f6' } } }]
         });
@@ -718,6 +679,14 @@
     
     function sortByRateDesc() { cityCompletionData.sort((a, b) => b.rate - a.rate); renderCityRanking(); }
     function sortByNameAsc() { cityCompletionData.sort((a, b) => a.city.localeCompare(b.city)); renderCityRanking(); }
+    
+    // 更新省份和城市筛选
+    function updateProvinceCityFilter() {
+        selectedProvince = document.getElementById('provinceSelect').value;
+        selectedCity = document.getElementById('citySelect').value;
+        selectedYear = document.getElementById('yearSelect').value;
+        performQuery();
+    }
     
     function switchMode() {
         const isReplenish = document.getElementById('modeSwitch').checked;
@@ -733,7 +702,7 @@
             coverageContent.classList.add('hidden');
             coverageTable.classList.add('hidden');
             replenishContent.classList.remove('hidden');
-            applyReplenishGroupFilter();
+            applyReplenishFilters();
         } else {
             currentMode = 'coverage';
             modeHint.innerHTML = '📊 覆盖查询模式';
@@ -777,8 +746,11 @@
         const province = document.getElementById('provinceSelect').value;
         const citySelect = document.getElementById('citySelect');
         let cities = [];
-        if (province && provinceCityMap[province]) cities = provinceCityMap[province];
-        else for (const p in provinceCityMap) cities = cities.concat(provinceCityMap[p]);
+        if (province && provinceCityMap[province]) {
+            cities = provinceCityMap[province];
+        } else {
+            for (const p in provinceCityMap) cities = cities.concat(provinceCityMap[p]);
+        }
         citySelect.innerHTML = '<option value="">全部城市</option>';
         cities.slice(0, 50).forEach(city => { const opt = document.createElement('option'); opt.value = city; opt.textContent = city; citySelect.appendChild(opt); });
     }
@@ -790,7 +762,7 @@
         queryBtn.disabled = true;
         setTimeout(() => {
             generateMockData();
-            if (currentMode === 'replenish') applyReplenishGroupFilter();
+            if (currentMode === 'replenish') applyReplenishFilters();
             queryBtn.innerHTML = originalText;
             queryBtn.disabled = false;
         }, 500);
@@ -801,12 +773,18 @@
             initYearSelect();
             initProvinceSelect();
             updateCitySelect();
-            document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+            initModal();
+            initIndicatorSelect();
+            document.getElementById('provinceSelect').addEventListener('change', () => {
+                updateCitySelect();
+                updateProvinceCityFilter();
+            });
+            document.getElementById('citySelect').addEventListener('change', updateProvinceCityFilter);
+            document.getElementById('yearSelect').addEventListener('change', updateProvinceCityFilter);
             document.getElementById('queryBtn').addEventListener('click', performQuery);
             document.getElementById('sortByRateDesc').addEventListener('click', sortByRateDesc);
             document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
             document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
-            document.getElementById('replenishGroupFilter').addEventListener('change', () => applyReplenishGroupFilter());
             document.getElementById('modeSwitch').addEventListener('change', switchMode);
             generateMockData();
         });

@@ -48,6 +48,9 @@
     .item.selected { background-color: #dbeafe; border-left: 3px solid #3b82f6; color: #1e40af; font-weight: 500; }
     .no-data { padding: 30px 20px; color: #94a3b8; text-align: center; }
     .selection-result { background-color: #f8fafc; border-radius: 0.75rem; padding: 12px 16px; margin-top: 20px; border-left: 4px solid #3b82f6; }
+    .selected-indicator-tag { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .clear-indicator { cursor: pointer; color: #ef4444; font-weight: bold; }
+    .clear-indicator:hover { color: #dc2626; }
 </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
@@ -236,14 +239,15 @@
                     </div>
                     <div class="filter-bar">
                         <span class="text-sm font-semibold text-blue-600">🔍 按指标筛选：</span>
-                        <select id="replenishIndicatorSelect" class="filter-select" style="min-width: 200px;">
+                        <select id="replenishIndicatorSelect" class="filter-select" style="min-width: 180px;">
                             <option value="">全部指标</option>
                             <option value="custom-selector">打开指标项</option>
                         </select>
+                        <span id="selectedIndicatorTag" class="selected-indicator-tag hidden"></span>
                         <span id="replenishCount" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full"></span>
                     </div>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">显示各地市未录入的指标，支持按指标筛选，可进行补录操作</p>
+                <p class="text-xs text-slate-400 mt-1">显示各地市未录入的指标，可进行补录操作</p>
             </div>
             <div class="table-wrapper">
                 <table class="data-table">
@@ -306,9 +310,9 @@
     let myChart = null;
     let currentMode = 'coverage';
     let selectedReplenishIndicator = '';      // 补录模式选中的指标
-    let selectedProvince = '';                 // 选中的省份
-    let selectedCity = '';                     // 选中的城市
-    let selectedYear = '';                     // 选中的年份
+    let selectedProvince = '';
+    let selectedCity = '';
+    let selectedYear = '';
     
     // 指标分组映射
     const indicatorGroupMap = {
@@ -443,18 +447,14 @@
         confirmBtn.onclick = () => {
             if (selectedValue) {
                 modalOverlay.style.display = 'none';
-                const indicatorSelect = document.getElementById('replenishIndicatorSelect');
-                // 更新下拉框，将选中指标移到第一位
-                const options = Array.from(indicatorSelect.options);
-                const existingOption = options.find(opt => opt.value === selectedValue);
-                if (!existingOption) {
-                    const newOption = document.createElement('option');
-                    newOption.value = selectedValue;
-                    newOption.textContent = selectedValue;
-                    indicatorSelect.insertBefore(newOption, indicatorSelect.options[1]);
-                }
-                indicatorSelect.value = selectedValue;
                 selectedReplenishIndicator = selectedValue;
+                // 更新显示标签
+                const tagSpan = document.getElementById('selectedIndicatorTag');
+                tagSpan.innerHTML = `${selectedValue} <span class="clear-indicator" onclick="clearIndicatorFilter()">✕</span>`;
+                tagSpan.classList.remove('hidden');
+                // 重置下拉框显示
+                const indicatorSelect = document.getElementById('replenishIndicatorSelect');
+                indicatorSelect.value = '';
                 applyReplenishFilters();
             } else {
                 alert('请先选择一个指标');
@@ -462,25 +462,23 @@
         };
     }
     
+    // 清除指标筛选
+    window.clearIndicatorFilter = function() {
+        selectedReplenishIndicator = '';
+        const tagSpan = document.getElementById('selectedIndicatorTag');
+        tagSpan.classList.add('hidden');
+        tagSpan.innerHTML = '';
+        const indicatorSelect = document.getElementById('replenishIndicatorSelect');
+        indicatorSelect.value = '';
+        applyReplenishFilters();
+    };
+    
     function initIndicatorSelect() {
         const indicatorSelect = document.getElementById('replenishIndicatorSelect');
-        // 初始填充指标列表
-        allIndicatorsList.sort().forEach(indicator => {
-            const opt = document.createElement('option');
-            opt.value = indicator;
-            opt.textContent = indicator;
-            indicatorSelect.appendChild(opt);
-        });
-        
         indicatorSelect.addEventListener('change', function() {
             if (this.value === 'custom-selector') {
                 document.getElementById('modalOverlay').style.display = 'flex';
-            } else if (this.value) {
-                selectedReplenishIndicator = this.value;
-                applyReplenishFilters();
-            } else {
-                selectedReplenishIndicator = '';
-                applyReplenishFilters();
+                this.value = '';
             }
         });
     }
@@ -504,7 +502,6 @@
         }
         totalCities = allCities.length;
         
-        // 应用省份/城市筛选
         let filteredCities = filterCitiesByProvinceAndCity(allCities);
         if (filteredCities.length === 0) filteredCities = allCities;
         
@@ -552,7 +549,6 @@
         if (selectedReplenishIndicator) {
             filtered = filtered.filter(item => item.indicator === selectedReplenishIndicator);
         }
-        // 应用省份/城市筛选到补录数据
         let allCities = [];
         for (const province in defaultProvinceCityMap) {
             allCities = allCities.concat(defaultProvinceCityMap[province]);
@@ -680,7 +676,6 @@
     function sortByRateDesc() { cityCompletionData.sort((a, b) => b.rate - a.rate); renderCityRanking(); }
     function sortByNameAsc() { cityCompletionData.sort((a, b) => a.city.localeCompare(b.city)); renderCityRanking(); }
     
-    // 更新省份和城市筛选
     function updateProvinceCityFilter() {
         selectedProvince = document.getElementById('provinceSelect').value;
         selectedCity = document.getElementById('citySelect').value;
