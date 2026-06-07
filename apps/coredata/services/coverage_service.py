@@ -10,7 +10,7 @@ from apps.coredata.models.indicator import Indicator
 from apps.coredata.models.stats import CityCompletionStats, IndicatorCoverageStats
 from apps.coredata.utils.mapper import get_city_code_to_province
 
-# 与 indic_data_check_2.html 保持一致的指标组映射
+# 与 indic_data_check_cover.html 保持一致的指标组映射
 INDICATOR_GROUP_MAP: Dict[str, str] = {
     "常住人口数": "population", "城镇人口数": "population", "乡村人口数": "population",
     "户籍人口数": "population", "年末总人口": "population", "年末总户数": "population",

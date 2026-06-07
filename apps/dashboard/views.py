@@ -127,7 +127,7 @@ def indicator_check(request):
 @login_required
 @require_http_methods(['GET'])
 def indicator_check_2(request):
-    return render(request, 'dashboard/indic_data_check_2.html')
+    return render(request, 'dashboard/indic_data_check_cover.html')
 
 
 
