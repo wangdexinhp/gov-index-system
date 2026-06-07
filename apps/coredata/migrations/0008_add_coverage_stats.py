@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("coredata", "0001_initial"),
+        ("coredata", "0007_durationmultiplierconfig_indicatorconfig_and_more"),
     ]
 
     operations = [
