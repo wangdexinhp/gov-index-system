@@ -32,6 +32,10 @@
     .replenish-select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; }
     .btn-replenish { background: #10b981; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: none; }
     .btn-replenish:hover { background: #059669; }
+    .btn-replenish-batch { background: #2563eb; color: white; padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-replenish-batch:hover { background: #1d4ed8; }
+    .btn-replenish-batch:disabled { background: #94a3b8; cursor: not-allowed; }
+    .replenish-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background-color: white; width: 90%; max-width: 700px; border-radius: 1rem; box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2); overflow: hidden; }
     .modal-header { background: #1e3a8a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -264,6 +268,17 @@
                     </thead>
                     <tbody id="replenishTableBody"><tr><td colspan="7" class="text-center text-slate-400 py-8">加载中...<\/td><\/tr></tbody>
                 </table>
+            </div>
+            <div class="replenish-footer">
+                <div class="text-sm text-slate-500">
+                    <span id="replenishReadyCount">已填写 0 条</span>
+                    <span class="text-slate-300 mx-2">|</span>
+                    <span class="text-xs">仅提交已填写「数值」和「数据来源」的记录</span>
+                </div>
+                <button id="batchReplenishBtn" class="btn-replenish-batch" type="button">
+                    <iconify-icon icon="mdi:upload-multiple"></iconify-icon>
+                    批量提交补录
+                </button>
             </div>
         </div>
     </div>
@@ -634,13 +649,92 @@
         }).join('');
     }
     
+    function collectReplenishRows() {
+        const rowsMap = {};
+        const invalid = [];
+        let readyCount = 0;
+
+        for (const item of filteredMissingData) {
+            const valueInput = document.getElementById(`val_${item.id}`);
+            const sourceSelect = document.getElementById(`src_${item.id}`);
+            const value = valueInput?.value.trim() || '';
+            const source = sourceSelect?.value || '';
+
+            if (!value && !source) continue;
+            if (!value || !source) {
+                invalid.push(item);
+                continue;
+            }
+
+            readyCount += 1;
+            const key = `${item.city}|${item.province}|${item.year}`;
+            if (!rowsMap[key]) {
+                rowsMap[key] = {
+                    city: item.city,
+                    province: item.province,
+                    year: item.year,
+                    groups: [],
+                };
+            }
+            rowsMap[key].groups.push({
+                name_zh: item.indicator,
+                name_en: item.indicator_en,
+                value: value,
+                source: source,
+                note: '',
+            });
+        }
+
+        return { rows: Object.values(rowsMap), invalid, readyCount };
+    }
+
+    function updateReplenishReadyCount() {
+        const countSpan = document.getElementById('replenishReadyCount');
+        if (!countSpan) return;
+        const { readyCount, invalid } = collectReplenishRows();
+        if (invalid.length > 0) {
+            countSpan.textContent = `已填写 ${readyCount} 条，${invalid.length} 条不完整`;
+            countSpan.className = 'text-amber-600 font-medium';
+        } else {
+            countSpan.textContent = `已填写 ${readyCount} 条`;
+            countSpan.className = readyCount > 0 ? 'text-green-600 font-medium' : 'text-slate-500';
+        }
+    }
+
+    function bindReplenishInputEvents() {
+        filteredMissingData.forEach(item => {
+            const valueInput = document.getElementById(`val_${item.id}`);
+            const sourceSelect = document.getElementById(`src_${item.id}`);
+            if (valueInput) valueInput.addEventListener('input', updateReplenishReadyCount);
+            if (sourceSelect) sourceSelect.addEventListener('change', updateReplenishReadyCount);
+        });
+        updateReplenishReadyCount();
+    }
+
+    async function postReplenishRows(rows, successMsg) {
+        const formData = new FormData();
+        formData.append('rows_json', JSON.stringify(rows));
+        const res = await fetch('/dashboard/submit/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            body: formData,
+        });
+        const json = await parseApiResponse(res, '补录提交');
+        if (!json.success) throw new Error(json.message || '补录失败');
+        alert(successMsg || `✅ 补录成功！共提交 ${json.count || rows.length} 条城市记录`);
+        await fetchCoverageData();
+        if (currentMode === 'replenish') await fetchMissingRecords();
+    }
+
     function renderReplenishTable() {
         const tbody = document.getElementById('replenishTableBody');
         if (!filteredMissingData.length) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-8">暂无缺失数据，所有指标均已录入！<\/td><\/tr>';
+            updateReplenishReadyCount();
             return;
         }
-        tbody.innerHTML = filteredMissingData.slice(0, 100).map((item, idx) => `
+        tbody.innerHTML = filteredMissingData.map((item, idx) => `
             <tr class="hover:bg-blue-50/30 transition">
                 <td class="text-center">${idx + 1}<\/td>
                 <td class="font-medium text-slate-800">${item.city}<\/td>
@@ -651,8 +745,9 @@
                 <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}')">补录<\/button><\/td>
             <\/tr>
         `).join('');
+        bindReplenishInputEvents();
     }
-    
+
     window.submitReplenish = async function(id, city, indicator, indicatorEn, year, province) {
         const valueInput = document.getElementById(`val_${id}`);
         const sourceSelect = document.getElementById(`src_${id}`);
@@ -660,29 +755,44 @@
         const source = sourceSelect?.value;
         if (!value) { alert('请填写数值'); return; }
         if (!source) { alert('请选择数据来源'); return; }
-        const formData = new FormData();
-        formData.append('rows_json', JSON.stringify([{
-            city: city,
-            province: province,
-            year: year,
-            groups: [{ name_zh: indicator, name_en: indicatorEn, value: value, source: source, note: '' }]
-        }]));
         try {
-            const res = await fetch('/dashboard/submit/', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'X-CSRFToken': getCsrfToken() },
-                body: formData,
-            });
-            const json = await parseApiResponse(res, '补录提交');
-            if (!json.success) throw new Error(json.message || '补录失败');
-            alert(`✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}`);
-            await fetchCoverageData();
-            if (currentMode === 'replenish') await fetchMissingRecords();
+            await postReplenishRows([{
+                city: city,
+                province: province,
+                year: year,
+                groups: [{ name_zh: indicator, name_en: indicatorEn, value: value, source: source, note: '' }],
+            }], `✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}`);
         } catch (e) {
             alert('补录失败：' + e.message);
         }
     };
+
+    async function submitAllReplenish() {
+        const { rows, invalid, readyCount } = collectReplenishRows();
+        if (readyCount === 0) {
+            alert('请至少填写一条完整的「数值」和「数据来源」');
+            return;
+        }
+        const indicatorCount = rows.reduce((sum, r) => sum + r.groups.length, 0);
+        let confirmMsg = `确认批量提交 ${indicatorCount} 条补录数据？`;
+        if (invalid.length > 0) {
+            confirmMsg = `有 ${invalid.length} 条记录填写不完整将被跳过，确认提交其余 ${indicatorCount} 条？`;
+        }
+        if (!confirm(confirmMsg)) return;
+
+        const btn = document.getElementById('batchReplenishBtn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 提交中...';
+        try {
+            await postReplenishRows(rows, `✅ 批量补录成功！共提交 ${indicatorCount} 条指标数据`);
+        } catch (e) {
+            alert('批量补录失败：' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
     
     function renderChinaMap() {
         const dom = document.getElementById('chinaMap');
@@ -815,6 +925,7 @@
             document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
             document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
             document.getElementById('modeSwitch').addEventListener('change', switchMode);
+            document.getElementById('batchReplenishBtn').addEventListener('click', submitAllReplenish);
             performQuery();
         });
     });
