@@ -127,8 +127,7 @@ def indicator_check(request):
 @login_required
 @require_http_methods(['GET'])
 def indicator_check_2(request):
-
-    return render(request, 'dashboard/indic_data_check_2.html')
+    return render(request, 'dashboard/indic_data_check_cover.html')
 
 
 
@@ -421,19 +420,21 @@ def save_to_database(rows_data):
             note = group.get('note')
             name_zh = group.get('name_zh')
             name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
-            name_en = INDIMAP.get(name_zh)
+            name_en = group.get('name_en') or INDIMAP.get(name_zh)
 
-            Indicator.objects.create(
+            Indicator.objects.update_or_create(
                 year=year,
-                province_id=province_id,
                 city_id=city_id,
-                source=source or '',
-                value=value or 0,
                 name_en=name_en or '',
-                note=note or '',
-                name_zh= name_zh or '',  
-                input_form=Indicator.InputForm.INPUT,
-                indicator_type=Indicator.IndicatorType.OTHER,
+                defaults={
+                    'province_id': province_id,
+                    'source': source or '',
+                    'value': value or 0,
+                    'note': note or '',
+                    'name_zh': name_zh or '',
+                    'input_form': Indicator.InputForm.INPUT,
+                    'indicator_type': Indicator.IndicatorType.OTHER,
+                },
             )
 
 def save_area_to_database(rows_data):
