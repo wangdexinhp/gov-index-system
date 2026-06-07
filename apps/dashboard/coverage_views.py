@@ -1,4 +1,7 @@
 import json
+import logging
+import traceback
+from functools import wraps
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -11,6 +14,18 @@ from apps.coredata.services.coverage_service import (
     rebuild_coverage_stats,
 )
 
+logger = logging.getLogger(__name__)
+
+
+def api_login_required(view_func):
+    """API 专用登录校验：未登录时返回 JSON，避免重定向导致前端解析失败。"""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"success": False, "message": "请先登录"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
 
 def _require_admin(request):
     if not request.user.is_authenticated:
@@ -21,7 +36,7 @@ def _require_admin(request):
     return None
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def coverage_overview_api(request):
     """
@@ -38,10 +53,12 @@ def coverage_overview_api(request):
         )
         return JsonResponse({"success": True, **data})
     except Exception as e:
+        logger.error("coverage_overview_api failed: %s", e)
+        traceback.print_exc()
         return JsonResponse({"success": False, "message": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def missing_records_api(request):
     """
@@ -62,6 +79,8 @@ def missing_records_api(request):
         )
         return JsonResponse({"success": True, **data})
     except Exception as e:
+        logger.error("missing_records_api failed: %s", e)
+        traceback.print_exc()
         return JsonResponse({"success": False, "message": str(e)}, status=500)
 
 
@@ -84,4 +103,6 @@ def rebuild_coverage_stats_api(request):
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "请求体 JSON 格式错误"}, status=400)
     except Exception as e:
+        logger.error("rebuild_coverage_stats_api failed: %s", e)
+        traceback.print_exc()
         return JsonResponse({"success": False, "message": str(e)}, status=500)

@@ -1,6 +1,7 @@
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
+from django.db import DatabaseError
 from django.db.models import Max
 from django.utils import timezone
 
@@ -116,12 +117,17 @@ def get_cities_in_scope(
 
 
 def _get_completed_by_city(year: int, city_ids: List[int]) -> Dict[int, set]:
+    result: Dict[int, set] = {cid: set() for cid in city_ids}
+    if not city_ids:
+        return result
+    if not Indicator.objects.filter(year=year).exists():
+        return result
+
     rows = Indicator.objects.filter(
         year=year,
         city_id__in=city_ids,
         name_en__in=TRACKABLE_NAME_EN_SET,
     ).values_list("city_id", "name_en")
-    result: Dict[int, set] = {cid: set() for cid in city_ids}
     for city_id, name_en in rows:
         result.setdefault(city_id, set()).add(name_en)
     return result
@@ -224,17 +230,12 @@ def build_summary(city_completion: List[Dict], indicator_coverage: List[Dict]) -
     }
 
 
-def get_coverage_overview(
-    year_param: Optional[str] = None,
-    province: Optional[str] = None,
-    city: Optional[str] = None,
-    indicator_group: Optional[str] = None,
-) -> Dict:
-    year = resolve_year(year_param)
-    cities = get_cities_in_scope(province, city)
+def _load_cached_overview(year: int) -> Optional[Dict]:
+    """读取统计缓存；表不存在或数据异常时返回 None，由实时计算兜底。"""
+    try:
+        if not CityCompletionStats.objects.filter(year=year).exists():
+            return None
 
-    use_cache = not province and not city and not indicator_group
-    if use_cache and CityCompletionStats.objects.filter(year=year).exists():
         city_stats = CityCompletionStats.objects.filter(year=year).order_by("-completion_rate")
         city_completion = [{
             "city_id": s.city_id,
@@ -255,6 +256,33 @@ def get_coverage_overview(
             "total": s.total_cities,
             "rate": float(s.coverage_rate),
         } for s in ind_stats]
+
+        if not city_completion and not indicator_coverage:
+            return None
+
+        return {
+            "city_completion": city_completion,
+            "indicator_coverage": indicator_coverage,
+        }
+    except DatabaseError:
+        return None
+
+
+def get_coverage_overview(
+    year_param: Optional[str] = None,
+    province: Optional[str] = None,
+    city: Optional[str] = None,
+    indicator_group: Optional[str] = None,
+) -> Dict:
+    year = resolve_year(year_param)
+    cities = get_cities_in_scope(province, city)
+
+    use_cache = not province and not city and not indicator_group
+    cached = _load_cached_overview(year) if use_cache else None
+
+    if cached:
+        city_completion = cached["city_completion"]
+        indicator_coverage = cached["indicator_coverage"]
     else:
         city_completion = compute_city_completion(year, cities, indicator_group)
         indicator_coverage = compute_indicator_coverage(year, cities, indicator_group)
@@ -283,13 +311,25 @@ def get_missing_records(
 
     city_ids = [c["city_id"] for c in cities]
     completed_map = _get_completed_by_city(year, city_ids)
+    indicator_ens = {item["name_en"] for item in indicators}
 
-    missing = []
+    completed_count = 0
+    for city_info in cities:
+        completed_set = completed_map.get(city_info["city_id"], set())
+        completed_count += len(completed_set & indicator_ens)
+
+    total = len(cities) * len(indicators) - completed_count
+    start = (page - 1) * page_size
+    page_data = []
+    cursor = 0
+
     for city_info in cities:
         completed_set = completed_map.get(city_info["city_id"], set())
         for item in indicators:
-            if item["name_en"] not in completed_set:
-                missing.append({
+            if item["name_en"] in completed_set:
+                continue
+            if cursor >= start and len(page_data) < page_size:
+                page_data.append({
                     "id": f"{city_info['city']}_{item['name_zh']}_{year}",
                     "city": city_info["city"],
                     "city_id": city_info["city_id"],
@@ -299,11 +339,11 @@ def get_missing_records(
                     "year": year,
                     "group": item["group"],
                 })
-
-    total = len(missing)
-    start = (page - 1) * page_size
-    end = start + page_size
-    page_data = missing[start:end]
+            cursor += 1
+            if len(page_data) >= page_size:
+                break
+        if len(page_data) >= page_size:
+            break
 
     return {
         "year": year,
