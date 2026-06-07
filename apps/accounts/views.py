@@ -2,7 +2,7 @@
 import json
 import random
 import string
-import re
+import re,os
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -14,6 +14,12 @@ from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
 from allauth.account.views import SignupView
 from .forms import CustomSignupForm
+
+from alibabacloud_tea_openapi.models import Config  
+from alibabacloud_dysmsapi20170525.client import Client
+from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
+from alibabacloud_tea_util import models as util_models
+
 
 
 class CustomSignupView(SignupView):
@@ -80,7 +86,55 @@ class SendSmsCodeView(View):
         #     cache.delete(rate_limit_key)
         #     return JsonResponse({'status': 'error', 'msg': f'系统错误: {str(e)}'})
 
-        return JsonResponse({'status': 'success', 'msg': '验证码发送成功'})
+        sms_code = sms_code
+        cache_key = f"sms_{mobile}"
+        rate_limit_key = f"sms_limit_{mobile}"
+
+        # AK/SK 从环境变量获取
+        AK = os.getenv("ALIBABA_CLOUD_AK")
+        SK = os.getenv("ALIBABA_CLOUD_SK")
+
+        try:
+            # 配置
+            config = Config(access_key_id=AK, access_key_secret=SK)
+            config.endpoint = "dysmsapi.aliyuncs.com"
+            client = Client(config)
+            
+            # 创建发送请求对象
+            # send_sms_request = dysmsapi_models.SendSmsRequest(
+            #     phone_numbers=mobile,           # 注意：下划线命名
+            #     sign_name="阿里云",
+            #     template_code="SMS_154950909",
+            #     template_param=json.dumps({"code": sms_code})
+            # )
+            send_sms_request = dysmsapi_models.SendSmsRequest(
+                phone_numbers=mobile,
+                sign_name="海杰人文智能",                     # 测试专用签名，必须是“阿里云”
+                template_code="SMS_327784823",         # 测试专用模板CODE
+                template_param=json.dumps({
+                    "code": sms_code,                  # 模板里的${code}变量
+                    "minute": "5"                      # 模板里的${minute}变量
+                })
+            )
+            
+            # 发送短信（可选：添加运行时配置）
+            runtime = util_models.RuntimeOptions()
+            result = client.send_sms_with_options(send_sms_request, runtime)
+            
+            # 判断结果
+            if result.body.code == "OK":
+                return JsonResponse({'status': 'success', 'msg': '发送成功'})
+            else:
+                cache.delete(cache_key)
+                cache.delete(rate_limit_key)
+                return JsonResponse({'status': 'error', 'msg': result.body.message})
+                
+        except Exception as e:
+            cache.delete(cache_key)
+            cache.delete(rate_limit_key)
+            return JsonResponse({'status': 'error', 'msg': f'错误：{str(e)}'})
+
+        # return JsonResponse({'status': 'success', 'msg': '验证码发送成功'})
 
 
 @method_decorator(csrf_exempt, name='dispatch')

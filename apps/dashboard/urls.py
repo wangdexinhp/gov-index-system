@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.dashboard_home, name='home'),
     path('area_input', views.area_input, name='area_input'),
     path('indicator-check', views.indicator_check, name='indicator_check'),  
+    path('indicator-check-2', views.indicator_check_2, name='indicator_check_2'),  
 
 
     # 城市数据查询路径
@@ -41,8 +42,16 @@ urlpatterns = [
     # 核查指标API接口
     path('api/check-data/', views.check_data_api, name='check_data_api'),
 
+    # 价格配置API接口
+    path('api/pricing-config/', views.get_pricing_config, name='get_pricing_config'),
+    path('api/update-pricing-config/', views.update_pricing_config, name='update_pricing_config'),
+
+    # 指标配置API接口
+    path('api/org-indicator-config/', views.org_indicator_config, name='org_indicator_config'),
+    path('api/personal-indicator-config/', views.personal_indicator_config, name='personal_indicator_config'),
+
+    # 会员激活接口
+    path('api/activate-membership/', views.activate_membership, name='activate_membership'),
 
 
-
-
-] 
+]

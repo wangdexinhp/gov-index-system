@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.db import IntegrityError
 
@@ -9,6 +10,7 @@ from django.http import JsonResponse, HttpResponse
 import json,re
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.models.indicator import IndicatorArea
+from apps.coredata.models.price import PricingConfig, IndicatorConfig, DurationMultiplierConfig
 
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS,html_city_Map,html_area_Map
     
@@ -19,7 +21,84 @@ import pandas as pd
 from datetime import datetime
 
 import secrets
+from functools import wraps
 from .models import UserSettings, SubscriptionPlan
+
+
+# ==================== 会员权限验证装饰器 ====================
+def check_membership(view_func):
+    """
+    会员权限验证装饰器
+    验证用户是否有权限查看请求的城市和指标数据
+    从 GET 参数中提取 city 和 name_zh 进行校验
+    """
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        profile = request.user.profile
+        
+        # 管理员可以查看所有数据
+        if profile.membership_level == 'admin':
+            return view_func(request, *args, **kwargs)
+        
+        # 检查会员是否过期
+        if not profile.is_membership_active:
+            return JsonResponse({
+                'success': False,
+                'message': '您的会员已过期，请续费后继续使用',
+                'code': 'membership_expired'
+            }, status=403)
+        
+        # 解析会员权限范围
+        import json as _json
+        try:
+            allowed_cities = _json.loads(profile.membership_scope_city or '[]')
+            allowed_indicators = _json.loads(profile.membership_scope_item or '[]')
+        except (json.JSONDecodeError, TypeError):
+            allowed_cities = []
+            allowed_indicators = []
+        
+        # 从 GET 参数中提取请求的城市
+        requested_cities = []
+        city_param = request.GET.get('city', '')
+        if city_param:
+            requested_cities = [c.strip() for c in city_param.split(',') if c.strip()]
+        
+        # 从 GET 参数中提取请求的指标
+        requested_indicators = []
+        indicator_param = request.GET.get('name_zh', '')
+        if indicator_param:
+            requested_indicators = [ind.strip() for ind in indicator_param.split(',') if ind.strip()]
+        
+        # 检查城市权限
+        if requested_cities:
+            # 如果用户购买了"全国"权限，允许查看所有城市
+            if '全国' not in allowed_cities:
+                unauthorized_cities = [c for c in requested_cities if c not in allowed_cities]
+                if unauthorized_cities:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'您没有以下城市的查看权限: {", ".join(unauthorized_cities)}',
+                        'code': 'city_not_allowed',
+                        'unauthorized_cities': unauthorized_cities,
+                        'allowed_cities': allowed_cities,
+                    }, status=403)
+        
+        # 检查指标权限
+        if requested_indicators:
+            unauthorized_indicators = [ind for ind in requested_indicators if ind not in allowed_indicators]
+            if unauthorized_indicators:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'您没有以下指标的查看权限: {", ".join(unauthorized_indicators)}',
+                    'code': 'indicator_not_allowed',
+                    'unauthorized_indicators': unauthorized_indicators,
+                    'allowed_indicators': allowed_indicators,
+                }, status=403)
+        
+        return view_func(request, *args, **kwargs)
+    
+    return _wrapped_view
 
 
 @login_required
@@ -43,6 +122,13 @@ def area_input(request):
 def indicator_check(request):
 
     return render(request, 'dashboard/indic_data_check.html')
+
+
+@login_required
+@require_http_methods(['GET'])
+def indicator_check_2(request):
+
+    return render(request, 'dashboard/indic_data_check_2.html')
 
 
 
@@ -456,7 +542,7 @@ def submit_area_data(request):
 
 
 # === 单一指标历年查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_query(request):
     # indicator_en = request.GET.get('name_en')
@@ -523,7 +609,7 @@ def single_indicator_query(request):
 
 
 # === 区县单一指标历年查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_area_query(request):
     indicator_zh = request.GET.get('name_zh')
@@ -593,7 +679,7 @@ def single_indicator_area_query(request):
     })
 
 # === 单一指标多城市查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def single_indicator_city_query(request):
     indicator_zh = request.GET.get('name_zh')
@@ -967,7 +1053,7 @@ def save_area_df_to_database(rows_data, year):
 
 
 # === 多指标多城市查询接口 ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def many_indicator_city_query(request):
     # 获取多个指标（用逗号分隔）
@@ -1226,7 +1312,7 @@ def indicator_audit_check(request):
         })
 
 # === 指标数据核对查询API ===
-@login_required
+@check_membership
 @require_http_methods(['GET'])
 def check_data_api(request):
     """
@@ -1309,4 +1395,278 @@ def check_data_api(request):
             'records': []
         })
 
+
+
+
+
+# ==================== 保存价格配置接口（接收前端修改后的价格数据） ====================
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def update_pricing_config(request):
+    """
+    更新价格配置，从前端接收修改后的价格数据并保存到数据库
+    POST /dashboard/api/update-pricing-config/
+    
+    请求体:
+        {
+            "price_list": [
+                { "level": "全国", "userType": "个人用户", "duration": "年", "price": 19999, "days": 365, "category": "national" },
+                ...
+            ]
+        }
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        price_list = data.get('price_list', [])
+        
+        # 映射前端 duration -> 数据库 duration code
+        duration_map = {
+            '年': 'year',
+            '月': 'month', 
+            '周': 'week',
+            '15天': '15days',
+            '24小时': '24hour',
+        }
+        
+        # 映射前端 userType -> 数据库 user_type
+        user_type_map = {
+            '个人用户': 'personal',
+            '机构用户': 'org',
+        }
+        
+        # 映射前端 category -> 数据库 level_code
+        level_code_map = {
+            'national': 'national',
+            'region': 'region',
+            'province': 'province',
+            'municipality': 'municipality',
+            'city': 'city',
+        }
+        
+        updated_count = 0
+        for item in price_list:
+            level_code = level_code_map.get(item.get('category', ''))
+            user_type = user_type_map.get(item.get('userType', ''))
+            duration = duration_map.get(item.get('duration', ''))
+            new_price = item.get('price')
+            
+            if not level_code or not user_type or not duration or new_price is None:
+                print(f"跳过无效配置项: {item}")
+                continue
+            
+            # 查找匹配的记录并更新价格
+            updated = PricingConfig.objects.filter(
+                level_code=level_code,
+                user_type=user_type,
+                duration=duration,
+            ).update(price=new_price)
+            
+            if updated > 0:
+                updated_count += updated
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'成功更新 {updated_count} 条价格配置',
+            'updated_count': updated_count
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '请求数据格式错误'
+        }, status=400)
+    except Exception as e:
+        print(f"更新价格配置时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'更新价格配置失败: {str(e)}'
+        }, status=500)
+
+
+# ==================== 价格配置接口（返回前端需要的格式） ====================
+@require_http_methods(["GET"])
+def get_pricing_config(request):
+    """
+    获取价格配置，返回前端期望的格式
+    GET /api/coredata/pricing-config/
+    
+    返回格式:
+        {
+            "success": true,
+            "data": [
+                { "level": "全国", "userType": "个人用户", "duration": "年", "price": 19999, "days": 365, "category": "national" },
+                ...
+            ]
+        }
+    """
+    try:
+        # 从数据库查询所有启用的价格配置
+        pricing_list = PricingConfig.objects.filter(is_active=True).order_by('sort_order')
+        
+        # 转换为前端期望的格式
+        result = []
+        for item in pricing_list:
+            # 映射 level_code 到 category
+            category_map = {
+                'national': 'national',
+                'region': 'region', 
+                'province': 'province',
+                'municipality': 'municipality',
+                'city': 'city'
+            }
+            
+            result.append({
+                'level': item.level,
+                'userType': item.user_type_name,
+                'duration': item.duration_name,
+                'price': float(item.price),
+                'days': item.days,
+                'category': category_map.get(item.level_code, item.level_code)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'data': result
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
+
+
+# ==================== 指标配置接口（返回前端需要的指标列表） ====================
+@require_http_methods(["GET"])
+def org_indicator_config(request):
+    """
+    获取机构用户可查看的指标列表
+    GET /dashboard/api/org-indicator-config/
+    """
+    try:
+        indicators = IndicatorConfig.objects.filter(
+            user_type='org',
+            is_active=True
+        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
+        
+        return JsonResponse({
+            'success': True,
+            'data': list(indicators)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
+
+
+@require_http_methods(["GET"])
+def personal_indicator_config(request):
+    """
+    获取个人用户可查看的指标列表
+    GET /dashboard/api/personal-indicator-config/
+    """
+    try:
+        indicators = IndicatorConfig.objects.filter(
+            user_type='personal',
+            is_active=True
+        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
+        
+        return JsonResponse({
+            'success': True,
+            'data': list(indicators)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e),
+            'data': []
+        })
+
+
+# ==================== 会员激活接口 ====================
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def activate_membership(request):
+    """
+    支付成功后激活会员，更新 UserProfile 中的会员等级、过期时间和权限范围
+    POST /dashboard/api/activate-membership/
+    
+    请求体:
+        {
+            "duration": "year",       // 会员时长: week / month / year
+            "cities": ["北京市", "上海市"],  // 可查看的城市列表
+            "indicators": ["GDP", "人均GDP"]  // 可查看的指标列表
+        }
+    """
+    try:
+        import json
+        from datetime import timedelta
+        
+        data = json.loads(request.body)
+        duration = data.get('duration', 'month')  # week / month / year
+        cities = data.get('cities', [])
+        indicators = data.get('indicators', [])
+        
+        # 时长映射
+        duration_map = {
+            'day': ('day', 1, '日会员'),
+            'week': ('week', 7, '周会员'),
+            'month': ('month', 30, '月会员'),
+            'year': ('year', 365, '年会员'),
+        }
+        
+        if duration not in duration_map:
+            return JsonResponse({
+                'success': False,
+                'message': f'不支持的会员时长: {duration}'
+            }, status=400)
+        
+        level_code, days, level_name = duration_map[duration]
+        
+        profile = request.user.profile
+        
+        # 如果已有会员且未过期，在剩余时间基础上叠加
+        now = timezone.now()
+        if profile.is_membership_active and profile.membership_expires_at > now:
+            # 从当前过期时间开始叠加
+            new_expiry = profile.membership_expires_at + timedelta(days=days)
+        else:
+            # 从当前时间开始
+            new_expiry = now + timedelta(days=days)
+        
+        # 更新会员信息
+        profile.membership_level = level_code
+        profile.membership_expires_at = new_expiry
+        profile.membership_scope_city = json.dumps(cities, ensure_ascii=False)
+        profile.membership_scope_item = json.dumps(indicators, ensure_ascii=False)
+        profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'会员已激活，有效期至 {new_expiry.strftime("%Y-%m-%d %H:%M")}',
+            'data': {
+                'membership_level': level_code,
+                'membership_level_name': level_name,
+                'expires_at': new_expiry.strftime('%Y-%m-%d %H:%M:%S'),
+                'cities': cities,
+                'indicators': indicators,
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '请求数据格式错误'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'激活会员失败: {str(e)}'
+        }, status=500)
 

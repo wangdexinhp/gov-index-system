@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>指标数据核对查询 | 数据指标管理系统</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<script src="/static/js/tailwindcss.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <style>
     body {
         background: #f0f4f9;
@@ -166,6 +166,8 @@
             <a href="/dashboard/" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">地市指标录入</a>
             <a href="/dashboard/area_input" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">区县指标录入</a>
             <a href="/dashboard/indicator-check" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">指标校验</a>
+            <a href="/dashboard/indicator-check-2" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">指标覆盖查询</a>
+
         </div>
     </div>
 
@@ -460,11 +462,32 @@
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json().then(errData => {
+                    throw errData;
+                }).catch(err => {
+                    if (err && err.code) throw err;
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
             }
             return response.json();
         })
         .then(data => {
+            if (!data.success) {
+                if (data.code === 'membership_expired' || data.code === 'city_not_allowed' || data.code === 'indicator_not_allowed') {
+                    alert('⚠️ ' + data.message);
+                    queryBtn.innerHTML = originalText;
+                    queryBtn.disabled = false;
+                    return;
+                }
+                filteredData = [];
+                allData = [];
+                updateStatistics();
+                updateGroupStats();
+                renderTable();
+                queryBtn.innerHTML = originalText;
+                queryBtn.disabled = false;
+                return;
+            }
             // 处理返回的数据
             filteredData = data.records || [];
             allData = filteredData; // 更新全局数据
@@ -482,7 +505,11 @@
         })
         .catch(error => {
             console.error('查询失败:', error);
-            alert('查询失败，请稍后重试');
+            if (error.code === 'membership_expired' || error.code === 'city_not_allowed' || error.code === 'indicator_not_allowed') {
+                alert('⚠️ ' + error.message);
+            } else {
+                alert('查询失败，请稍后重试');
+            }
             
             // 恢复按钮状态
             queryBtn.innerHTML = originalText;
