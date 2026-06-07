@@ -804,7 +804,23 @@
         const mapData = cityCompletionData.map(item => ({ name: item.city, value: item.rate, completed: item.completed, total: item.total }));
         myChart.setOption({
             tooltip: { trigger: 'item', formatter: (params) => params.data ? `${params.name}<br/>完成率: ${params.data.value}%<br/>已录入: ${params.data.completed}/${params.data.total}` : params.name },
-            visualMap: { min: 0, max: 100, calculable: true, inRange: { color: ['#fef0d9', '#fdcc8a', '#fc8d59', '#d7301f', '#7f0000'] }, outOfRange: { color: ['#e2e8f0'] }, text: ['高', '低'] },
+            visualMap: {
+                type: 'piecewise',
+                orient: 'vertical',
+                right: 10,
+                bottom: 20,
+                text: ['高', '低'],
+                itemWidth: 14,
+                itemHeight: 14,
+                pieces: [
+                    { gte: 90, lte: 100, label: '90-100%', color: '#7f0000' },
+                    { gte: 80, lt: 90, label: '80-90%', color: '#d7301f' },
+                    { gte: 60, lt: 80, label: '60-80%', color: '#fc8d59' },
+                    { gte: 40, lt: 60, label: '40-60%', color: '#fdcc8a' },
+                    { gte: 20, lt: 40, label: '20-40%', color: '#fef0d9' },
+                    { gte: 0, lt: 20, label: '0-20%', color: '#cbd5e1' },
+                ],
+            },
             series: [{ name: '地市数据录入完成率', type: 'map', map: 'china', roam: true, zoom: 1.2, data: mapData, label: { normal: { show: false }, emphasis: { show: true, color: '#1e40af' } }, itemStyle: { normal: { borderColor: '#cbd5e1', borderWidth: 0.5, areaColor: '#e2e8f0' }, emphasis: { areaColor: '#bfdbfe', borderWidth: 1, borderColor: '#3b82f6' } } }]
         });
         window.addEventListener('resize', () => myChart?.resize());
