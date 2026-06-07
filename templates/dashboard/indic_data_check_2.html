@@ -383,7 +383,19 @@
     };
     
     const allIndicatorsList = Object.keys(indicatorGroupMap);
-    totalIndicators = allIndicatorsList.length;
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function buildQueryParams() {
+        const params = new URLSearchParams();
+        if (selectedYear) params.set('year', selectedYear);
+        if (selectedProvince) params.set('province', selectedProvince);
+        if (selectedCity) params.set('city', selectedCity);
+        return params;
+    }
     
     // ==================== 弹窗逻辑 ====================
     function initModal() {
@@ -455,7 +467,9 @@
                 // 重置下拉框显示
                 const indicatorSelect = document.getElementById('replenishIndicatorSelect');
                 indicatorSelect.value = '';
-                applyReplenishFilters();
+                if (currentMode === 'replenish') {
+                    fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
+                }
             } else {
                 alert('请先选择一个指标');
             }
@@ -470,7 +484,11 @@
         tagSpan.innerHTML = '';
         const indicatorSelect = document.getElementById('replenishIndicatorSelect');
         indicatorSelect.value = '';
-        applyReplenishFilters();
+        if (currentMode === 'replenish') {
+            fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
+        } else {
+            applyReplenishFilters();
+        }
     };
     
     function initIndicatorSelect() {
@@ -483,81 +501,41 @@
         });
     }
     
-    // 根据省份和城市筛选城市列表
-    function filterCitiesByProvinceAndCity(allCities) {
-        if (selectedCity) {
-            return allCities.filter(city => city === selectedCity);
+    async function fetchCoverageData() {
+        const params = buildQueryParams();
+        const res = await fetch(`/dashboard/api/coverage-overview/?${params}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || '覆盖查询失败');
+        cityCompletionData = json.city_completion || [];
+        indicatorCoverageData = (json.indicator_coverage || []).map(item => ({
+            indicator: item.indicator,
+            group: item.group,
+            covered: item.covered,
+            total: item.total,
+            rate: item.rate,
+        }));
+        if (json.summary) {
+            totalIndicators = json.summary.total_indicators;
+            updateStatistics(json.summary);
         }
-        if (selectedProvince && defaultProvinceCityMap[selectedProvince]) {
-            const provinceCities = defaultProvinceCityMap[selectedProvince];
-            return allCities.filter(city => provinceCities.includes(city));
-        }
-        return allCities;
-    }
-    
-    function generateMockData() {
-        let allCities = [];
-        for (const province in defaultProvinceCityMap) {
-            allCities = allCities.concat(defaultProvinceCityMap[province]);
-        }
-        totalCities = allCities.length;
-        
-        let filteredCities = filterCitiesByProvinceAndCity(allCities);
-        if (filteredCities.length === 0) filteredCities = allCities;
-        
-        cityCompletionData = [];
-        filteredCities.forEach(city => {
-            const rate = 30 + Math.random() * 70;
-            const completed = Math.floor(rate / 100 * allIndicatorsList.length);
-            cityCompletionData.push({ city, province: getProvinceByCity(city), completed, total: allIndicatorsList.length, rate: parseFloat(rate.toFixed(1)) });
-        });
-        cityCompletionData.sort((a, b) => b.rate - a.rate);
-        
-        indicatorCoverageData = [];
-        allIndicatorsList.forEach(indicator => {
-            const rate = 20 + Math.random() * 75;
-            const covered = Math.floor(rate / 100 * totalCities);
-            indicatorCoverageData.push({ indicator, group: indicatorGroupMap[indicator] || 'other', covered, total: totalCities, rate: parseFloat(rate.toFixed(1)) });
-        });
-        indicatorCoverageData.sort((a, b) => b.rate - a.rate);
-        
-        missingDataList = [];
-        filteredCities.forEach(city => {
-            const cityRate = cityCompletionData.find(c => c.city === city)?.rate || 50;
-            const missingCount = Math.floor(allIndicatorsList.length * (1 - cityRate / 100));
-            const shuffledIndicators = [...allIndicatorsList].sort(() => 0.5 - Math.random());
-            for (let i = 0; i < Math.min(missingCount, 30); i++) {
-                missingDataList.push({
-                    id: `${city}_${shuffledIndicators[i]}_${new Date().getFullYear()}`,
-                    city, province: getProvinceByCity(city),
-                    indicator: shuffledIndicators[i],
-                    group: indicatorGroupMap[shuffledIndicators[i]] || 'other',
-                    year: new Date().getFullYear(), value: '', source: ''
-                });
-            }
-        });
-        
         applyIndicatorGroupFilter();
-        applyReplenishFilters();
-        updateStatistics();
         renderCityRanking();
         renderChinaMap();
     }
+
+    async function fetchMissingRecords() {
+        const params = buildQueryParams();
+        if (selectedReplenishIndicator) params.set('indicator', selectedReplenishIndicator);
+        params.set('page_size', '500');
+        const res = await fetch(`/dashboard/api/missing-records/?${params}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || '缺失数据查询失败');
+        missingDataList = json.data || [];
+        applyReplenishFilters();
+    }
     
     function applyReplenishFilters() {
-        let filtered = [...missingDataList];
-        if (selectedReplenishIndicator) {
-            filtered = filtered.filter(item => item.indicator === selectedReplenishIndicator);
-        }
-        let allCities = [];
-        for (const province in defaultProvinceCityMap) {
-            allCities = allCities.concat(defaultProvinceCityMap[province]);
-        }
-        let targetCities = filterCitiesByProvinceAndCity(allCities);
-        if (targetCities.length > 0) {
-            filtered = filtered.filter(item => targetCities.includes(item.city));
-        }
-        filteredMissingData = filtered;
+        filteredMissingData = [...missingDataList];
         renderReplenishTable();
         const countSpan = document.getElementById('replenishCount');
         if (countSpan) countSpan.textContent = `共 ${filteredMissingData.length} 条记录`;
@@ -574,14 +552,14 @@
         document.getElementById('filteredCount').textContent = `共 ${filteredIndicatorData.length} 项指标`;
     }
     
-    function getProvinceByCity(city) {
-        for (const province in defaultProvinceCityMap) {
-            if (defaultProvinceCityMap[province].includes(city)) return province;
+    function updateStatistics(summary) {
+        if (summary) {
+            document.getElementById('totalCities').innerText = summary.total_cities;
+            document.getElementById('avgCompletionRate').innerText = summary.avg_completion_rate + '%';
+            document.getElementById('totalIndicators').innerText = summary.total_indicators;
+            document.getElementById('avgCoverageRate').innerText = summary.avg_coverage_rate + '%';
+            return;
         }
-        return "其他";
-    }
-    
-    function updateStatistics() {
         const avgCompletion = cityCompletionData.reduce((sum, c) => sum + c.rate, 0) / (cityCompletionData.length || 1);
         const avgCoverage = indicatorCoverageData.reduce((sum, i) => sum + i.rate, 0) / (indicatorCoverageData.length || 1);
         document.getElementById('totalCities').innerText = cityCompletionData.length;
@@ -640,23 +618,39 @@
                 <td class="text-slate-600">${item.year}<\/td>
                 <td><input type="text" class="replenish-input" id="val_${item.id}" placeholder="请输入数值"><\/td>
                 <td><select class="replenish-select" id="src_${item.id}"><option value="">选择来源</option><option value="地市统计年鉴">地市统计年鉴</option><option value="省级统计年鉴">省级统计年鉴</option><option value="政府工作报告">政府工作报告</option><option value="专项报告">专项报告</option></select><\/td>
-                <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', ${item.year})">补录<\/button><\/td>
+                <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}')">补录<\/button><\/td>
             <\/tr>
         `).join('');
     }
     
-    window.submitReplenish = function(id, city, indicator, year) {
+    window.submitReplenish = async function(id, city, indicator, indicatorEn, year, province) {
         const valueInput = document.getElementById(`val_${id}`);
         const sourceSelect = document.getElementById(`src_${id}`);
         const value = valueInput?.value.trim();
         const source = sourceSelect?.value;
         if (!value) { alert('请填写数值'); return; }
         if (!source) { alert('请选择数据来源'); return; }
-        alert(`✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}\n数值：${value}\n来源：${source}`);
-        const index = missingDataList.findIndex(item => item.id === id);
-        if (index !== -1) missingDataList.splice(index, 1);
-        applyReplenishFilters();
-        generateMockData();
+        const formData = new FormData();
+        formData.append('rows_json', JSON.stringify([{
+            city: city,
+            province: province,
+            year: year,
+            groups: [{ name_zh: indicator, name_en: indicatorEn, value: value, source: source, note: '' }]
+        }]));
+        try {
+            const res = await fetch('/dashboard/submit/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken() },
+                body: formData,
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.message || '补录失败');
+            alert(`✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}`);
+            await fetchCoverageData();
+            if (currentMode === 'replenish') await fetchMissingRecords();
+        } catch (e) {
+            alert('补录失败：' + e.message);
+        }
     };
     
     function renderChinaMap() {
@@ -697,7 +691,7 @@
             coverageContent.classList.add('hidden');
             coverageTable.classList.add('hidden');
             replenishContent.classList.remove('hidden');
-            applyReplenishFilters();
+            fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
         } else {
             currentMode = 'coverage';
             modeHint.innerHTML = '📊 覆盖查询模式';
@@ -747,20 +741,23 @@
             for (const p in provinceCityMap) cities = cities.concat(provinceCityMap[p]);
         }
         citySelect.innerHTML = '<option value="">全部城市</option>';
-        cities.slice(0, 50).forEach(city => { const opt = document.createElement('option'); opt.value = city; opt.textContent = city; citySelect.appendChild(opt); });
+        cities.forEach(city => { const opt = document.createElement('option'); opt.value = city; opt.textContent = city; citySelect.appendChild(opt); });
     }
     
-    function performQuery() {
+    async function performQuery() {
         const queryBtn = document.getElementById('queryBtn');
         const originalText = queryBtn.innerHTML;
         queryBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 查询中...';
         queryBtn.disabled = true;
-        setTimeout(() => {
-            generateMockData();
-            if (currentMode === 'replenish') applyReplenishFilters();
+        try {
+            await fetchCoverageData();
+            if (currentMode === 'replenish') await fetchMissingRecords();
+        } catch (e) {
+            alert('查询失败：' + e.message);
+        } finally {
             queryBtn.innerHTML = originalText;
             queryBtn.disabled = false;
-        }, 500);
+        }
     }
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -781,7 +778,7 @@
             document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
             document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
             document.getElementById('modeSwitch').addEventListener('change', switchMode);
-            generateMockData();
+            performQuery();
         });
     });
 </script>

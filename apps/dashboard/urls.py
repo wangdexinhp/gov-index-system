@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import coverage_views
 
 app_name = 'dashboard'
 
@@ -41,6 +42,11 @@ urlpatterns = [
 
     # 核查指标API接口
     path('api/check-data/', views.check_data_api, name='check_data_api'),
+
+    # 数据覆盖查询 API
+    path('api/coverage-overview/', coverage_views.coverage_overview_api, name='coverage_overview'),
+    path('api/missing-records/', coverage_views.missing_records_api, name='missing_records'),
+    path('api/rebuild-coverage-stats/', coverage_views.rebuild_coverage_stats_api, name='rebuild_coverage_stats'),
 
     # 价格配置API接口
     path('api/pricing-config/', views.get_pricing_config, name='get_pricing_config'),
