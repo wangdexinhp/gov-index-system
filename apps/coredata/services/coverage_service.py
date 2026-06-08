@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 
 from django.db import DatabaseError
-from django.db.models import Max
+from django.db.models import Count
 from django.utils import timezone
 
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
@@ -78,11 +78,44 @@ for _name_zh, _group in INDICATOR_GROUP_MAP.items():
 TRACKABLE_NAME_EN_SET = {item["name_en"] for item in TRACKABLE_INDICATORS}
 
 
+def get_available_years() -> List[int]:
+    """返回指标库中有数据的年份（降序），并附带当前年份。"""
+    db_years = sorted({
+        y for y in Indicator.objects.values_list("year", flat=True).distinct() if y
+    }, reverse=True)
+    current = timezone.now().year
+    if current not in db_years:
+        db_years.append(current)
+        db_years.sort(reverse=True)
+    return db_years
+
+
+def get_default_coverage_year() -> int:
+    """默认年份：取指标记录数最多的年份（并列时取较新的年份）。"""
+    row = (
+        Indicator.objects.values("year")
+        .annotate(cnt=Count("id"))
+        .order_by("-cnt", "-year")
+        .first()
+    )
+    if row and row.get("year"):
+        return int(row["year"])
+    years = get_available_years()
+    return years[0] if years else timezone.now().year
+
+
+def get_year_record_counts() -> Dict[int, int]:
+    return {
+        int(row["year"]): row["cnt"]
+        for row in Indicator.objects.values("year").annotate(cnt=Count("id"))
+        if row.get("year")
+    }
+
+
 def resolve_year(year_param: Optional[str]) -> int:
     if year_param:
         return int(year_param)
-    latest = Indicator.objects.aggregate(max_year=Max("year"))["max_year"]
-    return latest or timezone.now().year
+    return get_default_coverage_year()
 
 
 def _build_city_catalog() -> List[Dict]:
@@ -364,11 +397,7 @@ def _resolve_rebuild_years(
     if year_param:
         return [int(year_param)]
 
-    db_years = {
-        y for y in Indicator.objects.values_list("year", flat=True).distinct() if y
-    }
-    db_years.add(timezone.now().year)
-    return sorted(db_years, reverse=True)
+    return get_available_years()
 
 
 def rebuild_coverage_stats(

@@ -9,8 +9,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from apps.coredata.services.coverage_service import (
+    get_available_years,
     get_coverage_overview,
+    get_default_coverage_year,
     get_missing_records,
+    get_year_record_counts,
     rebuild_coverage_stats,
 )
 
@@ -34,6 +37,23 @@ def _require_admin(request):
     if not profile or profile.membership_level != "admin":
         return JsonResponse({"success": False, "message": "需要管理员权限"}, status=403)
     return None
+
+
+@api_login_required
+@require_http_methods(["GET"])
+def coverage_years_api(request):
+    """返回指标库中可用于覆盖查询的年份列表。"""
+    try:
+        years = get_available_years()
+        return JsonResponse({
+            "success": True,
+            "years": years,
+            "default_year": get_default_coverage_year(),
+            "year_counts": get_year_record_counts(),
+        })
+    except Exception as e:
+        logger.error("coverage_years_api failed: %s", e)
+        return JsonResponse({"success": False, "message": str(e)}, status=500)
 
 
 @api_login_required

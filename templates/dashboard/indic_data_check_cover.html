@@ -875,17 +875,37 @@
             .catch(() => { provinceCityMap = defaultProvinceCityMap; return provinceCityMap; });
     }
     
-    function initYearSelect() {
+    async function initYearSelect() {
         const yearSelect = document.getElementById('yearSelect');
         const currentYear = new Date().getFullYear();
         yearSelect.innerHTML = '<option value="">所有年份</option>';
-        for (let y = 2020; y <= currentYear; y++) {
+        let years = [];
+        let defaultYear = currentYear;
+        let yearCounts = {};
+        try {
+            const res = await fetch('/dashboard/api/coverage-years/', { credentials: 'same-origin' });
+            const json = await parseApiResponse(res, '年份列表');
+            if (json.success && json.years?.length) {
+                years = json.years;
+                defaultYear = json.default_year || years[0];
+                yearCounts = json.year_counts || {};
+            }
+        } catch (e) {
+            console.warn('加载年份列表失败，使用默认范围', e);
+        }
+        if (!years.length) {
+            for (let y = 2020; y <= currentYear; y++) years.push(y);
+            defaultYear = currentYear;
+        }
+        years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
-            opt.textContent = y + '年';
-            if (y === currentYear) opt.selected = true;
+            const count = yearCounts[y];
+            opt.textContent = count ? `${y}年 (${count}条)` : `${y}年`;
+            if (y === defaultYear) opt.selected = true;
             yearSelect.appendChild(opt);
-        }
+        });
+        selectedYear = String(defaultYear);
     }
     
     function initProvinceSelect() {
@@ -926,8 +946,8 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        loadProvinceCityMap().then(() => {
-            initYearSelect();
+        loadProvinceCityMap().then(async () => {
+            await initYearSelect();
             initProvinceSelect();
             updateCitySelect();
             initModal();
