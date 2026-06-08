@@ -355,14 +355,27 @@ def get_missing_records(
     }
 
 
-def rebuild_coverage_stats(year_param: Optional[str] = None) -> Dict:
+def _resolve_rebuild_years(
+    year_param: Optional[str] = None,
+    years: Optional[List[int]] = None,
+) -> List[int]:
+    if years:
+        return sorted({int(y) for y in years if y}, reverse=True)
     if year_param:
-        years = [int(year_param)]
-    else:
-        db_years = Indicator.objects.values_list("year", flat=True).distinct()
-        years = sorted({y for y in db_years if y}, reverse=True)
-        if not years:
-            years = [timezone.now().year]
+        return [int(year_param)]
+
+    db_years = {
+        y for y in Indicator.objects.values_list("year", flat=True).distinct() if y
+    }
+    db_years.add(timezone.now().year)
+    return sorted(db_years, reverse=True)
+
+
+def rebuild_coverage_stats(
+    year_param: Optional[str] = None,
+    years: Optional[List[int]] = None,
+) -> Dict:
+    years = _resolve_rebuild_years(year_param=year_param, years=years)
 
     all_cities = get_cities_in_scope()
     rebuilt = 0
