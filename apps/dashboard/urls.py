@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import coverage_views
+from . import indicator_audit_views
 
 app_name = 'dashboard'
 
@@ -40,8 +41,10 @@ urlpatterns = [
     path('upload_excel/', views.upload_excel, name='upload_excel'),
     path('upload_excel_area/', views.upload_excel_area, name='upload_excel_area'),
 
-    # 核查指标API接口
-    path('api/check-data/', views.check_data_api, name='check_data_api'),
+    # 指标校验 API
+    path('api/check-data/', indicator_audit_views.check_data_api, name='check_data_api'),
+    path('api/indicator-audit-years/', indicator_audit_views.indicator_audit_years_api, name='indicator_audit_years'),
+    path('api/indicator-audit-groups/', indicator_audit_views.indicator_audit_groups_api, name='indicator_audit_groups'),
 
     # 数据覆盖查询 API
     path('api/coverage-years/', coverage_views.coverage_years_api, name='coverage_years'),

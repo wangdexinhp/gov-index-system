@@ -338,32 +338,24 @@
 </main>
 
 <script>
-    // ==================== 模拟数据接口（实际应替换为真实后端API） ====================
-    // 城市列表（模拟）
-    const citiesList = ["北京市", "上海市", "广州市", "深圳市", "杭州市", "成都市", "武汉市", "南京市", "苏州市", "天津市"];
-    
-    // 指标列表（部分常用指标）
-    const indicatorsList = [
-        "常住人口数", "城镇人口数", "GDP", "人均GDP", "一般公共预算收入", "固定资产投资总额",
-        "社会消费品零售总额", "进出口总额", "高新技术企业产值", "专利授权数量", "教育支出",
-        "医疗卫生支出", "城镇登记失业率", "城镇化率", "城镇居民人均可支配收入"
-    ];
-    
-    // 指标分组映射
-    const indicatorGroupMap = {
-        "常住人口数": "population", "城镇人口数": "population", "GDP": "economic_growth", "人均GDP": "economic_growth",
-        "一般公共预算收入": "finance", "固定资产投资总额": "economic_growth", "社会消费品零售总额": "economic_growth",
-        "进出口总额": "economic_growth", "高新技术企业产值": "education_tech", "专利授权数量": "education_tech",
-        "教育支出": "finance", "医疗卫生支出": "finance", "城镇登记失业率": "employment", "城镇化率": "population",
-        "城镇居民人均可支配收入": "economic_growth"
-    };
-    
-    // 全局变量
     let provinceCityMap = {};
-    let allData = [];
     let filteredData = [];
     let currentPage = 1;
-    const pageSize = 15;
+    let totalPages = 1;
+    let totalRecords = 0;
+    const pageSize = 50;
+    let lastSummary = null;
+    let lastGroupStats = null;
+
+    async function parseApiResponse(res, label) {
+        const text = await res.text();
+        if (!text) throw new Error(`${label}：服务器返回空响应 (HTTP ${res.status})`);
+        let json;
+        try { json = JSON.parse(text); } catch (e) {
+            throw new Error(`${label}：服务器返回非 JSON (HTTP ${res.status})`);
+        }
+        return json;
+    }
     
     // // 省份-城市映射（用于筛选）
     // const provinceCityMap = {
@@ -383,18 +375,31 @@
     }
 
     
-    // 初始化年份下拉
-    function initYearSelect() {
+    async function initYearSelect() {
         const yearSelect = document.getElementById('yearSelect');
-        const currentYear = new Date().getFullYear();
-        yearSelect.innerHTML = '<option value="">所有年份</option>';
-        for (let y = 1990; y <= currentYear; y++) {
+        yearSelect.innerHTML = '<option value="">默认年份</option>';
+        let years = [];
+        let defaultYear = null;
+        let yearCounts = {};
+        try {
+            const res = await fetch('/dashboard/api/indicator-audit-years/', { credentials: 'same-origin' });
+            const json = await parseApiResponse(res, '年份列表');
+            if (json.success) {
+                years = json.years || [];
+                defaultYear = json.default_year;
+                yearCounts = json.year_counts || {};
+            }
+        } catch (e) {
+            console.warn('加载年份失败', e);
+        }
+        years.forEach(y => {
             const opt = document.createElement('option');
             opt.value = y;
-            opt.textContent = y + '年';
+            const count = yearCounts[y];
+            opt.textContent = count ? `${y}年 (${count}条)` : `${y}年`;
+            if (y === defaultYear) opt.selected = true;
             yearSelect.appendChild(opt);
-        }
-        yearSelect.value = 2026;
+        });
     }
     
     // 初始化省份下拉
@@ -418,7 +423,7 @@
         if (province && provinceCityMap[province]) {
             cities = provinceCityMap[province];
         } else {
-            cities = citiesList;
+            for (const p in provinceCityMap) cities = cities.concat(provinceCityMap[p]);
         }
         citySelect.innerHTML = '<option value="">全部城市</option>';
         cities.forEach(city => {
@@ -429,152 +434,97 @@
         });
     }
     
-    // 查询过滤
-    function filterData() {
+    async function filterData(page = currentPage) {
+        currentPage = page;
         const year = document.getElementById('yearSelect').value;
         const province = document.getElementById('provinceSelect').value;
         const city = document.getElementById('citySelect').value;
         const group = document.getElementById('groupSelect').value;
         const status = document.getElementById('statusFilter').value;
-        
-        // 构建查询参数
+
         const params = new URLSearchParams({
             year: year || '',
             province: province || '',
             city: city || '',
             group: group || '',
-            status: status || ''
+            status: status || '',
+            page: String(currentPage),
+            page_size: String(pageSize),
         });
-        
-        // 显示加载状态
+
         const queryBtn = document.getElementById('queryBtn');
         const originalText = queryBtn.innerHTML;
         queryBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 查询中...';
         queryBtn.disabled = true;
-        
-        // 发送API请求
-        fetch(`/dashboard/api/check-data/?${params}`, {
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errData => {
-                    throw errData;
-                }).catch(err => {
-                    if (err && err.code) throw err;
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) {
-                if (data.code === 'membership_expired' || data.code === 'city_not_allowed' || data.code === 'indicator_not_allowed') {
-                    alert('⚠️ ' + data.message);
-                    queryBtn.innerHTML = originalText;
-                    queryBtn.disabled = false;
-                    return;
-                }
-                filteredData = [];
-                allData = [];
-                updateStatistics();
-                updateGroupStats();
-                renderTable();
-                queryBtn.innerHTML = originalText;
-                queryBtn.disabled = false;
-                return;
-            }
-            // 处理返回的数据
+
+        try {
+            const res = await fetch(`/dashboard/api/check-data/?${params}`, { credentials: 'same-origin' });
+            const data = await parseApiResponse(res, '指标校验');
+            if (!data.success) throw new Error(data.message || '查询失败');
+
             filteredData = data.records || [];
-            allData = filteredData; // 更新全局数据
-            
-            // 更新统计数据
+            totalRecords = data.total || 0;
+            totalPages = data.total_pages || 1;
+            lastSummary = data.summary || null;
+            lastGroupStats = data.group_stats || null;
+
             updateStatistics();
             updateGroupStats();
-            
-            currentPage = 1;
             renderTable();
-            
-            // 恢复按钮状态
-            queryBtn.innerHTML = originalText;
-            queryBtn.disabled = false;
-        })
-        .catch(error => {
+            document.getElementById('tableInfo').textContent =
+                data.years?.length ? `查询年份：${data.years.join('、')}` : '';
+        } catch (error) {
             console.error('查询失败:', error);
-            if (error.code === 'membership_expired' || error.code === 'city_not_allowed' || error.code === 'indicator_not_allowed') {
-                alert('⚠️ ' + error.message);
-            } else {
-                alert('查询失败，请稍后重试');
-            }
-            
-            // 恢复按钮状态
+            alert('查询失败：' + (error.message || '请稍后重试'));
+            filteredData = [];
+            renderTable();
+        } finally {
             queryBtn.innerHTML = originalText;
             queryBtn.disabled = false;
-        });
-    }
-    
-    // 更新统计卡片
-    function updateStatistics() {
-        const total = filteredData.length;
-        const imported = filteredData.filter(d => d.status === 'imported').length;
-        const missing = total - imported;
-        const coverage = total > 0 ? ((imported / total) * 100).toFixed(1) : 0;
-        
-        document.getElementById('totalIndicators').innerText = total;
-        document.getElementById('importedCount').innerText = imported;
-        document.getElementById('missingCount').innerText = missing;
-        document.getElementById('coverageRate').innerText = coverage + '%';
-    }
-    
-    // 按指标组统计
-    function updateGroupStats() {
-        const groups = {
-            'admin': '行政区域', 'population': '人口数据', 'economic_growth': '经济增长',
-            'finance': '财政指标', 'education_tech': '教育科技', 'employment': '就业数据',
-            'ecology': '生态环保'
-        };
-        const groupStats = {};
-        
-        for (const [groupKey, groupName] of Object.entries(groups)) {
-            const groupRecords = filteredData.filter(d => indicatorGroupMap[d.indicator] === groupKey);
-            const total = groupRecords.length;
-            const imported = groupRecords.filter(d => d.status === 'imported').length;
-            groupStats[groupKey] = { name: groupName, total, imported, rate: total > 0 ? (imported/total*100).toFixed(0) : 0 };
         }
-        
+    }
+
+    function updateStatistics() {
+        const s = lastSummary || { total: 0, imported: 0, missing: 0, coverage_rate: 0 };
+        document.getElementById('totalIndicators').innerText = s.total;
+        document.getElementById('importedCount').innerText = s.imported;
+        document.getElementById('missingCount').innerText = s.missing;
+        document.getElementById('coverageRate').innerText = s.coverage_rate + '%';
+    }
+
+    function updateGroupStats() {
         const container = document.getElementById('groupStats');
         container.innerHTML = '';
-        for (const [key, stat] of Object.entries(groupStats)) {
-            if (stat.total === 0 && stat.imported === 0) continue;
-            const colorClass = stat.rate >= 80 ? 'border-green-200 bg-green-50' : (stat.rate >= 50 ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50');
-            const textColor = stat.rate >= 80 ? 'text-green-700' : (stat.rate >= 50 ? 'text-yellow-700' : 'text-red-700');
+        const stats = lastGroupStats || {};
+        for (const [key, stat] of Object.entries(stats)) {
+            if (!stat.total) continue;
+            const rate = stat.rate ?? 0;
+            const colorClass = rate >= 80 ? 'border-green-200 bg-green-50' : (rate >= 50 ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50');
+            const textColor = rate >= 80 ? 'text-green-700' : (rate >= 50 ? 'text-yellow-700' : 'text-red-700');
             container.innerHTML += `
                 <div class="border ${colorClass} rounded-xl p-3 text-center">
                     <div class="text-xs text-slate-500">${stat.name}</div>
-                    <div class="text-xl font-bold ${textColor}">${stat.rate}%</div>
+                    <div class="text-xl font-bold ${textColor}">${rate}%</div>
                     <div class="text-xs text-slate-400">${stat.imported}/${stat.total}</div>
                 </div>
             `;
         }
     }
-    
-    // 渲染表格
+
     function renderTable() {
         const tbody = document.getElementById('tableBody');
-        const start = (currentPage - 1) * pageSize;
-        const end = start + pageSize;
-        const pageData = filteredData.slice(start, end);
-        
+        const pageData = filteredData;
+
         if (pageData.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-12">暂无数据，请调整筛选条件</td></tr>';
-            document.getElementById('paginationInfo').innerText = '';
+            document.getElementById('paginationInfo').innerText = totalRecords
+                ? `共 ${totalRecords} 条，当前第 ${currentPage}/${totalPages} 页`
+                : '';
+            document.getElementById('prevPage').disabled = true;
+            document.getElementById('nextPage').disabled = true;
             return;
         }
-        
+
         tbody.innerHTML = '';
         pageData.forEach(record => {
             const statusBadge = record.status === 'imported' 
@@ -603,10 +553,10 @@
             tbody.appendChild(row);
         });
         
-        const totalPages = Math.ceil(filteredData.length / pageSize);
-        document.getElementById('paginationInfo').innerText = `第 ${currentPage} / ${totalPages || 1} 页，共 ${filteredData.length} 条记录`;
-        
-        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('paginationInfo').innerText =
+            `第 ${currentPage} / ${totalPages || 1} 页，共 ${totalRecords} 条记录`;
+
+        document.getElementById('prevPage').disabled = currentPage <= 1;
         document.getElementById('nextPage').disabled = currentPage >= totalPages;
     }
     
@@ -640,59 +590,39 @@
         URL.revokeObjectURL(url);
     }
     
-    // 重置并查询
     function performQuery() {
-        filterData();
+        filterData(1);
     }
-    
-    // 页面初始化
+
+    function bindEvents() {
+        document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+        document.getElementById('queryBtn').addEventListener('click', performQuery);
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) filterData(currentPage - 1);
+        });
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) filterData(currentPage + 1);
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        // 先加载省份城市映射数据，然后初始化其他组件
-        loadProvinceCityMap().then(() => {
-            initYearSelect();
+        loadProvinceCityMap().then(async () => {
+            await initYearSelect();
             initProvinceSelect();
             updateCitySelect();
-            
-            // 事件绑定
-            document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
-            document.getElementById('queryBtn').addEventListener('click', performQuery);
-            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-            document.getElementById('prevPage').addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderTable(); }
-            });
-            document.getElementById('nextPage').addEventListener('click', () => {
-                const totalPages = Math.ceil(filteredData.length / pageSize);
-                if (currentPage < totalPages) { currentPage++; renderTable(); }
-            });
-            
-            // 默认查询一次
+            bindEvents();
             performQuery();
-        }).catch(error => {
+        }).catch(async (error) => {
             console.error('加载省份城市数据失败:', error);
-            // 使用默认数据继续初始化
             provinceCityMap = {
                 "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
-                "江苏省": ["南京市", "苏州市", "无锡市", "常州市"],
-                "浙江省": ["杭州市", "宁波市", "温州市"],
-                "广东省": ["广州市", "深圳市", "珠海市", "佛山市"]
+                "江苏省": ["南京市", "苏州市"], "浙江省": ["杭州市"], "广东省": ["广州市", "深圳市"]
             };
-            initYearSelect();
+            await initYearSelect();
             initProvinceSelect();
             updateCitySelect();
-            
-            // 事件绑定
-            document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
-            document.getElementById('queryBtn').addEventListener('click', performQuery);
-            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-            document.getElementById('prevPage').addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderTable(); }
-            });
-            document.getElementById('nextPage').addEventListener('click', () => {
-                const totalPages = Math.ceil(filteredData.length / pageSize);
-                if (currentPage < totalPages) { currentPage++; renderTable(); }
-            });
-            
-            // 默认查询一次
+            bindEvents();
             performQuery();
         });
     });
