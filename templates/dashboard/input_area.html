@@ -323,6 +323,36 @@
         });
     }
 
+    const DEFAULT_FORM_SOURCE_OPTIONS = [
+        { code: 'CITY_STAT_YB', label: '地市统计年鉴' },
+        { code: 'CITY_YB', label: '地市年鉴' },
+        { code: 'PROV_STAT_YB', label: '省级统计年鉴' },
+        { code: 'GOV_INFO_RPT', label: '政府信息公开报告' },
+    ];
+    let formSourceOptions = DEFAULT_FORM_SOURCE_OPTIONS.slice();
+
+    async function loadFormSourceOptions() {
+        try {
+            const res = await fetch('/dashboard/api/indicator-sources/?scope=form', { credentials: 'same-origin' });
+            const json = await res.json();
+            if (json.success && Array.isArray(json.sources) && json.sources.length) {
+                formSourceOptions = json.sources;
+            }
+        } catch (e) {
+            console.warn('加载数据来源选项失败，使用默认配置', e);
+        }
+    }
+
+    function buildSourceSelectHtml(nameAttr) {
+        const optionsHtml = formSourceOptions.map(s =>
+            `<option value="${s.code}">${s.label}</option>`
+        ).join('');
+        return `<select name="${nameAttr}" class="w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-sm">
+            <option value="">选择来源</option>
+            ${optionsHtml}
+        </select>`;
+    }
+
     // 全局变量
     let provinceCityMap = {};
     const areaCache = {};
@@ -515,13 +545,7 @@
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm">`;
                 
                 const srcCell = tr.insertCell(); 
-                srcCell.innerHTML = `<select name="data[${areaKey}][${indKey}][source]" class="w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-sm">
-                    <option value="">选择来源</option>
-                    <option value="CITY_STAT_YB">地市统计年鉴</option>
-                    <option value="CITY_YB">地市年鉴</option>
-                    <option value="PROV_STAT_YB">省级统计年鉴</option>
-                    <option value="GOV_INFO_RPT">政府信息公开报告</option>
-                </select>`;
+                srcCell.innerHTML = buildSourceSelectHtml(`data[${areaKey}][${indKey}][source]`);
                 
                 const refCell = tr.insertCell(); 
                 refCell.className = 'border border-blue-200 px-2 py-2 text-slate-400 text-xs'; 
@@ -610,7 +634,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function() {
-        await loadProvinceCityMap(); 
+        await Promise.all([loadProvinceCityMap(), loadFormSourceOptions()]);
         renderCitiesForProvince('');
         
         const provSel = document.getElementById('province-select');

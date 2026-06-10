@@ -535,7 +535,7 @@
                 ? `<span class="value-cell value-present font-medium">${parseFloat(record.value).toLocaleString()}</span>`
                 : '<span class="value-cell value-absent">— 未录入 —</span>';
             
-            const sourceDisplay = record.source ? record.source : '—';
+            const sourceDisplay = record.source_display || '—';
             const remarkDisplay = record.remark ? record.remark : '—';
             
             const row = document.createElement('tr');
@@ -574,7 +574,7 @@
             record.value || '',
             record.unit || '',
             record.status === 'imported' ? '已录入' : '未录入',
-            record.source || '',
+            record.source_display || '',
             record.remark || ''
         ]);
         

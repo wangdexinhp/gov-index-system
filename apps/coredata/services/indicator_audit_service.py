@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
+from apps.coredata.indicator_sources import get_source_display
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP, INDIMAP_UNIT
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.services.coverage_service import (
@@ -96,6 +97,8 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
     record_id = f"{city_name}_{name_zh}_{year}"
     unit = INDIMAP_UNIT.get(indicator["name_en"], {}).get("unit", "") or ""
 
+    source_code = (existing.get("source") or "") if existing else ""
+
     if existing:
         return {
             "id": record_id,
@@ -105,7 +108,8 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
             "value": _format_value(existing.get("value")),
             "unit": unit,
             "status": "imported",
-            "source": existing.get("source") or "",
+            "source": source_code,
+            "source_display": get_source_display(source_code),
             "remark": existing.get("note") or "",
             "group": indicator["group"],
         }
@@ -119,6 +123,7 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
         "unit": unit,
         "status": "missing",
         "source": "",
+        "source_display": "",
         "remark": "暂无数据",
         "group": indicator["group"],
     }
