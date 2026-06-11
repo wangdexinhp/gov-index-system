@@ -660,8 +660,8 @@
         let organizationIndicators = [];
         let personalIndicators = [];
         
-        const durationMultiplier = { year: 1.0, month: 0.1, day: 0.004 };
-        const durationName = { year: '年卡', month: '月卡', day: '日卡' };
+        let durationMultiplier = { year: 1.0, month: 0.1, day: 0.004, week: 0.025 };
+        const durationName = { year: '年卡', month: '月卡', day: '日卡', week: '周卡' };
         
         // 静态城市/地区数据（用于下拉选项）
         const regionList = [
@@ -706,6 +706,23 @@
                 // 使用少量备用数据
                 municipalityList = ['北京市', '上海市', '天津市', '重庆市'];
                 cityList = ['石家庄市', '唐山市', '太原市', '呼和浩特市'];
+            }
+        }
+
+        async function loadDurationMultipliers() {
+            try {
+                const res = await fetch('/dashboard/api/duration-multipliers/');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    durationMultiplier = {
+                        year: json.data.year ?? 1.0,
+                        month: json.data.month ?? 0.1,
+                        week: json.data.week ?? 0.025,
+                        day: json.data.day ?? json.data['24hour'] ?? 0.004,
+                    };
+                }
+            } catch (e) {
+                console.warn('加载时长系数失败，使用默认值', e);
             }
         }
 
@@ -1176,29 +1193,35 @@
             });
         }
         
+        function getCsrfToken() {
+            const match = document.cookie.match(/csrftoken=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : '';
+        }
+
         async function showPaymentSuccess(orderInfo) {
-            // 调用会员激活接口
             try {
-                const cityNames = selectedPermissions.map(p => p.name);
-                const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;
-                
-                const response = await fetch('/dashboard/api/activate-membership/', {
+                const response = await fetch('/dashboard/api/confirm-order-payment/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
                     body: JSON.stringify({
-                        duration: currentDuration,
-                        cities: cityNames,
-                        indicators: indicators,
-                    })
+                        order_no: orderInfo.orderId,
+                        payment_channel: 'mock',
+                    }),
                 });
                 const result = await response.json();
-                if (result.success) {
-                    console.log('会员激活成功:', result.message);
-                } else {
-                    console.warn('会员激活失败:', result.message);
+                if (!result.success) {
+                    alert('开通权限失败：' + (result.message || '未知错误'));
+                    return;
                 }
+                console.log('会员激活成功:', result.message);
             } catch (error) {
-                console.error('调用会员激活接口失败:', error);
+                console.error('确认支付失败:', error);
+                alert('确认支付失败，请稍后重试');
+                return;
             }
             
             const successModal = document.createElement('div');
@@ -1228,29 +1251,70 @@
             });
         }
         
-        function purchase() {
+        async function purchase() {
             if (selectedPermissions.length === 0) {
                 alert('⚠️ 请至少添加一个权限后再购买');
                 return;
             }
-            
-            const total = selectedPermissions.reduce((sum, p) => sum + p.priceYear, 0) * durationMultiplier[currentDuration];
-            const itemsList = selectedPermissions.map(p => `${p.typeName}·${p.name}`).join('、');
-            
-            const orderInfo = {
-                total: total,
-                permissions: itemsList,
-                duration: durationName[currentDuration],
-                userType: currentUserType,
-                orderId: 'ORD' + Date.now()
-            };
-            
-            showAlipayModal(orderInfo);
+
+            const buyBtn = document.getElementById('buyBtn');
+            const originalText = buyBtn.textContent;
+            buyBtn.disabled = true;
+            buyBtn.textContent = '创建订单中...';
+
+            try {
+                const response = await fetch('/dashboard/api/create-order/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        user_type: currentUserType,
+                        duration: currentDuration,
+                        permissions: selectedPermissions.map(p => ({
+                            level: p.level,
+                            typeName: p.typeName,
+                            name: p.name,
+                            id: p.id,
+                        })),
+                    }),
+                });
+                const result = await response.json();
+
+                if (response.status === 401 || response.status === 403) {
+                    alert('请先登录后再购买');
+                    window.location.href = '/accounts/login/?next=/landing/pricing/';
+                    return;
+                }
+                if (!result.success) {
+                    alert('创建订单失败：' + (result.message || '未知错误'));
+                    return;
+                }
+
+                const itemsList = selectedPermissions.map(p => `${p.typeName}·${p.name}`).join('、');
+                const orderInfo = {
+                    total: result.data.total_amount,
+                    permissions: itemsList,
+                    duration: durationName[currentDuration],
+                    userType: currentUserType,
+                    orderId: result.data.order_no,
+                };
+                showAlipayModal(orderInfo);
+            } catch (error) {
+                console.error('创建订单失败:', error);
+                alert('网络错误，请稍后重试');
+            } finally {
+                buyBtn.disabled = false;
+                buyBtn.textContent = originalText;
+            }
         }
         
         // 初始化
         async function init() {
             await loadCityData();
+            await loadDurationMultipliers();
             await loadPriceConfig();
             await loadIndicators();
             

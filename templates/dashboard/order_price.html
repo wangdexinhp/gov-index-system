@@ -252,8 +252,8 @@
 
         <!-- 底部说明 -->
         <div class="px-8 py-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between">
-            <span>📌 配置数据将保存在浏览器中，刷新页面不会丢失</span>
-            <span>🔄 保存后，购买页面将使用最新配置的价格和指标范围</span>
+            <span>📌 价格、指标权限、时长系数均保存至数据库</span>
+            <span>🔄 保存后，<a href="/landing/pricing/" target="_blank" class="text-blue-600 hover:underline">购买页面</a>将自动读取最新配置</span>
         </div>
     </div>
 </main>
@@ -342,69 +342,110 @@
             });
     }
 
-    // ==================== 加载保存的配置 ====================
-    function loadConfig() {
-        // 先从接口加载价格配置
-        loadPriceConfig();
-        
-        // 指标和时长系数从 localStorage 加载
-        const saved = localStorage.getItem('indicatorPurchaseConfig');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed.personalIndicators) currentPersonalIndicators = parsed.personalIndicators;
-                if (parsed.orgIndicators) currentOrgIndicators = parsed.orgIndicators;
-                if (parsed.durationMultipliers) currentDurationMultipliers = parsed.durationMultipliers;
-                showToast('已加载保存的指标配置', 'success');
-            } catch(e) { console.error(e); }
-        }
-        
-        // 渲染指标和时长系数面板
-        renderIndicators();
-        renderDurationPanel();
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
     }
 
-    function saveConfig() {
-        // 保存指标和时长系数到 localStorage
-        const config = {
-            personalIndicators: currentPersonalIndicators,
-            orgIndicators: currentOrgIndicators,
-            durationMultipliers: currentDurationMultipliers
-        };
-        localStorage.setItem('indicatorPurchaseConfig', JSON.stringify(config));
-        
-        // 保存价格配置到服务器
-        savePriceConfigToServer();
-        
-        const statusSpan = document.getElementById('saveStatus');
-        statusSpan.classList.remove('hidden');
-        statusSpan.innerHTML = '✓ 已保存';
-        showToast('配置已保存！', 'success');
-        setTimeout(() => statusSpan.classList.add('hidden'), 2000);
-    }
-    
-    // ==================== 保存价格配置到服务器 ====================
-    function savePriceConfigToServer() {
-        fetch('/dashboard/api/update-pricing-config/', {
+    function apiPost(url, body) {
+        return fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
             },
-            body: JSON.stringify({
-                price_list: currentPriceList
-            })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (!result.success) {
-                console.error('保存价格配置失败:', result.message);
-                showToast('保存价格配置失败: ' + result.message, 'error');
+            credentials: 'same-origin',
+            body: JSON.stringify(body),
+        }).then(res => res.json());
+    }
+
+    // ==================== 加载指标与时长系数 ====================
+    function loadIndicatorConfig() {
+        return Promise.all([
+            fetch('/dashboard/api/personal-indicator-config/').then(r => r.json()),
+            fetch('/dashboard/api/org-indicator-config/').then(r => r.json()),
+        ]).then(([personalRes, orgRes]) => {
+            if (personalRes.success && personalRes.data && personalRes.data.length) {
+                currentPersonalIndicators = personalRes.data.map(item => ({
+                    id: item.id || Date.now() + Math.random(),
+                    name: item.name || item.indicator_name || '',
+                    desc: item.desc || item.indicator_desc || '',
+                }));
             }
-        })
-        .catch(error => {
-            console.error('保存价格配置网络错误:', error);
-            showToast('保存价格配置失败，网络错误', 'error');
+            if (orgRes.success && orgRes.data && orgRes.data.length) {
+                currentOrgIndicators = orgRes.data.map(item => ({
+                    id: item.id || Date.now() + Math.random(),
+                    name: item.name || item.indicator_name || '',
+                    desc: item.desc || item.indicator_desc || '',
+                }));
+            }
+            renderIndicators();
+        }).catch(err => {
+            console.error('加载指标配置失败:', err);
+            renderIndicators();
         });
+    }
+
+    function loadDurationConfig() {
+        return fetch('/dashboard/api/duration-multipliers/')
+            .then(r => r.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    currentDurationMultipliers = {
+                        year: result.data.year ?? 1.0,
+                        month: result.data.month ?? 0.1,
+                        week: result.data.week ?? 0.025,
+                    };
+                }
+                renderDurationPanel();
+            })
+            .catch(err => {
+                console.error('加载时长系数失败:', err);
+                renderDurationPanel();
+            });
+    }
+
+    // ==================== 加载全部配置 ====================
+    function loadConfig() {
+        loadPriceConfig();
+        loadIndicatorConfig();
+        loadDurationConfig();
+    }
+
+    async function saveConfig() {
+        const saveBtn = document.getElementById('saveBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 保存中...';
+
+        try {
+            const [priceRes, indicatorRes, durationRes] = await Promise.all([
+                apiPost('/dashboard/api/update-pricing-config/', { price_list: currentPriceList }),
+                apiPost('/dashboard/api/update-indicator-config/', {
+                    personal_indicators: currentPersonalIndicators,
+                    org_indicators: currentOrgIndicators,
+                }),
+                apiPost('/dashboard/api/update-duration-multipliers/', {
+                    multipliers: currentDurationMultipliers,
+                }),
+            ]);
+
+            if (!priceRes.success) throw new Error(priceRes.message || '价格保存失败');
+            if (!indicatorRes.success) throw new Error(indicatorRes.message || '指标保存失败');
+            if (!durationRes.success) throw new Error(durationRes.message || '时长系数保存失败');
+
+            const statusSpan = document.getElementById('saveStatus');
+            statusSpan.classList.remove('hidden');
+            statusSpan.innerHTML = '✓ 已保存';
+            showToast('全部配置已保存至数据库', 'success');
+            setTimeout(() => statusSpan.classList.add('hidden'), 2000);
+        } catch (error) {
+            console.error('保存配置失败:', error);
+            showToast(error.message || '保存失败', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
     }
 
     // 渲染价格面板
@@ -607,7 +648,7 @@
     }
 
     function viewPurchasePage() {
-        alert('购买页面功能开发中\n\n提示：配置已保存，购买页面将自动读取最新配置');
+        window.open('/landing/pricing/', '_blank');
     }
 
     function init() {

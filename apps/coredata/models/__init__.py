@@ -3,6 +3,7 @@ from .indicator import Indicator
 from .rank import CityRank
 from .formula import CompositeScoreFormula, ComputedIndicatorRule
 from .price import PricingConfig, IndicatorConfig, DurationMultiplierConfig
+from .order import MembershipOrder, MembershipOrderItem
 from .stats import CityCompletionStats, IndicatorCoverageStats
 
 __all__ = [
@@ -15,6 +16,8 @@ __all__ = [
     "PricingConfig",
     "IndicatorConfig",
     "DurationMultiplierConfig",
+    "MembershipOrder",
+    "MembershipOrderItem",
     "CityCompletionStats",
     "IndicatorCoverageStats",
 ]
