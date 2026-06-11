@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>指标查看权限购买系统 | 数据指标管理系统</title>
-    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <title>指标查看权限购买 | 数据指标管理系统</title>
+    <script src="/static/js/tailwindcss.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,75 +18,13 @@
             background: #f0f4f9;
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
-
-        /* 顶部导航栏 */
-        .top-nav {
-            background: white;
-            border-bottom: 2px solid #eab308;
-            height: 72px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .nav-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .nav-left iconify-icon {
-            color: #eab308;
-            font-size: 28px;
-        }
-
-        .nav-left h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a3a4f;
-        }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #eab308, #f59e0b);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .user-avatar iconify-icon {
-            color: white;
-            font-size: 22px;
-        }
-
-        .brand-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a3a4f;
-            letter-spacing: 1px;
-        }
-
-        .brand-name span {
-            color: #eab308;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .purchase-system {
             max-width: 1400px;
             width: 100%;
-            margin: 24px auto;
+            margin: 0 auto;
             background: white;
             border-radius: 32px;
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
@@ -536,25 +475,43 @@
     </style>
 </head>
 
-<body>
-    <!-- 顶部导航栏 -->
-    <div class="top-nav">
-        <div class="nav-left">
-            <iconify-icon icon="mdi:chart-box"></iconify-icon>
-            <h1>数据指标管理系统</h1>
-        </div>
-        <div class="nav-right">
-            <div class="user-avatar">
-                <iconify-icon icon="mdi:account"></iconify-icon>
-            </div>
-            <div class="brand-name">
-                <a href="{% url 'landing:home' %}" style="text-decoration: none;">
-                    <span style="color: #1a3a4f;">城策</span><span style="color: #eab308;">智库</span>
-                </a>
-            </div>
-        </div>
-    </div>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
 
+<!-- 导航栏（与系统其他页面统一） -->
+<header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-4 md:px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+    <div class="flex items-center space-x-3 flex-shrink-0">
+        <div class="bg-blue-600 rounded-xl p-2 shadow-md">
+            <iconify-icon class="text-white text-2xl" icon="mdi:chart-line"></iconify-icon>
+        </div>
+        <a href="{% url 'landing:home' %}" class="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent hover:opacity-90 transition">数据指标管理系统</a>
+    </div>
+    <div class="ml-auto flex items-center space-x-2 md:space-x-4 overflow-x-auto">
+        <nav class="flex space-x-2 md:space-x-3 mr-2 md:mr-6 hide-scrollbar">
+            {% if user.is_authenticated %}
+                {% if user.is_superuser or user.profile.membership_level == 'admin' %}
+            <a href="/dashboard/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
+            <a href="/dashboard/order-price/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">价格配置</a>
+                {% endif %}
+            {% endif %}
+            <a href="/landing/pricing/" class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg text-sm shadow-sm transition-all">权限购买</a>
+            <a href="/dashboard/single-indicator-year-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年</a>
+            <a href="/dashboard/single-indicator-city-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市</a>
+            <a href="/dashboard/many-indicator-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标</a>
+        </nav>
+        <div class="hidden sm:block text-right flex-shrink-0">
+            <a href="{% url 'landing:home' %}" class="text-lg font-medium tracking-wide text-blue-800 hover:text-blue-600 transition">城策智库</a>
+        </div>
+        {% if user.is_authenticated %}
+        <a href="/dashboard/profile/" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner flex-shrink-0 hover:bg-blue-200 transition" title="{{ user.username }}">
+            <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
+        </a>
+        {% else %}
+        <a href="{% url 'account_login' %}?next=/landing/pricing/" class="whitespace-nowrap text-sm font-medium text-blue-700 hover:text-blue-900 border border-blue-300 hover:border-blue-500 py-2 px-4 rounded-lg transition flex-shrink-0">登录</a>
+        {% endif %}
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
     <div class="purchase-system">
         <div class="header">
             <h1>📊 指标查看权限购买中心</h1>
@@ -646,6 +603,7 @@
             💳 支付流程：点击购买 → 支付宝扫码 → 确认支付 → 开通权限
         </footer>
     </div>
+</main>
 
     <script>
         // ==================== 全局变量 ====================
