@@ -10,3 +10,4 @@ gunicorn
 stripe
 captcha
 mysqlclient
+python-alipay-sdk

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import coverage_views
 from . import indicator_audit_views
+from . import alipay_views
 
 app_name = 'dashboard'
 
@@ -67,6 +68,9 @@ urlpatterns = [
     # 订单与会员
     path('api/create-order/', views.create_order_api, name='create_order'),
     path('api/confirm-order-payment/', views.confirm_order_payment_api, name='confirm_order_payment'),
+    path('api/order-status/', alipay_views.order_status_api, name='order_status'),
+    path('api/alipay/notify/', alipay_views.alipay_notify_api, name='alipay_notify'),
+    path('api/alipay/mock-notify/', alipay_views.alipay_mock_notify_api, name='alipay_mock_notify'),
     path('api/activate-membership/', views.activate_membership, name='activate_membership'),
 
 

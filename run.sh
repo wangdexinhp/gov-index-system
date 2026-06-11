@@ -4,9 +4,11 @@ cd "$(dirname "$0")"
 
 LOG_FILE="/home/console.log"
 STATS_INTERVAL=600  # 统计刷新间隔（秒），默认 1 小时
+ORDER_EXPIRE_INTERVAL=300  # 订单超时关单扫描间隔（秒），默认 5 分钟
 RUN_DIR=".run"
 RUNSERVER_PID_FILE="$RUN_DIR/runserver.pid"
 STATS_PID_FILE="$RUN_DIR/stats_loop.pid"
+ORDER_EXPIRE_PID_FILE="$RUN_DIR/order_expire.pid"
 
 mkdir -p "$RUN_DIR"
 
@@ -33,6 +35,7 @@ stop_existing_processes() {
     echo "检查并停止旧进程..." | tee -a "$LOG_FILE"
     stop_pid "$RUNSERVER_PID_FILE" "runserver"
     stop_pid "$STATS_PID_FILE" "统计刷新任务"
+    stop_pid "$ORDER_EXPIRE_PID_FILE" "订单超时关单任务"
 
     # 兜底：按命令特征结束遗留进程
     pkill -f "manage.py runserver 0.0.0.0:8000" 2>/dev/null || true
@@ -67,6 +70,16 @@ fi
     done
 ) &
 echo $! > "$STATS_PID_FILE"
+
+# 后台定时关闭超时未支付订单
+(
+    while true; do
+        sleep "$ORDER_EXPIRE_INTERVAL"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] 扫描超时订单..." >> "$LOG_FILE"
+        python3 manage.py expire_pending_orders >> "$LOG_FILE" 2>&1
+    done
+) &
+echo $! > "$RUN_DIR/order_expire.pid"
 
 echo "启动服务并记录日志..." | tee -a "$LOG_FILE"
 nohup python3 manage.py runserver 0.0.0.0:8000 >> "$LOG_FILE" 2>&1 &

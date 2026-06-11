@@ -107,6 +107,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.accounts.context_processors.system_admin',
             ],
         },
     },
@@ -225,6 +226,22 @@ CACHES = {
 LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'account_login'
+
+# 支付宝当面付（沙箱联调，替换 .env 中 mock 值为真实密钥）
+ALIPAY_APP_ID = os.getenv('ALIPAY_APP_ID', 'mock_sandbox_app_id')
+ALIPAY_PRIVATE_KEY = os.getenv('ALIPAY_PRIVATE_KEY', '')
+ALIPAY_PUBLIC_KEY = os.getenv('ALIPAY_PUBLIC_KEY', '')
+ALIPAY_SANDBOX = os.getenv('ALIPAY_SANDBOX', 'true').lower() == 'true'
+ALIPAY_MOCK = os.getenv('ALIPAY_MOCK', 'true').lower() == 'true'
+ALIPAY_NOTIFY_URL = os.getenv(
+    'ALIPAY_NOTIFY_URL',
+    'https://city-index.cn/dashboard/api/alipay/notify/',
+)
+ALIPAY_RETURN_URL = os.getenv(
+    'ALIPAY_RETURN_URL',
+    'https://city-index.cn/landing/pricing/?pay=return',
+)
+ORDER_PAY_TIMEOUT_MINUTES = int(os.getenv('ORDER_PAY_TIMEOUT_MINUTES', '30'))
 
 # Stripe settings
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')

@@ -1,12 +1,15 @@
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Tuple
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.coredata.models.order import MembershipOrder, MembershipOrderItem
 from apps.coredata.services.pricing_config_service import get_duration_multipliers
+from apps.coredata.services.scope_service import expand_order_items_to_cities
 
 
 LEVEL_NAME_TO_CODE = {
@@ -100,6 +103,7 @@ def create_membership_order(user, user_type: str, duration: str, permissions: Li
     if total <= 0:
         raise ValueError("订单金额无效")
 
+    timeout_minutes = int(getattr(settings, "ORDER_PAY_TIMEOUT_MINUTES", 30))
     order = MembershipOrder.objects.create(
         order_no=_generate_order_no(),
         user=user,
@@ -107,13 +111,18 @@ def create_membership_order(user, user_type: str, duration: str, permissions: Li
         duration=duration,
         total_amount=total,
         status=MembershipOrder.Status.PENDING,
+        expire_at=timezone.now() + timedelta(minutes=timeout_minutes),
     )
     for row in item_rows:
         MembershipOrderItem.objects.create(order=order, **row)
     return order
 
 
-def mark_order_paid(order_no: str, payment_channel: str = "alipay") -> MembershipOrder:
+def mark_order_paid(
+    order_no: str,
+    payment_channel: str = "alipay",
+    alipay_trade_no: str = "",
+) -> MembershipOrder:
     order = MembershipOrder.objects.select_for_update().filter(order_no=order_no).first()
     if not order:
         raise ValueError("订单不存在")
@@ -121,18 +130,31 @@ def mark_order_paid(order_no: str, payment_channel: str = "alipay") -> Membershi
         return order
     if order.status != MembershipOrder.Status.PENDING:
         raise ValueError(f"订单状态不可支付: {order.get_status_display()}")
+    if order.expire_at and timezone.now() > order.expire_at:
+        order.status = MembershipOrder.Status.EXPIRED
+        order.save(update_fields=["status", "updated_at"])
+        raise ValueError("订单已超时")
 
     order.status = MembershipOrder.Status.PAID
     order.paid_at = timezone.now()
     order.payment_channel = payment_channel
-    order.save(update_fields=["status", "paid_at", "payment_channel", "updated_at"])
+    if alipay_trade_no:
+        order.alipay_trade_no = alipay_trade_no
+    order.save(update_fields=["status", "paid_at", "payment_channel", "alipay_trade_no", "updated_at"])
     return order
 
 
+def expire_pending_orders() -> int:
+    now = timezone.now()
+    qs = MembershipOrder.objects.filter(
+        status=MembershipOrder.Status.PENDING,
+        expire_at__lt=now,
+    )
+    return qs.update(status=MembershipOrder.Status.EXPIRED)
+
+
 def build_membership_payload_from_order(order: MembershipOrder) -> Dict:
-    cities = [item.scope_name for item in order.items.all()]
-    if any(item.level_code == "national" for item in order.items.all()):
-        cities = ["全国"] + [c for c in cities if c != "全国"]
+    cities = expand_order_items_to_cities(order.items.all())
 
     from apps.coredata.services.pricing_config_service import get_indicator_list
 
@@ -143,4 +165,36 @@ def build_membership_payload_from_order(order: MembershipOrder) -> Dict:
         "duration": order.duration if order.duration != "day" else "day",
         "cities": cities,
         "indicators": indicators,
+    }
+
+
+def fulfill_paid_order(order_no: str, payment_channel: str = "alipay", alipay_trade_no: str = "") -> dict:
+    """支付成功后标记订单并开通会员（幂等）。"""
+    from apps.coredata.services.membership_service import apply_membership
+
+    with transaction.atomic():
+        order = MembershipOrder.objects.select_for_update().filter(order_no=order_no).first()
+        if not order:
+            raise ValueError("订单不存在")
+        if order.status == MembershipOrder.Status.PAID:
+            return {"already_fulfilled": True, "order_no": order_no}
+        order = mark_order_paid(order_no, payment_channel=payment_channel, alipay_trade_no=alipay_trade_no)
+        payload = build_membership_payload_from_order(order)
+        result = apply_membership(order.user, **payload)
+    return result
+
+
+def get_order_status_for_user(order_no: str, user) -> dict:
+    order = MembershipOrder.objects.filter(order_no=order_no, user=user).first()
+    if not order:
+        raise ValueError("订单不存在")
+    if order.status == MembershipOrder.Status.PENDING and order.expire_at and timezone.now() > order.expire_at:
+        order.status = MembershipOrder.Status.EXPIRED
+        order.save(update_fields=["status", "updated_at"])
+    return {
+        "order_no": order.order_no,
+        "status": order.status,
+        "total_amount": float(order.total_amount),
+        "expire_at": order.expire_at.isoformat() if order.expire_at else None,
+        "paid_at": order.paid_at.isoformat() if order.paid_at else None,
     }

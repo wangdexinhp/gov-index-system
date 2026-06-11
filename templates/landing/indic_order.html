@@ -487,11 +487,9 @@
     </div>
     <div class="ml-auto flex items-center space-x-2 md:space-x-4 overflow-x-auto">
         <nav class="flex space-x-2 md:space-x-3 mr-2 md:mr-6 hide-scrollbar">
-            {% if user.is_authenticated %}
-                {% if user.is_superuser or user.profile.membership_level == 'admin' %}
+            {% if is_system_admin %}
             <a href="/dashboard/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
             <a href="/dashboard/order-price/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">价格配置</a>
-                {% endif %}
             {% endif %}
             <a href="/landing/pricing/" class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg text-sm shadow-sm transition-all">权限购买</a>
             <a href="/dashboard/single-indicator-year-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年</a>
@@ -1051,103 +1049,99 @@
             updateDynamicSelect();
         }
         
-        // 生成模拟二维码
-        function generateMockQRCode(amount) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = 200;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 200, 200);
-            ctx.fillStyle = '#000000';
-            for (let i = 0; i < 200; i += 8) {
-                for (let j = 0; j < 200; j += 8) {
-                    if ((i * j + amount * 100) % 100 < 35) {
-                        ctx.fillRect(i, j, 6, 6);
-                    }
+        function renderQrCode(container, qrCodeUrl) {
+            container.innerHTML = '';
+            const img = document.createElement('img');
+            img.alt = '支付宝付款码';
+            img.width = 200;
+            img.height = 200;
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrCodeUrl);
+            img.style.borderRadius = '8px';
+            container.appendChild(img);
+        }
+
+        async function pollOrderStatus(orderNo, onPaid, onExpired) {
+            try {
+                const res = await fetch('/dashboard/api/order-status/?order_no=' + encodeURIComponent(orderNo), {
+                    credentials: 'same-origin',
+                });
+                const json = await res.json();
+                if (!json.success) return;
+                if (json.data.status === 'paid') {
+                    onPaid(json.data);
+                } else if (json.data.status === 'expired' || json.data.status === 'cancelled') {
+                    onExpired(json.data);
                 }
+            } catch (e) {
+                console.warn('轮询订单状态失败', e);
             }
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(10, 10, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(18, 18, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(26, 26, 8, 8);
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(150, 10, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(158, 18, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(166, 26, 8, 8);
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(10, 150, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(18, 158, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(26, 166, 8, 8);
-            
-            ctx.fillStyle = '#1677ff';
-            ctx.font = 'bold 18px Arial';
-            ctx.fillText('支付宝', 70, 110);
-            
-            return canvas;
         }
         
         function showAlipayModal(orderInfo) {
             const modalOverlay = document.createElement('div');
             modalOverlay.className = 'modal-overlay';
+            const mockHint = orderInfo.alipayMock
+                ? '<p style="font-size:12px;color:#b45309;margin-top:8px;">Mock 模式：可用 POST /dashboard/api/alipay/mock-notify/ 模拟支付成功</p>'
+                : '';
             
             modalOverlay.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2>💰 支付宝支付</h2>
-                        <p>请使用支付宝扫码完成支付</p>
+                        <h2>💰 支付宝扫码支付</h2>
+                        <p>请使用支付宝扫一扫，支付完成后将自动开通权限</p>
                     </div>
                     <div class="qrcode-container">
                         <div class="qrcode-canvas" id="qrcodeCanvas"></div>
                         <div class="payment-amount">¥${orderInfo.total.toFixed(2)}</div>
-                        <div class="countdown" id="countdownTimer">⏱️ 剩余支付时间: 05:00</div>
+                        <div class="countdown" id="countdownTimer">⏱️ 剩余支付时间: --:--</div>
+                        <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:8px;">等待支付中...</p>
+                        ${mockHint}
                     </div>
                     <div class="modal-buttons">
-                        <button class="btn-cancel" id="cancelPayment">取消订单</button>
-                        <button class="btn-paid" id="confirmPaid">我已支付完成</button>
+                        <button class="btn-cancel" id="cancelPayment">关闭</button>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(modalOverlay);
+            renderQrCode(document.getElementById('qrcodeCanvas'), orderInfo.qrCode);
             
-            const qrcodeContainer = document.getElementById('qrcodeCanvas');
-            qrcodeContainer.appendChild(generateMockQRCode(orderInfo.total));
-            
-            let timeLeft = 300;
+            let timeLeft = (orderInfo.payTimeoutMinutes || 30) * 60;
             const timerElement = document.getElementById('countdownTimer');
+            const statusElement = document.getElementById('paymentStatus');
+            
+            function cleanup() {
+                clearInterval(timerInterval);
+                clearInterval(pollInterval);
+            }
+            
             const timerInterval = setInterval(() => {
                 timeLeft--;
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 timerElement.innerHTML = `⏱️ 剩余支付时间: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
+                    cleanup();
                     modalOverlay.remove();
-                    alert('⏰ 支付超时，订单已取消');
+                    alert('⏰ 支付超时，订单已关闭');
                 }
             }, 1000);
             
-            document.getElementById('cancelPayment').addEventListener('click', () => {
-                clearInterval(timerInterval);
-                modalOverlay.remove();
-                alert('❌ 已取消支付，订单未生效');
-            });
+            const pollInterval = setInterval(() => {
+                pollOrderStatus(orderInfo.orderId, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    showPaymentSuccess(orderInfo);
+                }, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    alert('⏰ 订单已过期，请重新下单');
+                });
+            }, 3000);
             
-            document.getElementById('confirmPaid').addEventListener('click', () => {
-                clearInterval(timerInterval);
+            document.getElementById('cancelPayment').addEventListener('click', () => {
+                cleanup();
                 modalOverlay.remove();
-                showPaymentSuccess(orderInfo);
             });
         }
         
@@ -1156,32 +1150,7 @@
             return match ? decodeURIComponent(match[1]) : '';
         }
 
-        async function showPaymentSuccess(orderInfo) {
-            try {
-                const response = await fetch('/dashboard/api/confirm-order-payment/', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCsrfToken(),
-                    },
-                    body: JSON.stringify({
-                        order_no: orderInfo.orderId,
-                        payment_channel: 'mock',
-                    }),
-                });
-                const result = await response.json();
-                if (!result.success) {
-                    alert('开通权限失败：' + (result.message || '未知错误'));
-                    return;
-                }
-                console.log('会员激活成功:', result.message);
-            } catch (error) {
-                console.error('确认支付失败:', error);
-                alert('确认支付失败，请稍后重试');
-                return;
-            }
-            
+        function showPaymentSuccess(orderInfo) {
             const successModal = document.createElement('div');
             successModal.className = 'modal-overlay';
             const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;
@@ -1258,7 +1227,14 @@
                     duration: durationName[currentDuration],
                     userType: currentUserType,
                     orderId: result.data.order_no,
+                    qrCode: result.data.qr_code,
+                    payTimeoutMinutes: result.data.pay_timeout_minutes || 30,
+                    alipayMock: !!result.data.alipay_mock,
                 };
+                if (!orderInfo.qrCode) {
+                    alert('获取支付二维码失败，请稍后重试');
+                    return;
+                }
                 showAlipayModal(orderInfo);
             } catch (error) {
                 console.error('创建订单失败:', error);

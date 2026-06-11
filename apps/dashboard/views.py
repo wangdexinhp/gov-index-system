@@ -97,9 +97,9 @@ def check_membership(view_func):
         
         # 检查城市权限
         if requested_cities:
-            # 如果用户购买了"全国"权限，允许查看所有城市
+            from apps.coredata.services.scope_service import is_city_allowed
             if '全国' not in allowed_cities:
-                unauthorized_cities = [c for c in requested_cities if c not in allowed_cities]
+                unauthorized_cities = [c for c in requested_cities if not is_city_allowed(c, allowed_cities)]
                 if unauthorized_cities:
                     return JsonResponse({
                         'success': False,
@@ -1373,8 +1373,10 @@ def update_duration_multipliers_api(request):
 @login_required_json
 @require_http_methods(["POST"])
 def create_order_api(request):
-    """创建待支付订单（服务端验价）。"""
+    """创建待支付订单（服务端验价 + 支付宝当面付预下单）。"""
     try:
+        from django.conf import settings as dj_settings
+        from apps.coredata.services.alipay_service import create_face_to_face_payment, is_alipay_mock_mode
         from apps.coredata.services.order_service import create_membership_order
 
         data = json.loads(request.body)
@@ -1382,13 +1384,22 @@ def create_order_api(request):
         duration = data.get("duration", "year")
         permissions = data.get("permissions", [])
         order = create_membership_order(request.user, user_type, duration, permissions)
+        pay = create_face_to_face_payment(
+            order.order_no,
+            order.total_amount,
+            subject=f"城策智库-指标查看权限-{order.order_no}",
+        )
         return JsonResponse({
             "success": True,
-            "message": "订单创建成功",
+            "message": "订单创建成功，请扫码支付",
             "data": {
                 "order_no": order.order_no,
                 "total_amount": float(order.total_amount),
                 "status": order.status,
+                "qr_code": pay.get("qr_code"),
+                "expire_at": order.expire_at.isoformat() if order.expire_at else None,
+                "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
+                "alipay_mock": pay.get("mock", False) or is_alipay_mock_mode(),
             },
         })
     except json.JSONDecodeError:
@@ -1402,43 +1413,11 @@ def create_order_api(request):
 @login_required_json
 @require_http_methods(["POST"])
 def confirm_order_payment_api(request):
-    """
-    确认订单支付并开通权限。
-    当前为模拟支付确认；接入支付宝后改由支付回调调用。
-    """
-    try:
-        from apps.coredata.models.order import MembershipOrder
-        from apps.coredata.services.membership_service import apply_membership
-        from apps.coredata.services.order_service import (
-            build_membership_payload_from_order,
-            mark_order_paid,
-        )
-
-        data = json.loads(request.body)
-        order_no = data.get("order_no", "").strip()
-        if not order_no:
-            return JsonResponse({"success": False, "message": "缺少订单号"}, status=400)
-
-        order = MembershipOrder.objects.filter(order_no=order_no, user=request.user).first()
-        if not order:
-            return JsonResponse({"success": False, "message": "订单不存在"}, status=404)
-
-        if order.status != MembershipOrder.Status.PAID:
-            order = mark_order_paid(order_no, payment_channel=data.get("payment_channel", "mock"))
-
-        payload = build_membership_payload_from_order(order)
-        result = apply_membership(request.user, **payload)
-        return JsonResponse({
-            "success": True,
-            "message": f"会员已激活，有效期至 {result['expires_at']}",
-            "data": result,
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
-    except ValueError as e:
-        return JsonResponse({"success": False, "message": str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({"success": False, "message": f"开通权限失败: {str(e)}"}, status=500)
+    """已关闭：支付结果由支付宝异步通知处理，请勿手动确认。"""
+    return JsonResponse({
+        "success": False,
+        "message": "请使用支付宝扫码完成支付，系统将自动开通权限",
+    }, status=403)
 
 
 # ==================== 会员激活接口（保留兼容，建议使用 confirm-order-payment） ====================
