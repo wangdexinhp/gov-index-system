@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import coverage_views
 from . import indicator_audit_views
+from . import alipay_views
 
 app_name = 'dashboard'
 
@@ -60,8 +61,16 @@ urlpatterns = [
     # 指标配置API接口
     path('api/org-indicator-config/', views.org_indicator_config, name='org_indicator_config'),
     path('api/personal-indicator-config/', views.personal_indicator_config, name='personal_indicator_config'),
+    path('api/update-indicator-config/', views.update_indicator_config, name='update_indicator_config'),
+    path('api/duration-multipliers/', views.get_duration_multipliers_api, name='duration_multipliers'),
+    path('api/update-duration-multipliers/', views.update_duration_multipliers_api, name='update_duration_multipliers'),
 
-    # 会员激活接口
+    # 订单与会员
+    path('api/create-order/', views.create_order_api, name='create_order'),
+    path('api/confirm-order-payment/', views.confirm_order_payment_api, name='confirm_order_payment'),
+    path('api/order-status/', alipay_views.order_status_api, name='order_status'),
+    path('api/alipay/notify/', alipay_views.alipay_notify_api, name='alipay_notify'),
+    path('api/alipay/mock-notify/', alipay_views.alipay_mock_notify_api, name='alipay_mock_notify'),
     path('api/activate-membership/', views.activate_membership, name='activate_membership'),
 
 

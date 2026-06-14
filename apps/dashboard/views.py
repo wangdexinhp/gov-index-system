@@ -25,6 +25,31 @@ from functools import wraps
 from .models import UserSettings, SubscriptionPlan
 
 
+# ==================== 管理员权限验证装饰器 ====================
+def login_required_json(view_func):
+    """未登录时返回 JSON，避免购买 API 被重定向到登录页。"""
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"success": False, "message": "请先登录后再操作"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+def admin_required(view_func):
+    """仅管理员或超级用户可访问。"""
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        profile = getattr(request.user, "profile", None)
+        if request.user.is_superuser or (profile and profile.membership_level == "admin"):
+            return view_func(request, *args, **kwargs)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JsonResponse({"success": False, "message": "需要管理员权限"}, status=403)
+        return redirect("/")
+    return _wrapped_view
+
+
 # ==================== 会员权限验证装饰器 ====================
 def check_membership(view_func):
     """
@@ -72,9 +97,9 @@ def check_membership(view_func):
         
         # 检查城市权限
         if requested_cities:
-            # 如果用户购买了"全国"权限，允许查看所有城市
+            from apps.coredata.services.scope_service import is_city_allowed
             if '全国' not in allowed_cities:
-                unauthorized_cities = [c for c in requested_cities if c not in allowed_cities]
+                unauthorized_cities = [c for c in requested_cities if not is_city_allowed(c, allowed_cities)]
                 if unauthorized_cities:
                     return JsonResponse({
                         'success': False,
@@ -141,7 +166,7 @@ def dashboard_single_query(request):
 def dashboard_single_query_area(request):
     return render(request, 'dashboard/single_query_area.html')
 
-@login_required
+@admin_required
 @require_http_methods(['GET'])
 def dashboard_order_price(request):
     return render(request, 'dashboard/order_price.html')
@@ -1179,9 +1204,8 @@ def many_indicator_city_query(request):
 
 
 # ==================== 保存价格配置接口（接收前端修改后的价格数据） ====================
-@login_required
+@admin_required
 @require_http_methods(["POST"])
-@csrf_exempt
 def update_pricing_config(request):
     """
     更新价格配置，从前端接收修改后的价格数据并保存到数据库
@@ -1196,61 +1220,16 @@ def update_pricing_config(request):
         }
     """
     try:
-        import json
+        from apps.coredata.services.pricing_config_service import update_pricing_list
+
         data = json.loads(request.body)
         price_list = data.get('price_list', [])
-        
-        # 映射前端 duration -> 数据库 duration code
-        duration_map = {
-            '年': 'year',
-            '月': 'month', 
-            '周': 'week',
-            '15天': '15days',
-            '24小时': '24hour',
-        }
-        
-        # 映射前端 userType -> 数据库 user_type
-        user_type_map = {
-            '个人用户': 'personal',
-            '机构用户': 'org',
-        }
-        
-        # 映射前端 category -> 数据库 level_code
-        level_code_map = {
-            'national': 'national',
-            'region': 'region',
-            'province': 'province',
-            'municipality': 'municipality',
-            'city': 'city',
-        }
-        
-        updated_count = 0
-        for item in price_list:
-            level_code = level_code_map.get(item.get('category', ''))
-            user_type = user_type_map.get(item.get('userType', ''))
-            duration = duration_map.get(item.get('duration', ''))
-            new_price = item.get('price')
-            
-            if not level_code or not user_type or not duration or new_price is None:
-                print(f"跳过无效配置项: {item}")
-                continue
-            
-            # 查找匹配的记录并更新价格
-            updated = PricingConfig.objects.filter(
-                level_code=level_code,
-                user_type=user_type,
-                duration=duration,
-            ).update(price=new_price)
-            
-            if updated > 0:
-                updated_count += updated
-        
+        updated_count = update_pricing_list(price_list)
         return JsonResponse({
             'success': True,
             'message': f'成功更新 {updated_count} 条价格配置',
             'updated_count': updated_count
         })
-        
     except json.JSONDecodeError:
         return JsonResponse({
             'success': False,
@@ -1281,35 +1260,11 @@ def get_pricing_config(request):
         }
     """
     try:
-        # 从数据库查询所有启用的价格配置
-        pricing_list = PricingConfig.objects.filter(is_active=True).order_by('sort_order')
-        
-        # 转换为前端期望的格式
-        result = []
-        for item in pricing_list:
-            # 映射 level_code 到 category
-            category_map = {
-                'national': 'national',
-                'region': 'region', 
-                'province': 'province',
-                'municipality': 'municipality',
-                'city': 'city'
-            }
-            
-            result.append({
-                'level': item.level,
-                'userType': item.user_type_name,
-                'duration': item.duration_name,
-                'price': float(item.price),
-                'days': item.days,
-                'category': category_map.get(item.level_code, item.level_code)
-            })
-        
+        from apps.coredata.services.pricing_config_service import get_pricing_list
         return JsonResponse({
             'success': True,
-            'data': result
+            'data': get_pricing_list()
         })
-        
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -1326,14 +1281,10 @@ def org_indicator_config(request):
     GET /dashboard/api/org-indicator-config/
     """
     try:
-        indicators = IndicatorConfig.objects.filter(
-            user_type='org',
-            is_active=True
-        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
-        
+        from apps.coredata.services.pricing_config_service import get_indicator_list
         return JsonResponse({
             'success': True,
-            'data': list(indicators)
+            'data': get_indicator_list('org')
         })
     except Exception as e:
         return JsonResponse({
@@ -1350,14 +1301,10 @@ def personal_indicator_config(request):
     GET /dashboard/api/personal-indicator-config/
     """
     try:
-        indicators = IndicatorConfig.objects.filter(
-            user_type='personal',
-            is_active=True
-        ).order_by('sort_order').values('indicator_name', 'indicator_desc')
-        
+        from apps.coredata.services.pricing_config_service import get_indicator_list
         return JsonResponse({
             'success': True,
-            'data': list(indicators)
+            'data': get_indicator_list('personal')
         })
     except Exception as e:
         return JsonResponse({
@@ -1367,85 +1314,136 @@ def personal_indicator_config(request):
         })
 
 
-# ==================== 会员激活接口 ====================
-@login_required
+@admin_required
 @require_http_methods(["POST"])
-@csrf_exempt
-def activate_membership(request):
-    """
-    支付成功后激活会员，更新 UserProfile 中的会员等级、过期时间和权限范围
-    POST /dashboard/api/activate-membership/
-    
-    请求体:
-        {
-            "duration": "year",       // 会员时长: week / month / year
-            "cities": ["北京市", "上海市"],  // 可查看的城市列表
-            "indicators": ["GDP", "人均GDP"]  // 可查看的指标列表
-        }
-    """
+def update_indicator_config(request):
+    """保存个人/机构指标权限配置。"""
     try:
-        import json
-        from datetime import timedelta
-        
+        from apps.coredata.services.pricing_config_service import replace_indicator_list
+
         data = json.loads(request.body)
-        duration = data.get('duration', 'month')  # week / month / year
-        cities = data.get('cities', [])
-        indicators = data.get('indicators', [])
-        
-        # 时长映射
-        duration_map = {
-            'day': ('day', 1, '日会员'),
-            'week': ('week', 7, '周会员'),
-            'month': ('month', 30, '月会员'),
-            'year': ('year', 365, '年会员'),
-        }
-        
-        if duration not in duration_map:
-            return JsonResponse({
-                'success': False,
-                'message': f'不支持的会员时长: {duration}'
-            }, status=400)
-        
-        level_code, days, level_name = duration_map[duration]
-        
-        profile = request.user.profile
-        
-        # 如果已有会员且未过期，在剩余时间基础上叠加
-        now = timezone.now()
-        if profile.is_membership_active and profile.membership_expires_at > now:
-            # 从当前过期时间开始叠加
-            new_expiry = profile.membership_expires_at + timedelta(days=days)
-        else:
-            # 从当前时间开始
-            new_expiry = now + timedelta(days=days)
-        
-        # 更新会员信息
-        profile.membership_level = level_code
-        profile.membership_expires_at = new_expiry
-        profile.membership_scope_city = json.dumps(cities, ensure_ascii=False)
-        profile.membership_scope_item = json.dumps(indicators, ensure_ascii=False)
-        profile.save()
-        
+        personal = data.get('personal_indicators', [])
+        org = data.get('org_indicators', [])
+        personal_count = replace_indicator_list('personal', '个人用户', personal)
+        org_count = replace_indicator_list('org', '机构用户', org)
         return JsonResponse({
             'success': True,
-            'message': f'会员已激活，有效期至 {new_expiry.strftime("%Y-%m-%d %H:%M")}',
-            'data': {
-                'membership_level': level_code,
-                'membership_level_name': level_name,
-                'expires_at': new_expiry.strftime('%Y-%m-%d %H:%M:%S'),
-                'cities': cities,
-                'indicators': indicators,
-            }
+            'message': f'已保存指标配置（个人 {personal_count} 项，机构 {org_count} 项）',
+            'personal_count': personal_count,
+            'org_count': org_count,
         })
-        
     except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'message': '请求数据格式错误'
-        }, status=400)
+        return JsonResponse({'success': False, 'message': '请求数据格式错误'}, status=400)
     except Exception as e:
+        return JsonResponse({'success': False, 'message': f'保存指标配置失败: {str(e)}'}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_duration_multipliers_api(request):
+    """获取时长价格系数（购买页与配置页共用）。"""
+    try:
+        from apps.coredata.services.pricing_config_service import get_duration_multipliers
+        return JsonResponse({'success': True, 'data': get_duration_multipliers()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e), 'data': {}}, status=500)
+
+
+@admin_required
+@require_http_methods(["POST"])
+def update_duration_multipliers_api(request):
+    """保存时长价格系数。"""
+    try:
+        from apps.coredata.services.pricing_config_service import update_duration_multipliers
+
+        data = json.loads(request.body)
+        multipliers = data.get('multipliers', {})
+        updated = update_duration_multipliers(multipliers)
         return JsonResponse({
-            'success': False,
-            'message': f'激活会员失败: {str(e)}'
-        }, status=500)
+            'success': True,
+            'message': f'已更新 {updated} 条时长系数',
+            'updated_count': updated,
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '请求数据格式错误'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'保存时长系数失败: {str(e)}'}, status=500)
+
+
+# ==================== 订单与支付 ====================
+@login_required_json
+@require_http_methods(["POST"])
+def create_order_api(request):
+    """创建待支付订单（服务端验价 + 支付宝当面付预下单）。"""
+    try:
+        from django.conf import settings as dj_settings
+        from apps.coredata.services.alipay_service import create_face_to_face_payment, is_alipay_mock_mode
+        from apps.coredata.services.order_service import create_membership_order
+
+        data = json.loads(request.body)
+        user_type = data.get("user_type", "personal")
+        duration = data.get("duration", "year")
+        permissions = data.get("permissions", [])
+        order = create_membership_order(request.user, user_type, duration, permissions)
+        pay = create_face_to_face_payment(
+            order.order_no,
+            order.total_amount,
+            subject=f"城策智库-指标查看权限-{order.order_no}",
+        )
+        return JsonResponse({
+            "success": True,
+            "message": "订单创建成功，请扫码支付",
+            "data": {
+                "order_no": order.order_no,
+                "total_amount": float(order.total_amount),
+                "status": order.status,
+                "qr_code": pay.get("qr_code"),
+                "expire_at": order.expire_at.isoformat() if order.expire_at else None,
+                "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
+                "alipay_mock": pay.get("mock", False) or is_alipay_mock_mode(),
+            },
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
+    except ValueError as e:
+        return JsonResponse({"success": False, "message": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"创建订单失败: {str(e)}"}, status=500)
+
+
+@login_required_json
+@require_http_methods(["POST"])
+def confirm_order_payment_api(request):
+    """已关闭：支付结果由支付宝异步通知处理，请勿手动确认。"""
+    return JsonResponse({
+        "success": False,
+        "message": "请使用支付宝扫码完成支付，系统将自动开通权限",
+    }, status=403)
+
+
+# ==================== 会员激活接口（保留兼容，建议使用 confirm-order-payment） ====================
+@login_required
+@require_http_methods(["POST"])
+def activate_membership(request):
+    """直接激活会员（旧接口，仅兼容）。"""
+    try:
+        from apps.coredata.services.membership_service import apply_membership
+
+        data = json.loads(request.body)
+        result = apply_membership(
+            request.user,
+            duration=data.get("duration", "month"),
+            cities=data.get("cities", []),
+            indicators=data.get("indicators", []),
+        )
+        return JsonResponse({
+            "success": True,
+            "message": f"会员已激活，有效期至 {result['expires_at']}",
+            "data": result,
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
+    except ValueError as e:
+        return JsonResponse({"success": False, "message": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"激活会员失败: {str(e)}"}, status=500)
 

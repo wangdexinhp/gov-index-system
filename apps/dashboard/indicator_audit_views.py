@@ -66,18 +66,25 @@ def check_data_api(request):
     GET /dashboard/api/check-data/
 
     参数:
-        year, province, city, group, status(imported/missing)
+        year, province, city, group, indicators(逗号分隔中文名), status(imported/missing)
         page, page_size
     """
     try:
         page = max(1, int(request.GET.get("page", 1)))
         page_size = min(200, max(1, int(request.GET.get("page_size", 50))))
+        indicators_param = request.GET.get("indicators") or ""
+        indicator_names = [
+            name.strip()
+            for name in indicators_param.split(",")
+            if name.strip()
+        ] or None
 
         data = get_indicator_audit_data(
             year_param=request.GET.get("year") or None,
             province=request.GET.get("province") or None,
             city=request.GET.get("city") or None,
             group=request.GET.get("group") or None,
+            indicator_names=indicator_names,
             status=request.GET.get("status") or None,
             page=page,
             page_size=page_size,

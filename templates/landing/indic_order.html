@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>指标查看权限购买系统 | 数据指标管理系统</title>
-    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <title>指标查看权限购买 | 数据指标管理系统</title>
+    <script src="/static/js/tailwindcss.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,75 +18,13 @@
             background: #f0f4f9;
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
-
-        /* 顶部导航栏 */
-        .top-nav {
-            background: white;
-            border-bottom: 2px solid #eab308;
-            height: 72px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .nav-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .nav-left iconify-icon {
-            color: #eab308;
-            font-size: 28px;
-        }
-
-        .nav-left h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a3a4f;
-        }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #eab308, #f59e0b);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .user-avatar iconify-icon {
-            color: white;
-            font-size: 22px;
-        }
-
-        .brand-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a3a4f;
-            letter-spacing: 1px;
-        }
-
-        .brand-name span {
-            color: #eab308;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .purchase-system {
             max-width: 1400px;
             width: 100%;
-            margin: 24px auto;
+            margin: 0 auto;
             background: white;
             border-radius: 32px;
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
@@ -536,25 +475,41 @@
     </style>
 </head>
 
-<body>
-    <!-- 顶部导航栏 -->
-    <div class="top-nav">
-        <div class="nav-left">
-            <iconify-icon icon="mdi:chart-box"></iconify-icon>
-            <h1>数据指标管理系统</h1>
-        </div>
-        <div class="nav-right">
-            <div class="user-avatar">
-                <iconify-icon icon="mdi:account"></iconify-icon>
-            </div>
-            <div class="brand-name">
-                <a href="{% url 'landing:home' %}" style="text-decoration: none;">
-                    <span style="color: #1a3a4f;">城策</span><span style="color: #eab308;">智库</span>
-                </a>
-            </div>
-        </div>
-    </div>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
 
+<!-- 导航栏（与系统其他页面统一） -->
+<header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-4 md:px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+    <div class="flex items-center space-x-3 flex-shrink-0">
+        <div class="bg-blue-600 rounded-xl p-2 shadow-md">
+            <iconify-icon class="text-white text-2xl" icon="mdi:chart-line"></iconify-icon>
+        </div>
+        <a href="{% url 'landing:home' %}" class="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent hover:opacity-90 transition">数据指标管理系统</a>
+    </div>
+    <div class="ml-auto flex items-center space-x-2 md:space-x-4 overflow-x-auto">
+        <nav class="flex space-x-2 md:space-x-3 mr-2 md:mr-6 hide-scrollbar">
+            {% if is_system_admin %}
+            <a href="/dashboard/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">指标录入</a>
+            <a href="/dashboard/order-price/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">价格配置</a>
+            {% endif %}
+            <a href="/landing/pricing/" class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg text-sm shadow-sm transition-all">权限购买</a>
+            <a href="/dashboard/single-indicator-year-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年</a>
+            <a href="/dashboard/single-indicator-city-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-3 md:px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市</a>
+            <a href="/dashboard/many-indicator-query/" class="whitespace-nowrap text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标</a>
+        </nav>
+        <div class="hidden sm:block text-right flex-shrink-0">
+            <a href="{% url 'landing:home' %}" class="text-lg font-medium tracking-wide text-blue-800 hover:text-blue-600 transition">城策智库</a>
+        </div>
+        {% if user.is_authenticated %}
+        <a href="/dashboard/profile/" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner flex-shrink-0 hover:bg-blue-200 transition" title="{{ user.username }}">
+            <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
+        </a>
+        {% else %}
+        <a href="{% url 'account_login' %}?next=/landing/pricing/" class="whitespace-nowrap text-sm font-medium text-blue-700 hover:text-blue-900 border border-blue-300 hover:border-blue-500 py-2 px-4 rounded-lg transition flex-shrink-0">登录</a>
+        {% endif %}
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
     <div class="purchase-system">
         <div class="header">
             <h1>📊 指标查看权限购买中心</h1>
@@ -646,6 +601,7 @@
             💳 支付流程：点击购买 → 支付宝扫码 → 确认支付 → 开通权限
         </footer>
     </div>
+</main>
 
     <script>
         // ==================== 全局变量 ====================
@@ -660,8 +616,8 @@
         let organizationIndicators = [];
         let personalIndicators = [];
         
-        const durationMultiplier = { year: 1.0, month: 0.1, day: 0.004 };
-        const durationName = { year: '年卡', month: '月卡', day: '日卡' };
+        let durationMultiplier = { year: 1.0, month: 0.1, day: 0.004, week: 0.025 };
+        const durationName = { year: '年卡', month: '月卡', day: '日卡', week: '周卡' };
         
         // 静态城市/地区数据（用于下拉选项）
         const regionList = [
@@ -706,6 +662,23 @@
                 // 使用少量备用数据
                 municipalityList = ['北京市', '上海市', '天津市', '重庆市'];
                 cityList = ['石家庄市', '唐山市', '太原市', '呼和浩特市'];
+            }
+        }
+
+        async function loadDurationMultipliers() {
+            try {
+                const res = await fetch('/dashboard/api/duration-multipliers/');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    durationMultiplier = {
+                        year: json.data.year ?? 1.0,
+                        month: json.data.month ?? 0.1,
+                        week: json.data.week ?? 0.025,
+                        day: json.data.day ?? json.data['24hour'] ?? 0.004,
+                    };
+                }
+            } catch (e) {
+                console.warn('加载时长系数失败，使用默认值', e);
             }
         }
 
@@ -1076,131 +1049,108 @@
             updateDynamicSelect();
         }
         
-        // 生成模拟二维码
-        function generateMockQRCode(amount) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = 200;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 200, 200);
-            ctx.fillStyle = '#000000';
-            for (let i = 0; i < 200; i += 8) {
-                for (let j = 0; j < 200; j += 8) {
-                    if ((i * j + amount * 100) % 100 < 35) {
-                        ctx.fillRect(i, j, 6, 6);
-                    }
+        function renderQrCode(container, qrCodeUrl) {
+            container.innerHTML = '';
+            const img = document.createElement('img');
+            img.alt = '支付宝付款码';
+            img.width = 200;
+            img.height = 200;
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrCodeUrl);
+            img.style.borderRadius = '8px';
+            container.appendChild(img);
+        }
+
+        async function pollOrderStatus(orderNo, onPaid, onExpired) {
+            try {
+                const res = await fetch('/dashboard/api/order-status/?order_no=' + encodeURIComponent(orderNo), {
+                    credentials: 'same-origin',
+                });
+                const json = await res.json();
+                if (!json.success) return;
+                if (json.data.status === 'paid') {
+                    onPaid(json.data);
+                } else if (json.data.status === 'expired' || json.data.status === 'cancelled') {
+                    onExpired(json.data);
                 }
+            } catch (e) {
+                console.warn('轮询订单状态失败', e);
             }
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(10, 10, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(18, 18, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(26, 26, 8, 8);
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(150, 10, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(158, 18, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(166, 26, 8, 8);
-            
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(10, 150, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(18, 158, 24, 24);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(26, 166, 8, 8);
-            
-            ctx.fillStyle = '#1677ff';
-            ctx.font = 'bold 18px Arial';
-            ctx.fillText('支付宝', 70, 110);
-            
-            return canvas;
         }
         
         function showAlipayModal(orderInfo) {
             const modalOverlay = document.createElement('div');
             modalOverlay.className = 'modal-overlay';
+            const mockHint = orderInfo.alipayMock
+                ? '<p style="font-size:12px;color:#b45309;margin-top:8px;">Mock 模式：可用 POST /dashboard/api/alipay/mock-notify/ 模拟支付成功</p>'
+                : '';
             
             modalOverlay.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2>💰 支付宝支付</h2>
-                        <p>请使用支付宝扫码完成支付</p>
+                        <h2>💰 支付宝扫码支付</h2>
+                        <p>请使用支付宝扫一扫，支付完成后将自动开通权限</p>
                     </div>
                     <div class="qrcode-container">
                         <div class="qrcode-canvas" id="qrcodeCanvas"></div>
                         <div class="payment-amount">¥${orderInfo.total.toFixed(2)}</div>
-                        <div class="countdown" id="countdownTimer">⏱️ 剩余支付时间: 05:00</div>
+                        <div class="countdown" id="countdownTimer">⏱️ 剩余支付时间: --:--</div>
+                        <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:8px;">等待支付中...</p>
+                        ${mockHint}
                     </div>
                     <div class="modal-buttons">
-                        <button class="btn-cancel" id="cancelPayment">取消订单</button>
-                        <button class="btn-paid" id="confirmPaid">我已支付完成</button>
+                        <button class="btn-cancel" id="cancelPayment">关闭</button>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(modalOverlay);
+            renderQrCode(document.getElementById('qrcodeCanvas'), orderInfo.qrCode);
             
-            const qrcodeContainer = document.getElementById('qrcodeCanvas');
-            qrcodeContainer.appendChild(generateMockQRCode(orderInfo.total));
-            
-            let timeLeft = 300;
+            let timeLeft = (orderInfo.payTimeoutMinutes || 30) * 60;
             const timerElement = document.getElementById('countdownTimer');
+            const statusElement = document.getElementById('paymentStatus');
+            
+            function cleanup() {
+                clearInterval(timerInterval);
+                clearInterval(pollInterval);
+            }
+            
             const timerInterval = setInterval(() => {
                 timeLeft--;
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 timerElement.innerHTML = `⏱️ 剩余支付时间: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
+                    cleanup();
                     modalOverlay.remove();
-                    alert('⏰ 支付超时，订单已取消');
+                    alert('⏰ 支付超时，订单已关闭');
                 }
             }, 1000);
             
-            document.getElementById('cancelPayment').addEventListener('click', () => {
-                clearInterval(timerInterval);
-                modalOverlay.remove();
-                alert('❌ 已取消支付，订单未生效');
-            });
+            const pollInterval = setInterval(() => {
+                pollOrderStatus(orderInfo.orderId, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    showPaymentSuccess(orderInfo);
+                }, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    alert('⏰ 订单已过期，请重新下单');
+                });
+            }, 3000);
             
-            document.getElementById('confirmPaid').addEventListener('click', () => {
-                clearInterval(timerInterval);
+            document.getElementById('cancelPayment').addEventListener('click', () => {
+                cleanup();
                 modalOverlay.remove();
-                showPaymentSuccess(orderInfo);
             });
         }
         
-        async function showPaymentSuccess(orderInfo) {
-            // 调用会员激活接口
-            try {
-                const cityNames = selectedPermissions.map(p => p.name);
-                const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;
-                
-                const response = await fetch('/dashboard/api/activate-membership/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        duration: currentDuration,
-                        cities: cityNames,
-                        indicators: indicators,
-                    })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    console.log('会员激活成功:', result.message);
-                } else {
-                    console.warn('会员激活失败:', result.message);
-                }
-            } catch (error) {
-                console.error('调用会员激活接口失败:', error);
-            }
-            
+        function getCsrfToken() {
+            const match = document.cookie.match(/csrftoken=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : '';
+        }
+
+        function showPaymentSuccess(orderInfo) {
             const successModal = document.createElement('div');
             successModal.className = 'modal-overlay';
             const indicators = currentUserType === 'personal' ? personalIndicators : organizationIndicators;
@@ -1228,29 +1178,77 @@
             });
         }
         
-        function purchase() {
+        async function purchase() {
             if (selectedPermissions.length === 0) {
                 alert('⚠️ 请至少添加一个权限后再购买');
                 return;
             }
-            
-            const total = selectedPermissions.reduce((sum, p) => sum + p.priceYear, 0) * durationMultiplier[currentDuration];
-            const itemsList = selectedPermissions.map(p => `${p.typeName}·${p.name}`).join('、');
-            
-            const orderInfo = {
-                total: total,
-                permissions: itemsList,
-                duration: durationName[currentDuration],
-                userType: currentUserType,
-                orderId: 'ORD' + Date.now()
-            };
-            
-            showAlipayModal(orderInfo);
+
+            const buyBtn = document.getElementById('buyBtn');
+            const originalText = buyBtn.textContent;
+            buyBtn.disabled = true;
+            buyBtn.textContent = '创建订单中...';
+
+            try {
+                const response = await fetch('/dashboard/api/create-order/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        user_type: currentUserType,
+                        duration: currentDuration,
+                        permissions: selectedPermissions.map(p => ({
+                            level: p.level,
+                            typeName: p.typeName,
+                            name: p.name,
+                            id: p.id,
+                        })),
+                    }),
+                });
+                const result = await response.json();
+
+                if (response.status === 401 || response.status === 403) {
+                    alert('请先登录后再购买');
+                    window.location.href = '/accounts/login/?next=/landing/pricing/';
+                    return;
+                }
+                if (!result.success) {
+                    alert('创建订单失败：' + (result.message || '未知错误'));
+                    return;
+                }
+
+                const itemsList = selectedPermissions.map(p => `${p.typeName}·${p.name}`).join('、');
+                const orderInfo = {
+                    total: result.data.total_amount,
+                    permissions: itemsList,
+                    duration: durationName[currentDuration],
+                    userType: currentUserType,
+                    orderId: result.data.order_no,
+                    qrCode: result.data.qr_code,
+                    payTimeoutMinutes: result.data.pay_timeout_minutes || 30,
+                    alipayMock: !!result.data.alipay_mock,
+                };
+                if (!orderInfo.qrCode) {
+                    alert('获取支付二维码失败，请稍后重试');
+                    return;
+                }
+                showAlipayModal(orderInfo);
+            } catch (error) {
+                console.error('创建订单失败:', error);
+                alert('网络错误，请稍后重试');
+            } finally {
+                buyBtn.disabled = false;
+                buyBtn.textContent = originalText;
+            }
         }
         
         // 初始化
         async function init() {
             await loadCityData();
+            await loadDurationMultipliers();
             await loadPriceConfig();
             await loadIndicators();
             
