@@ -168,64 +168,155 @@
     /* 工作区 */
     .drc-workspace {
         display: flex;
+        flex-direction: column;
         height: calc(100vh - 120px);
         min-height: 500px;
     }
-    .drc-sidebar {
-        width: 280px;
-        flex-shrink: 0;
-        background: #fff;
-        border-right: 1px solid var(--drc-border);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    .drc-sidebar-section {
+    .drc-filter-bar-top {
+        padding: 8px 12px;
+        background: #fafbfc;
         border-bottom: 1px solid var(--drc-border);
         display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .drc-filter-bar-top .drc-field select {
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 2px;
+        min-width: 110px;
+    }
+    .drc-modal-pane-body .drc-tree {
+        border: none;
+        height: 100%;
+        max-height: none;
+    }
+    .drc-filter-summary {
+        font-size: 12px;
+        color: var(--drc-muted);
+        margin-left: 8px;
+    }
+    .drc-filter-summary strong { color: var(--drc-blue-dark); font-weight: 600; }
+
+    /* 弹窗 */
+    .drc-modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .drc-modal-mask.hidden { display: none; }
+    .drc-modal {
+        background: #fff;
+        border: 1px solid var(--drc-border);
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.18);
+        width: min(920px, 94vw);
+        max-height: 88vh;
+        display: flex;
         flex-direction: column;
-        flex-shrink: 0;
     }
-    .drc-sidebar-section-grow {
-        flex: 1;
-        min-height: 0;
-        border-bottom: none;
-    }
-    .drc-sidebar-title {
-        padding: 8px 12px;
+    .drc-modal-header {
+        padding: 10px 16px;
         background: var(--drc-blue-light);
         border-bottom: 1px solid var(--drc-border);
         font-weight: 600;
-        font-size: 12px;
+        font-size: 13px;
         color: var(--drc-blue-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .drc-sidebar-body {
-        padding: 8px 10px;
+    .drc-modal-close {
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #666;
+        line-height: 1;
+        padding: 0 4px;
     }
-    .drc-sidebar-section-grow .drc-sidebar-body {
+    .drc-modal-body {
+        display: flex;
         flex: 1;
         min-height: 0;
+        height: 480px;
+    }
+    .drc-modal-pane {
+        flex: 1;
         display: flex;
         flex-direction: column;
+        min-width: 0;
+        border-right: 1px solid var(--drc-border);
     }
-    .drc-sidebar-body select {
+    .drc-modal-pane:last-child { border-right: none; }
+    .drc-modal-pane-title {
+        padding: 8px 12px;
+        background: #f5f8fb;
+        border-bottom: 1px solid var(--drc-border);
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+    }
+    .drc-modal-pane-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 12px;
+    }
+    .drc-modal-footer {
+        padding: 10px 16px;
+        border-top: 1px solid var(--drc-border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        background: #fafbfc;
+    }
+    .drc-selected-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 24px;
+    }
+    .drc-selected-tag {
+        background: #dce9f8;
+        color: var(--drc-blue-dark);
+        padding: 3px 8px;
+        border-radius: 2px;
+        font-size: 11px;
+        border: 1px solid #b8d0ea;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-selected-tag button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #888;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+    }
+    .drc-modal-pane-body select {
         width: 100%;
         border: 1px solid var(--drc-border);
         padding: 4px 8px;
         font-size: 12px;
-        background: #fff;
+        margin-bottom: 8px;
         border-radius: 2px;
-        box-sizing: border-box;
     }
     .drc-tree {
-        max-height: 140px;
         overflow-y: auto;
         border: 1px solid var(--drc-border);
         border-radius: 2px;
-        margin-bottom: 6px;
     }
     .drc-tree-item {
-        padding: 6px 12px 6px 20px;
+        padding: 7px 12px;
         cursor: pointer;
         font-size: 12px;
         border-left: 3px solid transparent;
@@ -238,18 +329,25 @@
         color: var(--drc-blue-dark);
         font-weight: 600;
     }
-    .drc-sidebar-panel {
-        border-top: 1px solid var(--drc-border);
-        max-height: 200px;
+    #city-items, #indicator-content {
+        max-height: none;
+        overflow: visible;
+        padding: 0;
+    }
+    #indicator-content { font-size: 12px; }
+    .city-row, .indicator-row {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 2px;
+        font-size: 12px;
     }
-    .drc-sidebar-panel .panel-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 6px 8px;
-        font-size: 11px;
+    .city-row label, .indicator-row label { cursor: pointer; flex: 1; }
+    .city-checkbox, .indicator-checkbox {
+        width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
     }
+
+    #indicator-filter { display: none; }
 
     .drc-main {
         flex: 1;
@@ -257,41 +355,8 @@
         flex-direction: column;
         min-width: 0;
         background: #fff;
-    }
-
-    /* 侧边栏：城市/指标列表 */
-    #city-list, #indicator-subfilter {
-        border: 1px solid var(--drc-border);
-        background: #fff;
-        border-radius: 2px;
-        margin-top: 6px;
-    }
-    #city-placeholder, #indicator-placeholder {
-        padding: 8px;
-        color: #999;
-        text-align: center;
-        font-size: 11px;
-    }
-    #city-items { max-height: 160px; overflow-y: auto; padding: 4px 6px; }
-    #indicator-content { padding: 4px 6px; flex: 1; overflow-y: auto; min-height: 80px; max-height: none; }
-    #indicator-subfilter {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
         min-height: 0;
-        overflow: hidden;
     }
-    .city-checkbox, .indicator-checkbox {
-        width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
-    }
-    #city-content .flex.items-center,
-    #indicator-content .flex.items-center {
-        padding: 3px 0;
-        font-size: 11px;
-    }
-    #city-content .flex.items-center:hover { background: #f5f9fd; }
-
-    #indicator-filter { display: none; }
 
     .drc-content-tabs {
         display: flex;
@@ -412,15 +477,6 @@
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: #b0c4d8; border-radius: 4px; }
     input:focus, select:focus { outline: none; border-color: var(--drc-blue) !important; }
-
-    .city-row, .indicator-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 0;
-        font-size: 11px;
-    }
-    .city-row label, .indicator-row label { cursor: pointer; flex: 1; }
     #excel-section:not(.hidden) { flex: 1; overflow: auto; }
 </style>
 </head>
@@ -458,90 +514,21 @@
 </div>
 
 <div class="drc-workspace">
-    <aside class="drc-sidebar">
-        <div class="drc-sidebar-section">
-            <div class="drc-sidebar-title">年份</div>
-            <div class="drc-sidebar-body">
+    <div class="drc-main">
+        <div class="drc-filter-bar-top">
+            <div class="drc-field">
+                <label>年份</label>
                 <select id="year-select"><option>选择年份</option></select>
             </div>
+            <button type="button" class="drc-btn" id="open-region-modal-btn">
+                <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
+            </button>
+            <button type="button" class="drc-btn" id="open-indicator-modal-btn">
+                <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
+            </button>
+            <span class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</span>
         </div>
-        <div class="drc-sidebar-section">
-            <div class="drc-sidebar-title">地区</div>
-            <div class="drc-sidebar-body">
-                <select id="province-select">
-                <option value="">请选择省份</option>
-                <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
-                <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
-                <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
-                <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
-                <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
-                <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
-                <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
-                <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
-                <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
-                <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
-                <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
-            </select>
-                <div id="city-list">
-                    <div id="city-placeholder">请先选择省份</div>
-                    <div id="city-content" class="hidden">
-                        <div style="display:flex;justify-content:flex-end;gap:6px;margin:4px 6px 2px">
-                            <button type="button" id="select-all-cities" class="drc-btn" style="padding:2px 8px;font-size:11px">全选</button>
-                            <button type="button" id="deselect-all-cities" class="drc-btn" style="padding:2px 8px;font-size:11px">取消</button>
-                        </div>
-                        <div id="city-items"></div>
-                        <div id="city-empty" class="hidden" style="color:#999;padding:6px;text-align:center;font-size:11px">暂无城市数据</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="drc-sidebar-section drc-sidebar-section-grow">
-            <div class="drc-sidebar-title">指标</div>
-            <div class="drc-sidebar-body" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:6px">
-                <div class="drc-tree" id="indicator-tree">
-                    <div class="drc-tree-item active" data-group="admin">行政区域数据</div>
-                    <div class="drc-tree-item" data-group="population">人口数据</div>
-                    <div class="drc-tree-item" data-group="economy_structure">经济结构数据</div>
-                    <div class="drc-tree-item" data-group="education_tech">教育科技数据</div>
-                    <div class="drc-tree-item" data-group="employment">就业数据</div>
-                    <div class="drc-tree-item" data-group="finance">财政指标数据</div>
-                    <div class="drc-tree-item" data-group="economic_performance">经济效果数据</div>
-                    <div class="drc-tree-item" data-group="ecology">生态环保数据</div>
-                    <div class="drc-tree-item" data-group="market_supervision">市场监管数据</div>
-                    <div class="drc-tree-item" data-group="social_security">社会保障数据</div>
-                    <div class="drc-tree-item" data-group="healthcare">医疗卫生数据</div>
-                    <div class="drc-tree-item" data-group="infrastructure">基础设施数据</div>
-                    <div class="drc-tree-item" data-group="public_safety">公共安全数据</div>
-                    <div class="drc-tree-item" data-group="culture_sports">文化体育数据</div>
-                    <div class="drc-tree-item" data-group="administrative_integrity">行政廉洁数据</div>
-                    <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
-                    <div class="drc-tree-item" data-group="economic_development">经济发展数据</div>
-                    <div class="drc-tree-item" data-group="public_service">公共服务数据</div>
-                    <div class="drc-tree-item" data-group="law_based_governance">依法行政数据</div>
-                    <div class="drc-tree-item" data-group="government_affairs_openness">政务公开数据</div>
-                </div>
-                <div id="indicator-subfilter">
-                    <div id="indicator-placeholder" class="hidden"></div>
-                    <div id="indicator-content"></div>
-                </div>
-                <select id="indicator-filter" style="display:none">
-                    <option value="admin" selected>行政区域数据</option>
-                    <option value="population">人口数据</option><option value="economy_structure">经济结构数据</option>
-                    <option value="education_tech">教育科技数据</option><option value="employment">就业数据</option>
-                    <option value="finance">财政指标数据</option><option value="economic_performance">经济效果数据</option>
-                    <option value="ecology">生态环保数据</option><option value="market_supervision">市场监管数据</option>
-                    <option value="social_security">社会保障数据</option><option value="healthcare">医疗卫生数据</option>
-                    <option value="infrastructure">基础设施数据</option><option value="public_safety">公共安全数据</option>
-                    <option value="culture_sports">文化体育数据</option><option value="administrative_integrity">行政廉洁数据</option>
-                    <option value="economic_growth">经济增长数据</option><option value="economic_development">经济发展数据</option>
-                    <option value="public_service">公共服务数据</option><option value="law_based_governance">依法行政数据</option>
-                    <option value="government_affairs_openness">政务公开数据</option>
-                </select>
-            </div>
-        </div>
-    </aside>
 
-    <div class="drc-main">
         <form id="manual-form" method="post" action="/dashboard/submit/" style="display:flex;flex-direction:column;flex:1;min-height:0">
             {% csrf_token %}
             <div id="manual-section" class="drc-table-area">
@@ -585,6 +572,127 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- 地区筛选弹窗 -->
+<div class="drc-modal-mask hidden" id="region-modal-mask">
+    <div class="drc-modal" id="region-modal" role="dialog" aria-labelledby="region-modal-title">
+        <div class="drc-modal-header">
+            <span id="region-modal-title">地区筛选</span>
+            <button type="button" class="drc-modal-close" id="close-region-modal" aria-label="关闭">&times;</button>
+        </div>
+        <div class="drc-modal-body">
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">地区列表</div>
+                <div class="drc-modal-pane-body">
+                    <select id="province-select">
+                <option value="">请选择省份</option>
+                <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
+                <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
+                <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
+                <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
+                <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
+                <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
+                <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
+                <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
+                <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
+                <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
+                <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+            </select>
+                    <div id="city-list">
+                        <div id="city-placeholder">请先选择省份</div>
+                        <div id="city-content" class="hidden">
+                            <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px">
+                                <button type="button" id="select-all-cities" class="drc-btn" style="padding:2px 10px;font-size:11px">全选</button>
+                                <button type="button" id="deselect-all-cities" class="drc-btn" style="padding:2px 10px;font-size:11px">取消全选</button>
+                            </div>
+                            <div id="city-items"></div>
+                            <div id="city-empty" class="hidden" style="color:#999;padding:12px;text-align:center;font-size:12px">暂无城市数据</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">
+                    已选地区
+                    <button type="button" class="drc-btn" id="clear-all-cities-btn" style="float:right;padding:2px 8px;font-size:11px">清空</button>
+                </div>
+                <div class="drc-modal-pane-body">
+                    <div class="drc-selected-tags" id="region-selected-tags"></div>
+                    <div id="region-selected-empty" style="color:#999;font-size:12px;padding:20px 0;text-align:center">尚未选择城市</div>
+                </div>
+            </div>
+        </div>
+        <div class="drc-modal-footer">
+            <button type="button" class="drc-btn" id="cancel-region-modal">取消</button>
+            <button type="button" class="drc-btn drc-btn-primary" id="apply-region-modal">应用筛选</button>
+        </div>
+    </div>
+</div>
+
+<!-- 指标筛选弹窗 -->
+<div class="drc-modal-mask hidden" id="indicator-modal-mask">
+    <div class="drc-modal" id="indicator-modal" role="dialog" aria-labelledby="indicator-modal-title">
+        <div class="drc-modal-header">
+            <span id="indicator-modal-title">指标筛选</span>
+            <button type="button" class="drc-modal-close" id="close-indicator-modal" aria-label="关闭">&times;</button>
+        </div>
+        <div class="drc-modal-body">
+            <div class="drc-modal-pane" style="flex:0 0 240px">
+                <div class="drc-modal-pane-title">指标分类</div>
+                <div class="drc-modal-pane-body" style="padding:0">
+                    <div class="drc-tree" id="indicator-tree">
+                    <div class="drc-tree-item active" data-group="admin">行政区域数据</div>
+                    <div class="drc-tree-item" data-group="population">人口数据</div>
+                    <div class="drc-tree-item" data-group="economy_structure">经济结构数据</div>
+                    <div class="drc-tree-item" data-group="education_tech">教育科技数据</div>
+                    <div class="drc-tree-item" data-group="employment">就业数据</div>
+                    <div class="drc-tree-item" data-group="finance">财政指标数据</div>
+                    <div class="drc-tree-item" data-group="economic_performance">经济效果数据</div>
+                    <div class="drc-tree-item" data-group="ecology">生态环保数据</div>
+                    <div class="drc-tree-item" data-group="market_supervision">市场监管数据</div>
+                    <div class="drc-tree-item" data-group="social_security">社会保障数据</div>
+                    <div class="drc-tree-item" data-group="healthcare">医疗卫生数据</div>
+                    <div class="drc-tree-item" data-group="infrastructure">基础设施数据</div>
+                    <div class="drc-tree-item" data-group="public_safety">公共安全数据</div>
+                    <div class="drc-tree-item" data-group="culture_sports">文化体育数据</div>
+                    <div class="drc-tree-item" data-group="administrative_integrity">行政廉洁数据</div>
+                    <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
+                    <div class="drc-tree-item" data-group="economic_development">经济发展数据</div>
+                    <div class="drc-tree-item" data-group="public_service">公共服务数据</div>
+                    <div class="drc-tree-item" data-group="law_based_governance">依法行政数据</div>
+                    <div class="drc-tree-item" data-group="government_affairs_openness">政务公开数据</div>
+                </div>
+                </div>
+            </div>
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">指标列表（多选）</div>
+                <div class="drc-modal-pane-body">
+                    <div id="indicator-subfilter">
+                        <div id="indicator-placeholder" class="hidden"></div>
+                        <div id="indicator-content"></div>
+                    </div>
+                    <select id="indicator-filter" style="display:none">
+                    <option value="admin" selected>行政区域数据</option>
+                    <option value="population">人口数据</option><option value="economy_structure">经济结构数据</option>
+                    <option value="education_tech">教育科技数据</option><option value="employment">就业数据</option>
+                    <option value="finance">财政指标数据</option><option value="economic_performance">经济效果数据</option>
+                    <option value="ecology">生态环保数据</option><option value="market_supervision">市场监管数据</option>
+                    <option value="social_security">社会保障数据</option><option value="healthcare">医疗卫生数据</option>
+                    <option value="infrastructure">基础设施数据</option><option value="public_safety">公共安全数据</option>
+                    <option value="culture_sports">文化体育数据</option><option value="administrative_integrity">行政廉洁数据</option>
+                    <option value="economic_growth">经济增长数据</option><option value="economic_development">经济发展数据</option>
+                    <option value="public_service">公共服务数据</option><option value="law_based_governance">依法行政数据</option>
+                    <option value="government_affairs_openness">政务公开数据</option>
+                </select>
+                </div>
+            </div>
+        </div>
+        <div class="drc-modal-footer">
+            <button type="button" class="drc-btn" id="cancel-indicator-modal">取消</button>
+            <button type="button" class="drc-btn drc-btn-primary" id="apply-indicator-modal">应用筛选</button>
+        </div>
     </div>
 </div>
 
@@ -902,6 +1010,8 @@
                 } else {
                     globalSelectedCities.delete(city);
                 }
+                renderRegionSelectedTags();
+                updateFilterSummary();
                 renderTableRows();
             });
             
@@ -916,6 +1026,7 @@
             div.appendChild(label);
             container.appendChild(div);
         });
+        renderRegionSelectedTags();
     }
 
     function bindSelectAllButtons() {
@@ -928,6 +1039,8 @@
                     cb.checked = true;
                     globalSelectedCities.add(cb.value);
                 });
+                renderRegionSelectedTags();
+                updateFilterSummary();
                 renderTableRows();
             };
         }
@@ -937,6 +1050,8 @@
                     cb.checked = false;
                     globalSelectedCities.delete(cb.value);
                 });
+                renderRegionSelectedTags();
+                updateFilterSummary();
                 renderTableRows();
             };
         }
@@ -992,6 +1107,7 @@
                     window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => v !== label);
                 }
                 buildTableHeaders(window.globalSelectedIndicators);
+                updateFilterSummary();
                 renderTableRows();
             });
             
@@ -1016,6 +1132,7 @@
                 }
             });
             buildTableHeaders(window.globalSelectedIndicators);
+            updateFilterSummary();
             renderTableRows();
         };
         
@@ -1024,17 +1141,110 @@
             content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
             window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => !currentVals.includes(v));
             buildTableHeaders(window.globalSelectedIndicators);
+            updateFilterSummary();
             renderTableRows();
         };
     }
 
-    function setupCityToggle() {
-        /* 侧边栏布局：城市列表随省份选择自动展开，无需折叠 */
+    function renderRegionSelectedTags() {
+        const container = document.getElementById('region-selected-tags');
+        const emptyHint = document.getElementById('region-selected-empty');
+        if (!container) return;
+        container.innerHTML = '';
+        const cities = Array.from(globalSelectedCities).sort();
+        if (emptyHint) emptyHint.style.display = cities.length ? 'none' : 'block';
+        cities.forEach(city => {
+            const tag = document.createElement('span');
+            tag.className = 'drc-selected-tag';
+            tag.innerHTML = `${city}<button type="button" title="移除">&times;</button>`;
+            tag.querySelector('button').addEventListener('click', function() {
+                globalSelectedCities.delete(city);
+                const cb = document.querySelector(`#city-items .city-checkbox[value="${CSS.escape(city)}"]`);
+                if (cb) cb.checked = false;
+                renderRegionSelectedTags();
+                updateFilterSummary();
+                renderTableRows();
+            });
+            container.appendChild(tag);
+        });
     }
-    
-    function setupIndicatorToggle() {
-        /* 侧边栏布局：指标列表始终可见，无需折叠 */
+
+    function updateFilterSummary() {
+        const el = document.getElementById('filter-summary');
+        if (!el) return;
+        const yearSel = document.getElementById('year-select');
+        const yearText = yearSel?.options[yearSel.selectedIndex]?.text || '未选年份';
+        const provSel = document.getElementById('province-select');
+        const prov = provSel?.value || '';
+        const cityCount = globalSelectedCities.size;
+        const indCount = (window.globalSelectedIndicators || []).length;
+        const parts = [];
+        parts.push(`年份 <strong>${yearText}</strong>`);
+        if (prov) parts.push(`省份 <strong>${prov}</strong>`);
+        parts.push(`城市 <strong>${cityCount}</strong> 个`);
+        parts.push(`指标 <strong>${indCount}</strong> 项`);
+        el.innerHTML = parts.join(' · ');
     }
+
+    function setupModals() {
+        const regionMask = document.getElementById('region-modal-mask');
+        const indicatorMask = document.getElementById('indicator-modal-mask');
+        const openRegion = document.getElementById('open-region-modal-btn');
+        const openIndicator = document.getElementById('open-indicator-modal-btn');
+
+        function openModal(mask) {
+            if (mask) mask.classList.remove('hidden');
+        }
+        function closeModal(mask) {
+            if (mask) mask.classList.add('hidden');
+        }
+
+        if (openRegion) openRegion.addEventListener('click', () => openModal(regionMask));
+        if (openIndicator) openIndicator.addEventListener('click', () => openModal(indicatorMask));
+
+        ['close-region-modal', 'cancel-region-modal', 'apply-region-modal'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', () => {
+                closeModal(regionMask);
+                if (id === 'apply-region-modal') {
+                    updateFilterSummary();
+                    renderTableRows();
+                }
+            });
+        });
+        ['close-indicator-modal', 'cancel-indicator-modal', 'apply-indicator-modal'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', () => {
+                closeModal(indicatorMask);
+                if (id === 'apply-indicator-modal') updateFilterSummary();
+            });
+        });
+
+        if (regionMask) {
+            regionMask.addEventListener('click', e => {
+                if (e.target === regionMask) closeModal(regionMask);
+            });
+        }
+        if (indicatorMask) {
+            indicatorMask.addEventListener('click', e => {
+                if (e.target === indicatorMask) closeModal(indicatorMask);
+            });
+        }
+
+        const clearAll = document.getElementById('clear-all-cities-btn');
+        if (clearAll) {
+            clearAll.addEventListener('click', () => {
+                globalSelectedCities.clear();
+                document.querySelectorAll('#city-items .city-checkbox').forEach(cb => { cb.checked = false; });
+                renderRegionSelectedTags();
+                updateFilterSummary();
+                renderTableRows();
+            });
+        }
+    }
+
+    function setupCityToggle() {}
+    function setupIndicatorToggle() {}
 
     function setupTabs() {
         const manualTab = document.getElementById('manual-tab');
@@ -1224,6 +1434,7 @@ function setupFormSubmit() {
             provSel.addEventListener('change', function() {
                 renderCitiesForProvince(this.value);
                 bindSelectAllButtons();
+                updateFilterSummary();
                 const manualSection = document.getElementById('manual-section');
                 if (window.IndicatorSourceInput) {
                     IndicatorSourceInput.refreshProvinceScoped(manualSection, this.value);
@@ -1242,17 +1453,20 @@ function setupFormSubmit() {
         buildTableHeaders([]);
         renderTableRows();
         
-        setupCityToggle();
-        setupIndicatorToggle();
+        setupModals();
         setupTabs();
         setupIndicatorTree();
         setupResetButton();
         setupExcelYearSync();
         setupFormSubmit();
+        updateFilterSummary();
 
         const yearSelect = document.getElementById('year-select');
         if (yearSelect) {
-            yearSelect.addEventListener('change', () => renderTableRows());
+            yearSelect.addEventListener('change', () => {
+                updateFilterSummary();
+                renderTableRows();
+            });
         }
         
         const excelForm = document.getElementById('excel-upload-form');
