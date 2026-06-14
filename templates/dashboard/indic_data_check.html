@@ -3,300 +3,635 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>指标数据核对查询 | 数据指标管理系统</title>
+<title>城策智库 · 指标校验</title>
 <script src="/static/js/tailwindcss.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <style>
+
+    :root {
+        --drc-blue: #1a5fb4;
+        --drc-blue-dark: #144a8c;
+        --drc-blue-light: #e8f1fb;
+        --drc-border: #c5d0dc;
+        --drc-bg: #eef2f6;
+        --drc-toolbar: #f7f9fc;
+        --drc-text: #333;
+        --drc-muted: #666;
+    }
     body {
-        background: #f0f4f9;
+        background: var(--drc-bg);
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        font-size: 12px;
+        color: var(--drc-text);
+        margin: 0;
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* 表格容器支持横向滚动 */
-    .table-wrapper {
-        overflow-x: auto;
-        overflow-y: auto;
-        max-height: 65vh;
-        width: 100%;
-        border-radius: 1rem;
+
+    /* 顶栏 */
+    .drc-header {
+        background: linear-gradient(180deg, #1f6fc2 0%, var(--drc-blue) 100%);
+        color: #fff;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.15);
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
-    
-    /* 数据表格样式 */
+    .drc-header .logo-title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: .5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .drc-header .nav-links {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-header .nav-links a {
+        color: rgba(255,255,255,.9);
+        text-decoration: none;
+        padding: 4px 10px;
+        font-size: 12px;
+        border-radius: 2px;
+    }
+    .drc-header .nav-links a:hover,
+    .drc-header .nav-links a.active {
+        background: rgba(255,255,255,.15);
+        color: #fff;
+    }
+
+    /* 工具条 */
+    .drc-toolbar {
+        background: var(--drc-toolbar);
+        border-bottom: 1px solid var(--drc-border);
+        padding: 6px 12px;
+    }
+    .drc-toolbar-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .drc-toolbar-row + .drc-toolbar-row { margin-top: 6px; }
+    .drc-tab {
+        padding: 5px 14px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .drc-tab.active {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-tab-link {
+        padding: 5px 12px;
+        border: 1px solid transparent;
+        color: var(--drc-muted);
+        text-decoration: none;
+        font-size: 12px;
+        border-radius: 2px;
+    }
+    .drc-tab-link.active {
+        background: #fff;
+        border-color: var(--drc-border);
+        color: var(--drc-blue);
+        font-weight: 600;
+    }
+    .drc-btn {
+        padding: 4px 12px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-btn:hover { background: var(--drc-blue-light); border-color: #9bb8d9; }
+    .drc-btn-primary {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-btn-primary:hover { background: var(--drc-blue-dark); }
+    .drc-field {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+    .drc-field label { color: var(--drc-muted); white-space: nowrap; }
+    .drc-field select {
+        border: 1px solid var(--drc-border);
+        padding: 3px 8px;
+        font-size: 12px;
+        background: #fff;
+        border-radius: 2px;
+        min-width: 100px;
+    }
+    .drc-progress {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--drc-muted);
+    }
+    .drc-progress-bar {
+        width: 120px;
+        height: 6px;
+        background: #dde4ec;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .drc-progress-bar > div {
+        height: 100%;
+        background: var(--drc-blue);
+        transition: width .3s;
+    }
+
+    /* 工作区 */
+    .drc-workspace {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        min-height: 500px;
+    }
+    .drc-filter-bar-top {
+        padding: 8px 12px;
+        background: #fafbfc;
+        border-bottom: 1px solid var(--drc-border);
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .drc-filter-bar-top .drc-field select {
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 2px;
+        min-width: 110px;
+    }
+    .drc-modal-pane-body .drc-tree {
+        border: none;
+        height: 100%;
+        max-height: none;
+    }
+    .drc-filter-summary {
+        font-size: 12px;
+        color: var(--drc-muted);
+        margin-left: 8px;
+    }
+    .drc-filter-summary strong { color: var(--drc-blue-dark); font-weight: 600; }
+
+    /* 弹窗 */
+    .drc-modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .drc-modal-mask.hidden { display: none; }
+    .drc-modal {
+        background: #fff;
+        border: 1px solid var(--drc-border);
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.18);
+        width: min(920px, 94vw);
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .drc-modal-header {
+        padding: 10px 16px;
+        background: var(--drc-blue-light);
+        border-bottom: 1px solid var(--drc-border);
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--drc-blue-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .drc-modal-close {
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #666;
+        line-height: 1;
+        padding: 0 4px;
+    }
+    .drc-modal-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        height: 480px;
+    }
+    .drc-modal-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border-right: 1px solid var(--drc-border);
+    }
+    .drc-modal-pane:last-child { border-right: none; }
+    .drc-modal-pane-title {
+        padding: 8px 12px;
+        background: #f5f8fb;
+        border-bottom: 1px solid var(--drc-border);
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+    }
+    .drc-modal-pane-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 12px;
+    }
+    .drc-modal-footer {
+        padding: 10px 16px;
+        border-top: 1px solid var(--drc-border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        background: #fafbfc;
+    }
+    .drc-selected-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 24px;
+    }
+    .drc-selected-tag {
+        background: #dce9f8;
+        color: var(--drc-blue-dark);
+        padding: 3px 8px;
+        border-radius: 2px;
+        font-size: 11px;
+        border: 1px solid #b8d0ea;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-selected-tag button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #888;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+    }
+    .drc-modal-pane-body select {
+        width: 100%;
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        margin-bottom: 8px;
+        border-radius: 2px;
+    }
+    .drc-tree {
+        overflow-y: auto;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+    }
+    .drc-tree-item {
+        padding: 7px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        border-left: 3px solid transparent;
+        color: var(--drc-text);
+    }
+    .drc-tree-item:hover { background: #f0f6fc; }
+    .drc-tree-item.active {
+        background: #dce9f8;
+        border-left-color: var(--drc-blue);
+        color: var(--drc-blue-dark);
+        font-weight: 600;
+    }
+    #city-items, #indicator-content {
+        max-height: none;
+        overflow: visible;
+        padding: 0;
+    }
+    #indicator-content { font-size: 12px; }
+    .city-row, .indicator-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 2px;
+        font-size: 12px;
+    }
+    .city-row label, .indicator-row label { cursor: pointer; flex: 1; }
+    .city-checkbox, .indicator-checkbox {
+        width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
+    }
+
+    #indicator-filter { display: none; }
+
+    .drc-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #fff;
+        min-height: 0;
+    }
+
+    .drc-content-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--drc-border);
+        padding: 0 12px;
+        background: #fafbfc;
+    }
+    .drc-content-tabs button {
+        padding: 8px 16px;
+        border: none;
+        background: none;
+        font-size: 12px;
+        color: var(--drc-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+    }
+    .drc-content-tabs button.active {
+        color: var(--drc-blue);
+        border-bottom-color: var(--drc-blue);
+        font-weight: 600;
+    }
+
+    .drc-table-area {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+    }
+    .table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border: none;
+    }
     .data-table {
         min-width: 800px;
         width: max-content;
         border-collapse: collapse;
+        font-size: 12px;
     }
-    
-    /* 固定第一列（城市/区县） */
+    .data-table th, .data-table td {
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        vertical-align: middle;
+    }
+    .data-table thead th {
+        background: #e8eef5;
+        color: #333;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .data-table thead tr:nth-child(2) th {
+        background: #f3f6fa;
+        font-weight: 500;
+        font-size: 11px;
+    }
     .data-table th:first-child,
     .data-table td:first-child {
         position: sticky;
         left: 0;
-        background: #ffffff;
-        z-index: 10;
-        box-shadow: 4px 0 8px -4px rgba(0, 80, 120, 0.15);
-    }
-    
-    .data-table thead th:first-child {
-        z-index: 11;
-        background: #f0f9ff;
-    }
-    
-    .data-table th,
-    .data-table td {
-        border: 1px solid #bfdbfe;
-        padding: 10px 14px;
-        vertical-align: middle;
-    }
-    
-    .data-table th {
         background: #f8fafc;
-        font-weight: 600;
-        color: #1e40af;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0,0,0,.06);
     }
-    
-    /* 状态标签样式 */
-    .status-badge {
-        display: inline-flex;
+    .data-table thead th:first-child { z-index: 3; background: #e8eef5; }
+    .data-table th[data-indicator] { min-width: 140px; }
+    .data-table th:not(:first-child),
+    .data-table td:not(:first-child) { min-width: 100px; }
+    .data-table td.source-cell,
+    .data-table th.source-cell { min-width: 130px; }
+    .data-table tbody tr:hover td { background: #f7fbff; }
+    .data-table tbody tr:hover td:first-child { background: #eef5fc; }
+    .data-table input, .data-table select {
+        width: 100%;
+        border: 1px solid #c8d4e0;
+        padding: 3px 6px;
+        font-size: 11px;
+        border-radius: 2px;
+        box-sizing: border-box;
+    }
+    .source-input-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .source-merged-input { background: #f5f8fb !important; color: #444; }
+
+    .drc-footer-bar {
+        padding: 8px 12px;
+        border-top: 1px solid var(--drc-border);
+        background: #fafbfc;
+        display: flex;
+        gap: 8px;
         align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .status-imported {
-        background: #dcfce7;
-        color: #15803d;
-    }
-    .status-missing {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-    .status-partial {
-        background: #fef9c3;
-        color: #a16207;
-    }
-    
-    /* 数值单元格样式 */
-    .value-cell {
-        font-family: 'Monaco', 'Consolas', monospace;
-        font-weight: 500;
-    }
-    .value-present {
-        color: #1e40af;
-    }
-    .value-absent {
-        color: #94a3b8;
-        font-style: italic;
-    }
-    
-    /* 滚动条 */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 10px;
-    }
-    
-    input:focus, select:focus {
-        outline: none;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-    }
-    
-    /* 折叠面板 */
-    .collapsible-header {
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .collapsible-content {
-        transition: all 0.3s ease;
-        overflow: hidden;
     }
 
-    /* 指标选择弹窗（与多城市多指标查询一致） */
+    .drc-excel-panel {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--drc-muted);
+    }
+    .drc-excel-panel .upload-zone {
+        border: 1px dashed var(--drc-border);
+        padding: 30px;
+        max-width: 480px;
+        margin: 20px auto;
+        background: #fafbfc;
+    }
+
+    /* 已选城市标签 */
+    .drc-tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 24px; }
+    .drc-tag {
+        background: #dce9f8;
+        color: var(--drc-blue-dark);
+        padding: 2px 8px;
+        border-radius: 2px;
+        font-size: 11px;
+        border: 1px solid #b8d0ea;
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #b0c4d8; border-radius: 4px; }
+    input:focus, select:focus { outline: none; border-color: var(--drc-blue) !important; }
+    #excel-section:not(.hidden) { flex: 1; overflow: auto; }
+
+
+    .drc-page-scroll { flex: 1; overflow-y: auto; padding: 10px 12px; background: var(--drc-bg); }
+    .drc-filter-panel {
+        background: #fff; border: 1px solid var(--drc-border); margin-bottom: 10px;
+    }
+    .drc-filter-panel-body {
+        padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+    }
+    .drc-stat-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;
+    }
+    @media (max-width: 900px) { .drc-stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    .drc-stat-card {
+        background: #fff; border: 1px solid var(--drc-border); padding: 10px 12px;
+    }
+    .drc-stat-card .stat-label { font-size: 11px; color: var(--drc-muted); }
+    .drc-stat-card .stat-value { font-size: 20px; font-weight: 600; margin-top: 4px; color: var(--drc-blue-dark); }
+    .drc-stat-card .stat-value.green { color: #15803d; }
+    .drc-stat-card .stat-value.red { color: #b91c1c; }
+    .drc-stat-card .stat-value.amber { color: #a16207; }
+    .drc-stat-card .stat-value.purple { color: #7c3aed; }
+    .drc-panel { background: #fff; border: 1px solid var(--drc-border); margin-bottom: 10px; }
+    .drc-panel-header {
+        padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid var(--drc-border);
+        font-weight: 600; font-size: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .drc-panel-footer {
+        padding: 8px 12px; border-top: 1px solid var(--drc-border); background: #fafbfc;
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .drc-panel-body .table-wrapper { max-height: 55vh; }
+    .drc-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    @media (max-width: 1024px) { .drc-grid-2 { grid-template-columns: 1fr; } }
+    .drc-mode-switch {
+        margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+        padding: 4px 10px; border: 1px solid var(--drc-border); background: #fff; font-size: 12px;
+    }
+    .drc-mode-hint { font-size: 11px; color: var(--drc-blue); background: var(--drc-blue-light); padding: 2px 8px; border-radius: 2px; }
+    .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+    .filter-select, .replenish-input, .replenish-select {
+        border: 1px solid var(--drc-border); padding: 3px 8px; font-size: 12px; border-radius: 2px; background: #fff;
+    }
+    .progress-bar { height: 6px; background: #dde4ec; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+    .progress-fill.high { background: #10b981; }
+    .progress-fill.medium { background: #f59e0b; }
+    .progress-fill.low { background: #ef4444; }
+    .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 2px; font-size: 11px; }
+    .status-imported { background: #dcfce7; color: #15803d; }
+    .status-missing { background: #fee2e2; color: #b91c1c; }
+    .status-partial { background: #fef9c3; color: #a16207; }
+    .value-cell { font-family: Monaco, Consolas, monospace; font-size: 11px; }
+    .value-present { color: var(--drc-blue-dark); }
+    .value-absent { color: #999; font-style: italic; }
+    .selected-indicator-tag, .drc-selected-tag-inline {
+        background: #dce9f8; color: var(--drc-blue-dark); padding: 2px 8px; border-radius: 2px;
+        font-size: 11px; border: 1px solid #b8d0ea; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-replenish { background: #15803d; color: #fff; padding: 3px 10px; border: none; border-radius: 2px; font-size: 11px; cursor: pointer; }
+    .btn-replenish:hover { background: #166534; }
+    .btn-replenish-batch {
+        background: var(--drc-blue); border: 1px solid var(--drc-blue); color: #fff;
+        padding: 6px 14px; border-radius: 2px; font-size: 12px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-replenish-batch:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
+    .replenish-footer { padding: 8px 12px; border-top: 1px solid var(--drc-border); background: #fafbfc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .group-stat-item { background: #f5f8fb; border: 1px solid var(--drc-border); padding: 8px; font-size: 11px; }
+    /* 指标弹窗 - 保留原 class 名供 JS 使用 */
     .modal-overlay {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+        position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200;
+        display: none; justify-content: center; align-items: center;
     }
     .modal-content {
-        background-color: white;
-        width: 90%;
-        max-width: 700px;
-        border-radius: 1rem;
-        box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2);
-        overflow: hidden;
+        background: #fff; border: 1px solid var(--drc-border); border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.18); width: min(720px, 92vw); overflow: hidden;
     }
     .modal-header {
-        background: #1e3a8a;
-        color: white;
-        padding: 15px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        padding: 10px 16px; background: var(--drc-blue-light); border-bottom: 1px solid var(--drc-border);
+        color: var(--drc-blue-dark); display: flex; justify-content: space-between; align-items: center;
     }
-    .modal-title { font-size: 1.2rem; font-weight: 600; }
-    .close-btn {
-        background: none; border: none; color: white;
-        font-size: 1.8rem; cursor: pointer; line-height: 1; opacity: 0.8;
-    }
-    .close-btn:hover { opacity: 1; }
-    .modal-body { padding: 20px; }
-    .two-columns { display: flex; gap: 20px; height: 350px; }
-    .column {
-        flex: 1; display: flex; flex-direction: column;
-        border: 1px solid #e2e8f0; border-radius: 0.75rem;
-        overflow: hidden; background: white;
-    }
-    .column-header {
-        background: #f8fafc; padding: 12px; font-weight: 600;
-        color: #1e293b; border-bottom: 1px solid #e2e8f0;
-    }
+    .modal-title { font-size: 13px; font-weight: 600; }
+    .close-btn { background: none; border: none; color: #666; font-size: 18px; cursor: pointer; line-height: 1; }
+    .modal-body { padding: 12px 16px; }
+    .two-columns { display: flex; gap: 12px; height: 360px; }
+    .column { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--drc-border); overflow: hidden; background: #fff; }
+    .column-header { padding: 8px 12px; background: #f5f8fb; border-bottom: 1px solid var(--drc-border); font-weight: 600; font-size: 12px; }
     .column-content { flex: 1; overflow-y: auto; }
-    .item {
-        padding: 10px 16px; border-bottom: 1px solid #f1f5f9;
-        cursor: pointer; transition: all 0.15s; color: #334155;
-    }
-    .item:hover { background-color: #eff6ff; }
-    .item.selected {
-        background-color: #dbeafe; border-left: 3px solid #3b82f6;
-        color: #1e40af; font-weight: 500;
-    }
-    .no-data { padding: 30px 20px; color: #94a3b8; text-align: center; }
-    .selection-result {
-        background-color: #f8fafc; border-radius: 0.75rem;
-        padding: 12px 16px; margin-top: 20px; border-left: 4px solid #3b82f6;
-    }
-    .selected-indicator-tag {
-        background: #dbeafe; color: #1e40af;
-        padding: 4px 12px; border-radius: 20px; font-size: 12px;
-        display: inline-flex; align-items: center; gap: 6px; margin: 2px;
-    }
+    .item { padding: 7px 12px; border-bottom: 1px solid #eef2f6; cursor: pointer; font-size: 12px; }
+    .item:hover { background: #f0f6fc; }
+    .item.selected { background: #dce9f8; border-left: 3px solid var(--drc-blue); color: var(--drc-blue-dark); font-weight: 600; }
+    .no-data { padding: 24px; color: #999; text-align: center; font-size: 12px; }
+    .selection-result { background: #f5f8fb; border: 1px solid var(--drc-border); padding: 8px 12px; margin-top: 12px; font-size: 12px; }
+    #selectedIndicatorsTags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; margin-top: 4px; }
+    .hidden { display: none !important; }
+
 </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
+<body>
 
-<!-- 导航栏 -->
-<header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
-<div class="flex items-center space-x-3">
-    <div class="bg-blue-600 rounded-xl p-2 shadow-md">
-        <iconify-icon class="text-white text-2xl" icon="mdi:chart-line"></iconify-icon>
+<header class="drc-header">
+    <div class="logo-title">
+        <iconify-icon icon="mdi:chart-timeline-variant" style="font-size:20px"></iconify-icon>
+        城策智库 · 统计数据录入平台
     </div>
-    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">数据指标管理系统</h1>
-</div>
-<div class="ml-auto flex items-center space-x-4">
-    <div class="flex space-x-3 mr-6">
-        <a href="/dashboard/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all">指标录入</a>
-        <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">订单价格配置</a>
-        <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
-        <a href="/dashboard/single-indicator-city-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市</a>
-        <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标</a>
-    </div>
-    <div class="text-right">
-        <div class="flex-shrink-0 flex items-center">
-            <a href="{% url 'landing:home' %}" class="flex items-center">
-                <span class="text-xl font-medium tracking-wide text-blue-800">城策智库</span>
-            </a>
-        </div>
-    </div>
-    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner">
-        <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
-    </div>
-</div>
+    <nav class="nav-links">
+        <a href="/dashboard/">指标录入</a>
+        <a href="/dashboard/order-price/">订单价格</a>
+        <a href="/dashboard/single-indicator-year-query/">单指标历年</a>
+        <a href="/dashboard/single-indicator-city-query/">单指标多城市</a>
+        <a href="/dashboard/many-indicator-query/">多城市多指标</a>
+        <a href="{% url 'landing:home' %}">返回首页</a>
+    </nav>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-8">
-
-    <div class="flex items-center space-x-3 mb-6">
-        <div class="bg-blue-100 p-2 rounded-xl">
-            <iconify-icon class="text-blue-600 text-2xl" icon="fluent:database-search-24-filled"></iconify-icon>
-        </div>
-        <div class="flex space-x-3">
-            <a href="/dashboard/" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">地市指标录入</a>
-            <a href="/dashboard/area_input" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">区县指标录入</a>
-            <a href="/dashboard/indicator-check" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">指标校验</a>
-            <a href="/dashboard/indicator-check-2" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">指标覆盖查询</a>
-
-        </div>
+<div class="drc-toolbar">
+    <div class="drc-toolbar-row">
+        <a href="/dashboard/" class="drc-tab-link">地市录入</a><a href="/dashboard/area_input" class="drc-tab-link">区县录入</a><a href="/dashboard/indicator-check" class="drc-tab-link active">指标校验</a><a href="/dashboard/indicator-check-2" class="drc-tab-link">指标覆盖查询</a>
     </div>
+</div>
 
-    <!-- 页面标题 -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center space-x-3">
-            <!-- <div class="bg-blue-100 p-2 rounded-xl">
-                <iconify-icon class="text-blue-600 text-2xl" icon="mdi:clipboard-list"></iconify-icon>
-            </div>
-            <h1 class="text-2xl font-bold text-slate-800">指标数据核对查询</h1>
-            <span class="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">查看各指标录入状态与数值</span> -->
-        </div>
-        <div class="flex items-center gap-3">
-            <button id="exportBtn" class="bg-white border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium py-2 px-4 rounded-xl text-sm transition flex items-center gap-2">
-                <iconify-icon icon="mdi:download"></iconify-icon> 导出核对表
-            </button>
-        </div>
-    </div>
+<div class="drc-workspace">
+<div class="drc-main">
+<div class="drc-page-scroll">
 
-    <!-- 筛选卡片 -->
-    <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📅 选择年份</label>
-                <select id="yearSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="">所有年份</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📍 选择省份</label>
-                <select id="provinceSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="">全部省份</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">🏙️ 选择城市</label>
-                <select id="citySelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="">全部城市</option>
-                </select>
-            </div>
-            <div class="min-w-0">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📊 选择指标（多选）</label>
-                <select id="indicatorSelect" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+    <div class="drc-filter-panel">
+        <div class="drc-panel-header">
+            <span>查询条件</span>
+            <button id="exportBtn" type="button" class="drc-btn"><iconify-icon icon="mdi:download"></iconify-icon> 导出核对表</button>
+        </div>
+        <div class="drc-filter-panel-body">
+            <div class="drc-field"><label>年份</label><select id="yearSelect"><option value="">所有年份</option></select></div>
+            <div class="drc-field"><label>省份</label><select id="provinceSelect"><option value="">全部省份</option></select></div>
+            <div class="drc-field"><label>城市</label><select id="citySelect"><option value="">全部城市</option></select></div>
+            <div class="drc-field" style="align-items:flex-start;flex-direction:column;gap:4px">
+                <label>指标（多选）</label>
+                <select id="indicatorSelect" style="min-width:160px">
                     <option value="">全部指标</option>
                     <option value="custom-selector">打开指标项</option>
                 </select>
-                <div id="selectedIndicatorsTags" class="flex flex-wrap gap-1 mt-2 min-h-[28px]"></div>
+                <div id="selectedIndicatorsTags"></div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">🔍 录入状态</label>
-                <select id="statusFilter" class="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
+            <div class="drc-field"><label>录入状态</label>
+                <select id="statusFilter">
                     <option value="">全部</option>
                     <option value="imported">已录入</option>
                     <option value="missing">未录入</option>
                 </select>
             </div>
-        </div>
-        <div class="flex justify-end mt-5">
-            <button id="queryBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-8 rounded-xl shadow-md transition-all flex items-center gap-2">
-                <iconify-icon icon="mdi:refresh"></iconify-icon> 查询核对
-            </button>
+            <button id="queryBtn" type="button" class="drc-btn drc-btn-primary"><iconify-icon icon="mdi:refresh"></iconify-icon> 查询核对</button>
         </div>
     </div>
 
-    <!-- 指标选择弹窗 -->
     <div class="modal-overlay" id="indicatorModalOverlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -314,116 +649,59 @@
                         <div class="column-content" id="indicatorSecondColumn"><div class="no-data">请选择左侧分类</div></div>
                     </div>
                 </div>
-                <div class="selection-result" id="indicatorModalResult">
-                    <p id="indicatorModalResultContent">请选择分类</p>
-                </div>
-                <div style="text-align: right; margin-top: 20px;">
-                    <button id="confirmIndicatorBtn" type="button" style="padding: 8px 24px; background: #2563eb; color: white; border: none; border-radius: 0.75rem; cursor: pointer; font-weight: 500;">确认选择</button>
+                <div class="selection-result" id="indicatorModalResult"><p id="indicatorModalResultContent">请选择分类</p></div>
+                <div style="text-align:right;margin-top:12px">
+                    <button id="confirmIndicatorBtn" type="button" class="drc-btn drc-btn-primary">确认选择</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white border border-blue-200 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">指标总数</p>
-                    <p class="text-2xl font-bold text-slate-800" id="totalIndicators">0</p>
-                </div>
-                <div class="bg-blue-100 p-2 rounded-lg">
-                    <iconify-icon class="text-blue-600 text-xl" icon="mdi:counter"></iconify-icon>
-                </div>
+    <div class="drc-stat-grid">
+        <div class="drc-stat-card"><div class="stat-label">指标总数</div><div class="stat-value" id="totalIndicators">0</div></div>
+        <div class="drc-stat-card"><div class="stat-label">已录入指标数</div><div class="stat-value green" id="importedCount">0</div></div>
+        <div class="drc-stat-card"><div class="stat-label">未录入指标数</div><div class="stat-value red" id="missingCount">0</div></div>
+        <div class="drc-stat-card"><div class="stat-label">录入覆盖率</div><div class="stat-value amber" id="coverageRate">0%</div></div>
+    </div>
+
+    <div class="drc-panel">
+        <div class="drc-panel-header">
+            <span><iconify-icon icon="mdi:table-eye"></iconify-icon> 指标录入明细表</span>
+            <span style="font-size:11px;color:var(--drc-muted);font-weight:400" id="tableInfo">请选择条件后点击查询</span>
+        </div>
+        <div class="drc-panel-body">
+            <div class="table-wrapper">
+                <table class="data-table w-full" id="dataTable">
+                    <thead>
+                        <tr id="tableHeader">
+                            <th>城市</th><th>指标名称</th><th>年份</th><th>录入数值</th><th>单位</th><th>录入状态</th><th>数据来源</th><th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="8" style="text-align:center;color:#999;padding:32px">请选择条件后点击查询按钮</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="bg-white border border-green-200 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">已录入指标数</p>
-                    <p class="text-2xl font-bold text-green-600" id="importedCount">0</p>
-                </div>
-                <div class="bg-green-100 p-2 rounded-lg">
-                    <iconify-icon class="text-green-600 text-xl" icon="mdi:check-circle"></iconify-icon>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white border border-red-200 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">未录入指标数</p>
-                    <p class="text-2xl font-bold text-red-500" id="missingCount">0</p>
-                </div>
-                <div class="bg-red-100 p-2 rounded-lg">
-                    <iconify-icon class="text-red-500 text-xl" icon="mdi:alert-circle"></iconify-icon>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white border border-yellow-200 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-slate-500 text-sm">录入覆盖率</p>
-                    <p class="text-2xl font-bold text-yellow-600" id="coverageRate">0%</p>
-                </div>
-                <div class="bg-yellow-100 p-2 rounded-lg">
-                    <iconify-icon class="text-yellow-600 text-xl" icon="mdi:chart-donut"></iconify-icon>
-                </div>
+        <div class="drc-panel-footer">
+            <div style="font-size:11px;color:var(--drc-muted)" id="paginationInfo"></div>
+            <div style="display:flex;gap:6px">
+                <button id="prevPage" type="button" class="drc-btn">上一页</button>
+                <button id="nextPage" type="button" class="drc-btn">下一页</button>
             </div>
         </div>
     </div>
 
-    <!-- 数据表格 - 指标维度视图 -->
-    <div class="bg-white border border-blue-200 rounded-2xl shadow-md overflow-hidden">
-        <div class="px-6 py-4 border-b border-blue-200 bg-slate-50 flex justify-between items-center">
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <iconify-icon icon="mdi:table-eye"></iconify-icon>
-                指标录入明细表
-            </h2>
-            <div class="text-xs text-slate-400" id="tableInfo">请选择条件后点击查询</div>
-        </div>
-        <div class="table-wrapper">
-            <table class="data-table w-full" id="dataTable">
-                <thead>
-                    <tr id="tableHeader">
-                        <th class="min-w-[120px]">城市</th>
-                        <th class="min-w-[150px]">指标名称</th>
-                        <th class="min-w-[100px]">年份</th>
-                        <th class="min-w-[150px]">录入数值</th>
-                        <th class="min-w-[120px]">单位</th>
-                        <th class="min-w-[120px]">录入状态</th>
-                        <th class="min-w-[150px]">数据来源</th>
-                        <th class="min-w-[100px]">备注</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="8" class="text-center text-slate-400 py-12">请选择条件后点击查询按钮</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <!-- 分页 -->
-        <div class="px-6 py-3 bg-slate-50 border-t border-blue-200 flex justify-between items-center">
-            <div class="text-sm text-slate-500" id="paginationInfo"></div>
-            <div class="flex gap-2">
-                <button id="prevPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm hover:bg-slate-100 transition disabled:opacity-50">上一页</button>
-                <button id="nextPage" class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm hover:bg-slate-100 transition disabled:opacity-50">下一页</button>
-            </div>
+    <div class="drc-panel">
+        <div class="drc-panel-header"><span><iconify-icon icon="mdi:chart-box"></iconify-icon> 按指标组统计录入情况</span></div>
+        <div class="drc-panel-body" style="padding:10px 12px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px" id="groupStats"></div>
         </div>
     </div>
 
-    <!-- 汇总卡片 - 按指标组统计 -->
-    <div class="mt-6 bg-white border border-blue-200 rounded-2xl shadow-md p-5">
-        <div class="flex items-center gap-2 mb-4">
-            <iconify-icon icon="mdi:chart-box" class="text-blue-600 text-xl"></iconify-icon>
-            <h3 class="font-bold text-slate-800">按指标组统计录入情况</h3>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="groupStats">
-            <!-- 动态生成组统计卡片 -->
-        </div>
-    </div>
-</main>
-
+</div>
+</div>
+</div>
 <script>
     // 指标字典（与 many_indic_query.html 一致）
     const dataDict = {
