@@ -843,6 +843,77 @@
     
     const allIndicatorsList = Object.keys(indicatorGroupMap);
 
+    // ECharts 中国地图使用省级简称（如「江苏」「北京」），与库内省份全名不同
+    const PROVINCE_TO_MAP_REGION = {
+        '北京市': '北京', '天津市': '天津', '上海市': '上海', '重庆市': '重庆',
+        '河北省': '河北', '山西省': '山西', '内蒙古自治区': '内蒙古',
+        '辽宁省': '辽宁', '吉林省': '吉林', '黑龙江省': '黑龙江',
+        '江苏省': '江苏', '浙江省': '浙江', '安徽省': '安徽', '福建省': '福建',
+        '江西省': '江西', '山东省': '山东', '河南省': '河南', '湖北省': '湖北',
+        '湖南省': '湖南', '广东省': '广东', '广西壮族自治区': '广西', '海南省': '海南',
+        '四川省': '四川', '贵州省': '贵州', '云南省': '云南', '西藏自治区': '西藏',
+        '陕西省': '陕西', '甘肃省': '甘肃', '青海省': '青海',
+        '宁夏回族自治区': '宁夏', '新疆维吾尔自治区': '新疆',
+        '香港特别行政区': '香港', '澳门特别行政区': '澳门', '台湾省': '台湾',
+    };
+    const CHINA_MAP_REGIONS = Object.values(PROVINCE_TO_MAP_REGION);
+    const PROVINCE_MAP_CENTER = {
+        '北京': [116.4, 40.2], '天津': [117.2, 39.1], '上海': [121.5, 31.2], '重庆': [107.5, 29.9],
+        '河北': [115.5, 38.5], '山西': [112.5, 37.8], '内蒙古': [111.7, 41.5],
+        '辽宁': [123.4, 41.8], '吉林': [126.5, 43.8], '黑龙江': [128.0, 47.5],
+        '江苏': [119.0, 32.8], '浙江': [120.2, 29.2], '安徽': [117.3, 31.8], '福建': [118.3, 26.1],
+        '江西': [115.9, 27.6], '山东': [118.0, 36.5], '河南': [113.6, 34.0], '湖北': [112.3, 30.8],
+        '湖南': [112.0, 27.5], '广东': [113.3, 23.1], '广西': [108.3, 23.8], '海南': [109.8, 19.2],
+        '四川': [104.0, 30.6], '贵州': [106.7, 26.6], '云南': [101.7, 24.5], '西藏': [91.1, 29.6],
+        '陕西': [108.9, 34.3], '甘肃': [103.8, 36.0], '青海': [96.0, 35.5],
+        '宁夏': [106.2, 37.5], '新疆': [87.6, 43.8], '香港': [114.2, 22.3], '澳门': [113.5, 22.2], '台湾': [121.0, 23.7],
+    };
+
+    function provinceToMapRegion(provinceName) {
+        if (!provinceName) return '';
+        return PROVINCE_TO_MAP_REGION[provinceName] || provinceName
+            .replace('壮族自治区', '广西')
+            .replace('回族自治区', '宁夏')
+            .replace('维吾尔自治区', '新疆')
+            .replace('自治区', '')
+            .replace('特别行政区', '')
+            .replace('省', '')
+            .replace('市', '');
+    }
+
+    function buildProvinceMapData(cityData) {
+        const bucket = {};
+        cityData.forEach(item => {
+            const region = provinceToMapRegion(item.province);
+            if (!region) return;
+            if (!bucket[region]) {
+                bucket[region] = { rateSum: 0, count: 0, completed: 0, total: 0 };
+            }
+            bucket[region].rateSum += item.rate;
+            bucket[region].count += 1;
+            bucket[region].completed += item.completed;
+            bucket[region].total += item.total;
+        });
+        return Object.entries(bucket).map(([name, agg]) => ({
+            name,
+            value: Math.round(agg.rateSum / agg.count * 10) / 10,
+            completed: agg.completed,
+            total: agg.total,
+            cityCount: agg.count,
+        }));
+    }
+
+    function buildDimmedRegions(activeRegion) {
+        if (!activeRegion) return [];
+        return CHINA_MAP_REGIONS
+            .filter(name => name !== activeRegion)
+            .map(name => ({
+                name,
+                itemStyle: { areaColor: '#eef2f6', borderColor: '#d8e0ea' },
+                emphasis: { itemStyle: { areaColor: '#eef2f6' } },
+            }));
+    }
+
     function getCsrfToken() {
         const match = document.cookie.match(/csrftoken=([^;]+)/);
         return match ? decodeURIComponent(match[1]) : '';
@@ -1240,9 +1311,21 @@
         if (!dom) return;
         if (myChart) myChart.dispose();
         myChart = echarts.init(dom);
-        const mapData = cityCompletionData.map(item => ({ name: item.city, value: item.rate, completed: item.completed, total: item.total }));
+
+        const activeRegion = provinceToMapRegion(selectedProvince);
+        const mapData = buildProvinceMapData(cityCompletionData);
+        const zoom = activeRegion ? 3.2 : 1.2;
+        const center = activeRegion && PROVINCE_MAP_CENTER[activeRegion] ? PROVINCE_MAP_CENTER[activeRegion] : undefined;
+
         myChart.setOption({
-            tooltip: { trigger: 'item', formatter: (params) => params.data ? `${params.name}<br/>完成率: ${params.data.value}%<br/>已录入: ${params.data.completed}/${params.data.total}` : params.name },
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                    if (!params.data) return params.name;
+                    const cities = params.data.cityCount ? `<br/>地市数: ${params.data.cityCount}` : '';
+                    return `${params.name}<br/>完成率: ${params.data.value}%<br/>已录入: ${params.data.completed}/${params.data.total}${cities}`;
+                },
+            },
             visualMap: {
                 type: 'piecewise',
                 orient: 'vertical',
@@ -1260,9 +1343,31 @@
                     { gte: 0, lt: 20, label: '0-20%', color: '#cbd5e1' },
                 ],
             },
-            series: [{ name: '地市数据录入完成率', type: 'map', map: 'china', roam: true, zoom: 1.2, data: mapData, label: { normal: { show: false }, emphasis: { show: true, color: '#1e40af' } }, itemStyle: { normal: { borderColor: '#cbd5e1', borderWidth: 0.5, areaColor: '#e2e8f0' }, emphasis: { areaColor: '#bfdbfe', borderWidth: 1, borderColor: '#3b82f6' } } }]
+            series: [{
+                name: '地市数据录入完成率',
+                type: 'map',
+                map: 'china',
+                roam: true,
+                zoom,
+                center,
+                scaleLimit: { min: 0.8, max: 8 },
+                data: mapData,
+                regions: buildDimmedRegions(activeRegion),
+                label: { show: !!activeRegion, color: '#1e40af', fontSize: 11 },
+                emphasis: { label: { show: true, color: '#1e40af' } },
+                itemStyle: {
+                    borderColor: '#cbd5e1',
+                    borderWidth: 0.5,
+                    areaColor: '#e2e8f0',
+                },
+                select: { disabled: true },
+            }],
         });
-        window.addEventListener('resize', () => myChart?.resize());
+
+        if (!window._chinaMapResizeBound) {
+            window._chinaMapResizeBound = true;
+            window.addEventListener('resize', () => myChart?.resize());
+        }
     }
     
     function sortByRateDesc() { cityCompletionData.sort((a, b) => b.rate - a.rate); renderCityRanking(); }
