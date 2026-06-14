@@ -54,7 +54,13 @@ def _resolve_years(year_param: Optional[str]) -> List[int]:
     return [get_default_coverage_year()]
 
 
-def _get_indicators_in_scope(group: Optional[str] = None) -> List[Dict[str, str]]:
+def _get_indicators_in_scope(
+    group: Optional[str] = None,
+    indicator_names: Optional[List[str]] = None,
+) -> List[Dict[str, str]]:
+    if indicator_names:
+        name_set = set(indicator_names)
+        return [i for i in ALL_AUDIT_INDICATORS if i["name_zh"] in name_set]
     if group:
         return [i for i in ALL_AUDIT_INDICATORS if i["group"] == group]
     return ALL_AUDIT_INDICATORS
@@ -172,13 +178,14 @@ def get_indicator_audit_data(
     province: Optional[str] = None,
     city: Optional[str] = None,
     group: Optional[str] = None,
+    indicator_names: Optional[List[str]] = None,
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 50,
 ) -> Dict:
     years = _resolve_years(year_param)
     cities = get_cities_in_scope(province, city)
-    indicators = _get_indicators_in_scope(group)
+    indicators = _get_indicators_in_scope(group, indicator_names)
     indicator_ens = {i["name_en"] for i in indicators}
     city_ids = [c["city_id"] for c in cities]
 
