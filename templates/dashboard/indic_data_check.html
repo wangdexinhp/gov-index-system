@@ -485,8 +485,13 @@
         background: #fff; border: 1px solid var(--drc-border); margin-bottom: 10px;
     }
     .drc-filter-panel-body {
-        padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+        padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     }
+    .drc-filter-tags-row {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        padding: 0 12px 10px;
+    }
+    .drc-filter-tags-row:empty { display: none; }
     .drc-stat-grid {
         display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;
     }
@@ -613,13 +618,12 @@
             <div class="drc-field"><label>年份</label><select id="yearSelect"><option value="">所有年份</option></select></div>
             <div class="drc-field"><label>省份</label><select id="provinceSelect"><option value="">全部省份</option></select></div>
             <div class="drc-field"><label>城市</label><select id="citySelect"><option value="">全部城市</option></select></div>
-            <div class="drc-field" style="align-items:flex-start;flex-direction:column;gap:4px">
+            <div class="drc-field">
                 <label>指标（多选）</label>
                 <select id="indicatorSelect" style="min-width:160px">
                     <option value="">全部指标</option>
                     <option value="custom-selector">打开指标项</option>
                 </select>
-                <div id="selectedIndicatorsTags"></div>
             </div>
             <div class="drc-field"><label>录入状态</label>
                 <select id="statusFilter">
@@ -630,6 +634,7 @@
             </div>
             <button id="queryBtn" type="button" class="drc-btn drc-btn-primary"><iconify-icon icon="mdi:refresh"></iconify-icon> 查询核对</button>
         </div>
+        <div id="selectedIndicatorsTags" class="drc-filter-tags-row"></div>
     </div>
 
     <div class="modal-overlay" id="indicatorModalOverlay">
