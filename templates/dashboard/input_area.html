@@ -3,306 +3,701 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>区县指标录入 | 数据指标管理系统</title>
+<title>城策智库 · 区县指标录入</title>
 <script src="/static/js/tailwindcss.js"></script>
 <script src="/static/js/indicator_source_input.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <style>
-    /* 蓝调商务风格 - 与主系统统一 */
+    :root {
+        --drc-blue: #1a5fb4;
+        --drc-blue-dark: #144a8c;
+        --drc-blue-light: #e8f1fb;
+        --drc-border: #c5d0dc;
+        --drc-bg: #eef2f6;
+        --drc-toolbar: #f7f9fc;
+        --drc-text: #333;
+        --drc-muted: #666;
+    }
     body {
-        background: #f0f4f9;
+        background: var(--drc-bg);
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        font-size: 12px;
+        color: var(--drc-text);
+        margin: 0;
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* 表格容器支持横向滚动 */
-    .table-wrapper {
-        overflow-x: auto;
-        overflow-y: auto;
-        max-height: 60vh;
-        width: 100%;
+
+    /* 顶栏 */
+    .drc-header {
+        background: linear-gradient(180deg, #1f6fc2 0%, var(--drc-blue) 100%);
+        color: #fff;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.15);
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
-    
-    /* 表格固定最小宽度 */
+    .drc-header .logo-title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: .5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .drc-header .nav-links {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-header .nav-links a {
+        color: rgba(255,255,255,.9);
+        text-decoration: none;
+        padding: 4px 10px;
+        font-size: 12px;
+        border-radius: 2px;
+    }
+    .drc-header .nav-links a:hover,
+    .drc-header .nav-links a.active {
+        background: rgba(255,255,255,.15);
+        color: #fff;
+    }
+
+    /* 工具条 */
+    .drc-toolbar {
+        background: var(--drc-toolbar);
+        border-bottom: 1px solid var(--drc-border);
+        padding: 6px 12px;
+    }
+    .drc-toolbar-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .drc-toolbar-row + .drc-toolbar-row { margin-top: 6px; }
+    .drc-tab {
+        padding: 5px 14px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .drc-tab.active {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-tab-link {
+        padding: 5px 12px;
+        border: 1px solid transparent;
+        color: var(--drc-muted);
+        text-decoration: none;
+        font-size: 12px;
+        border-radius: 2px;
+    }
+    .drc-tab-link.active {
+        background: #fff;
+        border-color: var(--drc-border);
+        color: var(--drc-blue);
+        font-weight: 600;
+    }
+    .drc-btn {
+        padding: 4px 12px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-btn:hover { background: var(--drc-blue-light); border-color: #9bb8d9; }
+    .drc-btn-primary {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-btn-primary:hover { background: var(--drc-blue-dark); }
+    .drc-field {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+    .drc-field label { color: var(--drc-muted); white-space: nowrap; }
+    .drc-field select {
+        border: 1px solid var(--drc-border);
+        padding: 3px 8px;
+        font-size: 12px;
+        background: #fff;
+        border-radius: 2px;
+        min-width: 100px;
+    }
+    .drc-progress {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--drc-muted);
+    }
+    .drc-progress-bar {
+        width: 120px;
+        height: 6px;
+        background: #dde4ec;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .drc-progress-bar > div {
+        height: 100%;
+        background: var(--drc-blue);
+        transition: width .3s;
+    }
+
+    /* 工作区 */
+    .drc-workspace {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        min-height: 500px;
+    }
+    .drc-filter-bar-top {
+        padding: 8px 12px;
+        background: #fafbfc;
+        border-bottom: 1px solid var(--drc-border);
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .drc-filter-bar-top .drc-field select {
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 2px;
+        min-width: 110px;
+    }
+    .drc-modal-pane-body .drc-tree {
+        border: none;
+        height: 100%;
+        max-height: none;
+    }
+    .drc-filter-summary {
+        font-size: 12px;
+        color: var(--drc-muted);
+        margin-left: 8px;
+    }
+    .drc-filter-summary strong { color: var(--drc-blue-dark); font-weight: 600; }
+
+    /* 弹窗 */
+    .drc-modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .drc-modal-mask.hidden { display: none; }
+    .drc-modal {
+        background: #fff;
+        border: 1px solid var(--drc-border);
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.18);
+        width: min(920px, 94vw);
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .drc-modal-header {
+        padding: 10px 16px;
+        background: var(--drc-blue-light);
+        border-bottom: 1px solid var(--drc-border);
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--drc-blue-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .drc-modal-close {
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #666;
+        line-height: 1;
+        padding: 0 4px;
+    }
+    .drc-modal-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        height: 480px;
+    }
+    .drc-modal-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border-right: 1px solid var(--drc-border);
+    }
+    .drc-modal-pane:last-child { border-right: none; }
+    .drc-modal-pane-title {
+        padding: 8px 12px;
+        background: #f5f8fb;
+        border-bottom: 1px solid var(--drc-border);
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+    }
+    .drc-modal-pane-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 12px;
+    }
+    .drc-modal-footer {
+        padding: 10px 16px;
+        border-top: 1px solid var(--drc-border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        background: #fafbfc;
+    }
+    .drc-selected-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 24px;
+    }
+    .drc-selected-tag {
+        background: #dce9f8;
+        color: var(--drc-blue-dark);
+        padding: 3px 8px;
+        border-radius: 2px;
+        font-size: 11px;
+        border: 1px solid #b8d0ea;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-selected-tag button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #888;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+    }
+    .drc-modal-pane-body select {
+        width: 100%;
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        margin-bottom: 8px;
+        border-radius: 2px;
+    }
+    .drc-tree {
+        overflow-y: auto;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+    }
+    .drc-tree-item {
+        padding: 7px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        border-left: 3px solid transparent;
+        color: var(--drc-text);
+    }
+    .drc-tree-item:hover { background: #f0f6fc; }
+    .drc-tree-item.active {
+        background: #dce9f8;
+        border-left-color: var(--drc-blue);
+        color: var(--drc-blue-dark);
+        font-weight: 600;
+    }
+    #city-items, #indicator-content {
+        max-height: none;
+        overflow: visible;
+        padding: 0;
+    }
+    #indicator-content { font-size: 12px; }
+    .city-row, .indicator-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 2px;
+        font-size: 12px;
+    }
+    .city-row label, .indicator-row label { cursor: pointer; flex: 1; }
+    .city-checkbox, .indicator-checkbox {
+        width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
+    }
+
+    #indicator-filter { display: none; }
+
+    .drc-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #fff;
+        min-height: 0;
+    }
+
+    .drc-content-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--drc-border);
+        padding: 0 12px;
+        background: #fafbfc;
+    }
+    .drc-content-tabs button {
+        padding: 8px 16px;
+        border: none;
+        background: none;
+        font-size: 12px;
+        color: var(--drc-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+    }
+    .drc-content-tabs button.active {
+        color: var(--drc-blue);
+        border-bottom-color: var(--drc-blue);
+        font-weight: 600;
+    }
+
+    .drc-table-area {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+    }
+    .table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border: none;
+    }
     .data-table {
         min-width: 800px;
         width: max-content;
         border-collapse: collapse;
+        font-size: 12px;
     }
-    
-    /* 固定第一列 */
+    .data-table th, .data-table td {
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        vertical-align: middle;
+    }
+    .data-table thead th {
+        background: #e8eef5;
+        color: #333;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .data-table thead tr:nth-child(2) th {
+        background: #f3f6fa;
+        font-weight: 500;
+        font-size: 11px;
+    }
     .data-table th:first-child,
     .data-table td:first-child {
         position: sticky;
         left: 0;
-        background: #ffffff;
-        z-index: 10;
-        box-shadow: 4px 0 8px -4px rgba(0, 80, 120, 0.15);
+        background: #f8fafc;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0,0,0,.06);
     }
-    
-    .data-table thead th:first-child {
-        z-index: 11;
-        background: #f0f9ff;
-    }
-    
-    .data-table th,
-    .data-table td {
-        border: 1px solid #bfdbfe;
-        padding: 8px 12px;
-        vertical-align: top;
-    }
-    
-    .data-table th[data-indicator] {
-        min-width: 160px;
-        max-width: 200px;
-        white-space: normal;
-        word-break: break-word;
-    }
-    
+    .data-table thead th:first-child { z-index: 3; background: #e8eef5; }
+    .data-table th[data-indicator] { min-width: 140px; }
     .data-table th:not(:first-child),
-    .data-table td:not(:first-child) {
-        min-width: 120px;
-        width: 120px;
-    }
+    .data-table td:not(:first-child) { min-width: 100px; }
     .data-table td.source-cell,
-    .data-table th.source-cell {
-        min-width: 140px;
-        width: 140px;
+    .data-table th.source-cell { min-width: 130px; }
+    .data-table tbody tr:hover td { background: #f7fbff; }
+    .data-table tbody tr:hover td:first-child { background: #eef5fc; }
+    .data-table input, .data-table select {
+        width: 100%;
+        border: 1px solid #c8d4e0;
+        padding: 3px 6px;
+        font-size: 11px;
+        border-radius: 2px;
+        box-sizing: border-box;
     }
-    .source-input-wrap {
+    .source-input-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .source-merged-input { background: #f5f8fb !important; color: #444; }
+
+    .drc-footer-bar {
+        padding: 8px 12px;
+        border-top: 1px solid var(--drc-border);
+        background: #fafbfc;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        width: 100%;
+        gap: 8px;
+        align-items: center;
     }
-    .source-input-wrap .source-type-select,
-    .source-input-wrap .source-merged-input {
-        width: 100%;
-        box-sizing: border-box;
+
+    .drc-excel-panel {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--drc-muted);
     }
-    
-    .data-table input,
-    .data-table select {
-        width: 100%;
-        min-width: 100px;
-        box-sizing: border-box;
-        padding: 6px 8px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 13px;
+    .drc-excel-panel .upload-zone {
+        border: 1px dashed var(--drc-border);
+        padding: 30px;
+        max-width: 480px;
+        margin: 20px auto;
+        background: #fafbfc;
     }
-    
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+
+    /* 已选城市标签 */
+    .drc-tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 24px; }
+    .drc-tag {
+        background: #dce9f8;
+        color: var(--drc-blue-dark);
+        padding: 2px 8px;
+        border-radius: 2px;
+        font-size: 11px;
+        border: 1px solid #b8d0ea;
     }
-    ::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 10px;
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #b0c4d8; border-radius: 4px; }
+    input:focus, select:focus { outline: none; border-color: var(--drc-blue) !important; }
+    #excel-section:not(.hidden) { flex: 1; overflow: auto; }
+
+    .modal-section-label {
+        font-size: 11px;
+        color: var(--drc-muted);
+        font-weight: 600;
+        margin: 12px 0 6px;
     }
-    ::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 10px;
+    .area-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 2px;
+        font-size: 12px;
     }
-    
-    input:focus, select:focus, textarea:focus {
-        outline: none;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    .area-row label { cursor: pointer; flex: 1; }
+    .area-checkbox {
+        width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
     }
-    
-    .city-checkbox, .area-checkbox, .indicator-checkbox {
-        cursor: pointer;
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-    }
+    #area-items { max-height: none; overflow: visible; padding: 0; }
 </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen antialiased">
+<body>
 
-<!-- 导航栏 -->
-<header class="bg-white border-b border-blue-200 shadow-sm h-20 flex items-center px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
-<div class="flex items-center space-x-3">
-    <div class="bg-blue-600 rounded-xl p-2 shadow-md">
-        <iconify-icon class="text-white text-2xl" icon="mdi:chart-line"></iconify-icon>
+<header class="drc-header">
+    <div class="logo-title">
+        <iconify-icon icon="mdi:chart-timeline-variant" style="font-size:20px"></iconify-icon>
+        城策智库 · 统计数据录入平台
     </div>
-    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">数据指标管理系统</h1>
-</div>
-<div class="ml-auto flex items-center space-x-4">
-<div class="flex space-x-3 mr-6">
-    <a href="/dashboard/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all">指标录入</a>
-    <a href="/dashboard/order-price/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">订单价格配置</a>
-    <a href="/dashboard/single-indicator-year-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标历年查询</a>
-    <a href="/dashboard/single-indicator-city-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">单指标多城市查询</a>
-    <a href="/dashboard/many-indicator-query/" class="text-slate-700 hover:text-blue-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-300 hover:border-blue-400 transition">多城市多指标查询</a>
-</div>
-<div class="text-right">
-<div class="flex-shrink-0 flex items-center">
-    <a href="{% url 'landing:home' %}" class="flex items-center">
-        <span class="text-xl font-medium tracking-wide text-blue-800">城策智库</span>
-    </a>
-</div>
-</div>
-<div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shadow-inner">
-    <iconify-icon class="text-blue-600 text-xl" icon="mdi:account-circle"></iconify-icon>
-</div>
-</div>
+    <nav class="nav-links">
+        <a href="/dashboard/">指标录入</a>
+        <a href="/dashboard/order-price/">订单价格</a>
+        <a href="/dashboard/single-indicator-year-query/">单指标历年</a>
+        <a href="/dashboard/single-indicator-city-query/">单指标多城市</a>
+        <a href="/dashboard/many-indicator-query/">多城市多指标</a>
+        <a href="{% url 'landing:home' %}">返回首页</a>
+    </nav>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-8">
-
-    <div class="flex items-center space-x-3 mb-6">
-        <div class="bg-blue-100 p-2 rounded-xl">
-            <iconify-icon class="text-blue-600 text-2xl" icon="fluent:database-search-24-filled"></iconify-icon>
-        </div>
-        <div class="flex space-x-3">
-            <a href="/dashboard/" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">地市指标录入</a>
-            <a href="/dashboard/area_input" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-xl shadow-sm hover:bg-blue-700 transition">区县指标录入</a>
-            <a href="/dashboard/indicator-check" class="bg-white border border-slate-300 text-slate-700 font-medium py-2 px-5 rounded-xl hover:bg-slate-50 transition">指标校验</a>
+<div class="drc-toolbar">
+    <div class="drc-toolbar-row">
+        <a href="/dashboard/" class="drc-tab-link">地市录入</a>
+        <a href="/dashboard/area_input" class="drc-tab-link active">区县录入</a>
+        <a href="/dashboard/indicator-check" class="drc-tab-link">指标校验</a>
+        <div class="drc-progress">
+            <span id="progress-text">进度：已完成0/0指标</span>
+            <div class="drc-progress-bar"><div id="progress-bar" style="width:0%"></div></div>
         </div>
     </div>
-
-    <!-- 筛选卡片 -->
-    <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📅 选择年份</label>
-                <select id="year-select" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option>选择年份</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📍 选择省份</label>
-                <select id="province-select" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="">-- 请选择省份 --</option>
-                    <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
-                    <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
-                    <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
-                    <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
-                    <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
-                    <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
-                    <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
-                    <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
-                    <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
-                    <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
-                    <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
-                </select>
-            </div>
-            <div class="min-w-0">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">🏙️ 选择城市 (多选)</label>
-                <div id="city-list" class="bg-white border border-slate-300 rounded-xl p-3 max-h-44 overflow-y-auto shadow-sm">
-                    <div class="flex justify-end mb-2 space-x-3">
-                        <button type="button" id="select-all-cities" class="text-xs text-blue-600 hover:text-blue-800 font-medium">全选</button>
-                        <button type="button" id="deselect-all-cities" class="text-xs text-slate-500 hover:text-slate-700">取消全选</button>
-                    </div>
-                    <div class="space-y-2" id="city-items"></div>
-                    <div id="city-empty" class="text-gray-400 text-sm p-2 hidden">无可选城市</div>
-                </div>
-            </div>
-            <div class="min-w-0">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">🗺️ 选择区县 (多选)</label>
-                <div id="area-list" class="bg-white border border-slate-300 rounded-xl p-3 max-h-44 overflow-y-auto shadow-sm">
-                    <div class="flex justify-end mb-2 space-x-3">
-                        <button type="button" id="select-all-areas" class="text-xs text-blue-600 hover:text-blue-800 font-medium">全选</button>
-                        <button type="button" id="deselect-all-areas" class="text-xs text-slate-500 hover:text-slate-700">取消全选</button>
-                    </div>
-                    <div class="space-y-2" id="area-items"></div>
-                    <div id="area-empty" class="text-gray-400 text-sm p-2 hidden">无可选区县</div>
-                </div>
-            </div>
-            <div class="min-w-0 overflow-hidden">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">📊 指标组</label>
-                <select id="indicator-filter" class="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 outline-none">
-                    <option value="population">人口数据</option>
-                    <option value="economic_growth">经济增长数据</option>
-                </select>
-            </div>
-            <div class="min-w-0 overflow-hidden">
-                <label class="block text-sm font-semibold text-blue-700 mb-2">🔍 筛选指标（多选）</label>
-                <div id="indicator-subfilter" class="w-full bg-white border border-slate-300 rounded-xl p-3 max-h-44 overflow-y-auto shadow-sm"></div>
-            </div>
-        </div>
+    <div class="drc-toolbar-row">
+        <button type="button" class="drc-tab active" id="manual-tab">手工录入</button>
+        <button type="button" class="drc-tab" id="excel-tab">Excel上传</button>
     </div>
+</div>
 
-    <div class="mb-6 border-b border-blue-200">
-        <div class="flex space-x-6">
-            <button class="pb-3 px-1 font-semibold text-blue-700 border-b-2 border-blue-600 transition" id="manual-tab">✍️ 手工录入</button>
-            <button class="pb-3 px-1 font-medium text-slate-600 hover:text-blue-600 transition" id="excel-tab">📎 Excel上传</button>
-        </div>
-    </div>
-
-    <form id="manual-form" method="post" action="/dashboard/submit-area/">
-        {% csrf_token %}  
-        <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8" id="manual-section">
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-blue-50 to-white sticky top-0 z-10">
-                            <th class="border border-blue-200 px-4 py-3 text-left text-blue-700 font-semibold min-w-24 bg-white">区县</th>
-                        </tr>
-                        <tr class="bg-gray-50 sticky top-12 z-10">
-                            <th class="border border-blue-200 px-2 py-2 text-left text-slate-500 font-medium text-xs min-w-20 bg-gray-50"></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+<div class="drc-workspace">
+    <div class="drc-main">
+        <div class="drc-filter-bar-top">
+            <div class="drc-field">
+                <label>年份</label>
+                <select id="year-select"><option>选择年份</option></select>
             </div>
-            <input type="hidden" id="rows-json" name="rows_json" value="" />
-            <div class="flex space-x-4 mt-6">
-                <button id="submit-button" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl shadow-md transition-all">💾 提交数据</button>
-                <button id="reset-button" type="button" class="bg-white border border-slate-300 text-slate-700 font-medium py-3 px-8 rounded-xl hover:bg-slate-50 transition">🔄 重置表单</button>
-                <button id="save-draft-button" type="button" class="ml-auto bg-slate-100 border border-slate-300 text-slate-700 font-medium py-3 px-6 rounded-xl flex items-center gap-2 hover:bg-slate-200 transition">
-                    <iconify-icon icon="mdi:content-save"></iconify-icon> 保存草稿
-                </button>
-            </div>
+            <button type="button" class="drc-btn" id="open-region-modal-btn">
+                <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
+            </button>
+            <button type="button" class="drc-btn" id="open-indicator-modal-btn">
+                <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
+            </button>
+            <span class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</span>
         </div>
-    </form>
 
-    <form id="excel-upload-form" action="/dashboard/upload_excel_area/" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="hidden" name="year" id="excel-upload-year" value="" />
-        <div class="bg-white border border-blue-200 rounded-2xl shadow-md p-6 mb-8 hidden" id="excel-section">
-            <div class="text-center py-8">
-                <div class="mx-auto w-20 h-20 flex items-center justify-center bg-blue-100 rounded-full mb-6 shadow-inner">
-                    <iconify-icon class="text-blue-600 text-4xl" icon="mdi:file-excel"></iconify-icon>
+        <form id="manual-form" method="post" action="/dashboard/submit-area/" style="display:flex;flex-direction:column;flex:1;min-height:0">
+            {% csrf_token %}
+            <div id="manual-section" class="drc-table-area">
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>区县</th></tr>
+                            <tr><th></th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-3">上传Excel数据文件</h3>
-                <p class="text-slate-500 mb-8">支持 .xlsx 格式，请确保数据格式符合区县模板要求。数据单元格底色将自动识别来源（见模板「颜色标示区」）。</p>
-                <div class="border-2 border-dashed border-blue-300 rounded-xl max-w-xl mx-auto p-8 bg-blue-50/40">
-                    <div class="flex flex-col items-center gap-4">
-                        <iconify-icon class="text-blue-500 text-4xl" icon="mdi:cloud-upload"></iconify-icon>
-                        <input type="file" name="excel_file" accept=".xlsx,.xls" required class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-8 rounded-xl shadow transition">上传并解析</button>
-                    </div>
-                </div>
-                <div class="mt-8">
-                    <button type="button" class="flex items-center text-blue-600 hover:text-blue-800 mx-auto gap-1 font-medium">
-                        <iconify-icon icon="mdi:download"></iconify-icon> 下载Excel模板
+                <input type="hidden" id="rows-json" name="rows_json" value="" />
+                <div class="drc-footer-bar">
+                    <button id="submit-button" type="submit" class="drc-btn drc-btn-primary">提交数据</button>
+                    <button id="reset-button" type="button" class="drc-btn">重置表单</button>
+                    <button id="save-draft-button" type="button" class="drc-btn" style="margin-left:auto">
+                        <iconify-icon icon="mdi:content-save"></iconify-icon> 保存草稿
                     </button>
                 </div>
             </div>
-        </div>
-    </form>
+        </form>
 
-    <div class="bg-gradient-to-r from-blue-50 to-white border border-blue-200 rounded-2xl shadow-sm p-4 mb-8">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-100 p-2 rounded-full">
-                    <iconify-icon class="text-blue-600 text-xl" icon="mdi:progress-clock"></iconify-icon>
-                </div>
-                <div>
-                    <p class="text-sm text-slate-500">数据录入进度</p>
-                    <p class="text-lg font-bold text-blue-700" id="progress-text">进度：已完成0/48指标</p>
+        <form id="excel-upload-form" action="/dashboard/upload_excel_area/" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="year" id="excel-upload-year" value="" />
+            <div class="hidden" id="excel-section">
+                <div class="drc-excel-panel">
+                    <iconify-icon icon="mdi:file-excel" style="font-size:48px;color:var(--drc-blue)"></iconify-icon>
+                    <h3 style="margin:12px 0 8px;font-size:14px">上传 Excel 数据文件</h3>
+                    <p style="font-size:12px;margin-bottom:16px">支持 .xlsx 格式；单元格底色将自动识别数据来源（见模板「颜色标示区」）。</p>
+                    <div class="upload-zone">
+                        <iconify-icon icon="mdi:cloud-upload" style="font-size:32px;color:var(--drc-blue);margin-bottom:8px"></iconify-icon>
+                        <input type="file" name="excel_file" accept=".xlsx,.xls" required style="margin:8px 0;font-size:12px" />
+                        <br>
+                        <button type="submit" class="drc-btn drc-btn-primary" style="margin-top:8px">上传并解析</button>
+                    </div>
+                    <button type="button" class="drc-btn" style="margin-top:12px">
+                        <iconify-icon icon="mdi:download"></iconify-icon> 下载 Excel 模板
+                    </button>
                 </div>
             </div>
-            <div class="w-64 h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+        </form>
+    </div>
+</div>
+
+<!-- 地区筛选弹窗：省份 → 城市 → 区县 -->
+<div class="drc-modal-mask hidden" id="region-modal-mask">
+    <div class="drc-modal" style="width:min(960px,96vw)">
+        <div class="drc-modal-header">
+            <span>地区筛选</span>
+            <button type="button" class="drc-modal-close" id="close-region-modal">&times;</button>
+        </div>
+        <div class="drc-modal-body" style="height:520px">
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">地区列表</div>
+                <div class="drc-modal-pane-body">
+                    <select id="province-select"><option value="">请选择省份</option>
+                <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
+                <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
+                <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
+                <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
+                <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
+                <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
+                <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
+                <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
+                <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option>
+                <option value="内蒙古自治区">内蒙古自治区</option><option value="广西壮族自治区">广西壮族自治区</option>
+                <option value="西藏自治区">西藏自治区</option>
+                <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option></select>
+                    <div class="modal-section-label">城市（多选）</div>
+                    <div id="city-list">
+                        <div id="city-placeholder">请先选择省份</div>
+                        <div id="city-content" class="hidden">
+                            <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:4px">
+                                <button type="button" id="select-all-cities" class="drc-btn" style="padding:2px 10px;font-size:11px">全选</button>
+                                <button type="button" id="deselect-all-cities" class="drc-btn" style="padding:2px 10px;font-size:11px">取消全选</button>
+                            </div>
+                            <div id="city-items"></div>
+                            <div id="city-empty" class="hidden" style="color:#999;padding:8px;text-align:center;font-size:12px">暂无可选城市</div>
+                        </div>
+                    </div>
+                    <div class="modal-section-label">区县（多选）</div>
+                    <div id="area-list">
+                        <div id="area-placeholder">请先选择城市</div>
+                        <div id="area-content" class="hidden">
+                            <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:4px">
+                                <button type="button" id="select-all-areas" class="drc-btn" style="padding:2px 10px;font-size:11px">全选</button>
+                                <button type="button" id="deselect-all-areas" class="drc-btn" style="padding:2px 10px;font-size:11px">取消全选</button>
+                            </div>
+                            <div id="area-items"></div>
+                            <div id="area-empty" class="hidden" style="color:#999;padding:8px;text-align:center;font-size:12px">暂无可选区县</div>
+                        </div>
+                    </div>
+                </div>
             </div>
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">
+                    已选区县
+                    <button type="button" class="drc-btn" id="clear-all-areas-btn" style="float:right;padding:2px 8px;font-size:11px">清空</button>
+                </div>
+                <div class="drc-modal-pane-body">
+                    <div class="drc-selected-tags" id="region-selected-tags"></div>
+                    <div id="region-selected-empty" style="color:#999;font-size:12px;padding:20px 0;text-align:center">尚未选择区县</div>
+                </div>
+            </div>
+        </div>
+        <div class="drc-modal-footer">
+            <button type="button" class="drc-btn" id="cancel-region-modal">取消</button>
+            <button type="button" class="drc-btn drc-btn-primary" id="apply-region-modal">应用筛选</button>
         </div>
     </div>
-</main>
+</div>
+
+<!-- 指标筛选弹窗 -->
+<div class="drc-modal-mask hidden" id="indicator-modal-mask">
+    <div class="drc-modal">
+        <div class="drc-modal-header">
+            <span>指标筛选</span>
+            <button type="button" class="drc-modal-close" id="close-indicator-modal">&times;</button>
+        </div>
+        <div class="drc-modal-body">
+            <div class="drc-modal-pane" style="flex:0 0 220px">
+                <div class="drc-modal-pane-title">指标分类</div>
+                <div class="drc-modal-pane-body" style="padding:0">
+                    <div class="drc-tree" id="indicator-tree">
+                        <div class="drc-tree-item active" data-group="population">人口数据</div>
+                        <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
+                    </div>
+                </div>
+            </div>
+            <div class="drc-modal-pane">
+                <div class="drc-modal-pane-title">指标列表（多选）</div>
+                <div class="drc-modal-pane-body">
+                    <div id="indicator-subfilter">
+                        <div id="indicator-content"></div>
+                    </div>
+                    <select id="indicator-filter" style="display:none">
+                        <option value="population" selected>人口数据</option>
+                        <option value="economic_growth">经济增长数据</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="drc-modal-footer">
+            <button type="button" class="drc-btn" id="cancel-indicator-modal">取消</button>
+            <button type="button" class="drc-btn drc-btn-primary" id="apply-indicator-modal">应用筛选</button>
+        </div>
+    </div>
+</div>
 
 <script>
     // 年份初始化
@@ -318,8 +713,6 @@
         }
         select.selectedIndex = 0;
     }
-    initYearSelector();
-
     // 进度更新
     function updateProgress() {
         const allInputs = document.querySelectorAll('#manual-section .data-table tbody input[placeholder="数值"]');
@@ -393,30 +786,40 @@
     function renderCitiesForProvince(prov) {
         const container = document.getElementById('city-items');
         const empty = document.getElementById('city-empty');
+        const placeholder = document.getElementById('city-placeholder');
+        const content = document.getElementById('city-content');
         if (!container) return;
         container.innerHTML = '';
-        const cities = prov && prov !== '' ? (provinceCityMap[prov] || []) : Object.values(provinceCityMap).flat();
-        if (!cities || cities.length === 0) { 
-            if (empty) empty.classList.remove('hidden'); 
-            return; 
+        if (!prov) {
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+            return;
         }
+        const cities = provinceCityMap[prov] || [];
+        if (!cities.length) {
+            if (placeholder) placeholder.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
+            if (empty) empty.classList.remove('hidden');
+            return;
+        }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
         if (empty) empty.classList.add('hidden');
         cities.forEach(city => {
             const id = 'city-' + city.replace(/\s|市/g, '');
-            const div = document.createElement('div'); 
-            div.className = 'flex items-center mb-1';
-            const input = document.createElement('input'); 
-            input.type = 'checkbox'; 
-            input.className = 'rounded border-slate-300 text-blue-500 city-checkbox'; 
-            input.value = city; 
-            input.id = id; 
+            const div = document.createElement('div');
+            div.className = 'city-row';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'city-checkbox';
+            input.value = city;
+            input.id = id;
             input.checked = globalSelectedCities.has(city);
-            const label = document.createElement('label'); 
-            label.htmlFor = id; 
-            label.className = 'ml-2 text-slate-700 text-sm cursor-pointer'; 
+            const label = document.createElement('label');
+            label.htmlFor = id;
             label.textContent = city;
-            div.appendChild(input); 
-            div.appendChild(label); 
+            div.appendChild(input);
+            div.appendChild(label);
             container.appendChild(div);
         });
     }
@@ -459,19 +862,26 @@
     }
 
     function renderAreasForCities(cities) {
-        const container = document.getElementById('area-items'); 
-        const empty = document.getElementById('area-empty'); 
+        const container = document.getElementById('area-items');
+        const empty = document.getElementById('area-empty');
+        const placeholder = document.getElementById('area-placeholder');
+        const content = document.getElementById('area-content');
         if (!container || !empty) return;
         container.innerHTML = '';
-        if (!cities || cities.length === 0) { 
-            empty.classList.remove('hidden'); 
-            return; 
+        if (!cities || cities.length === 0) {
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+            renderRegionSelectedTags();
+            return;
         }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
         loadAreasForCities(cities).then(areas => {
             container.innerHTML = '';
-            if (!areas || areas.length === 0) { 
-                empty.classList.remove('hidden'); 
-                return; 
+            if (!areas || areas.length === 0) {
+                empty.classList.remove('hidden');
+                renderRegionSelectedTags();
+                return;
             }
             empty.classList.add('hidden');
             const areaKeySet = new Set(areas.map(item => makeAreaKey(item.city, item.area)));
@@ -480,22 +890,22 @@
                 const key = makeAreaKey(item.city, item.area);
                 const labelText = String(item.city || '') + '-' + String(item.area || '');
                 const id = 'area-' + labelText.replace(/\s|区|县|市/g, '');
-                const div = document.createElement('div'); 
-                div.className = 'flex items-center mb-1';
-                const input = document.createElement('input'); 
-                input.type = 'checkbox'; 
-                input.className = 'rounded border-slate-300 text-blue-500 area-checkbox'; 
-                input.value = key; 
-                input.id = id; 
+                const div = document.createElement('div');
+                div.className = 'area-row';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'area-checkbox';
+                input.value = key;
+                input.id = id;
                 input.checked = globalSelectedAreas.has(key);
-                const label = document.createElement('label'); 
-                label.htmlFor = id; 
-                label.className = 'ml-2 text-slate-700 text-sm cursor-pointer'; 
+                const label = document.createElement('label');
+                label.htmlFor = id;
                 label.textContent = labelText;
-                div.appendChild(input); 
-                div.appendChild(label); 
+                div.appendChild(input);
+                div.appendChild(label);
                 container.appendChild(div);
             });
+            renderRegionSelectedTags();
         });
     }
 
@@ -504,20 +914,20 @@
         if (!thead) return;
         const firstRow = thead.querySelector('tr:first-child'); 
         const secondRow = thead.querySelector('tr:nth-child(2)');
-        firstRow.innerHTML = '<th class="border border-blue-200 px-4 py-3 text-left text-blue-700 font-semibold min-w-24 bg-white">区县</th>';
+        firstRow.innerHTML = '<th>区县</th>';
         indicators.forEach(ind => { 
             const th = document.createElement('th'); 
-            th.className = 'border border-blue-200 px-4 py-3 text-left text-blue-700 font-medium'; 
+             
             th.colSpan = 4; 
             th.setAttribute('data-indicator', ind); 
             th.textContent = ind; 
             firstRow.appendChild(th); 
         });
-        secondRow.innerHTML = '<th class="border border-blue-200 px-2 py-2 text-left text-slate-500 font-medium text-xs min-w-20 bg-gray-50"></th>';
+        secondRow.innerHTML = '<th></th>';
         indicators.forEach(() => { 
             ['数值', '备注', '数据来源', '去年参考'].forEach(title => { 
                 const th = document.createElement('th'); 
-                th.className = 'border border-blue-200 px-2 py-2 text-left text-slate-700 font-medium text-xs' + (title === '数据来源' ? ' source-cell' : ''); 
+                if (title === '数据来源') th.className = 'source-cell'; 
                 th.textContent = title; 
                 secondRow.appendChild(th); 
             }); 
@@ -535,22 +945,21 @@
         
         if (!areas.length) { 
             const tr = tbody.insertRow(); 
-            tr.innerHTML = `<td colspan="${1 + (groups * 4 || 2)}" class="text-center text-slate-400 p-6">请在上方选择区县</td>`; 
+            tr.innerHTML = `<td colspan="${1 + (groups * 4 || 2)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
             updateProgress(); 
             return; 
         }
         if (!groups) { 
             const tr = tbody.insertRow(); 
-            tr.innerHTML = `<td colspan="2" class="text-left text-slate-400 p-6">请先在指标筛选中勾选具体指标</td>`; 
+            tr.innerHTML = `<td colspan="2" style="text-align:left;color:#999;padding:24px">请点击「指标筛选」勾选具体指标</td>`; 
             updateProgress(); 
             return; 
         }
         
         areas.forEach(item => {
             const tr = tbody.insertRow(); 
-            tr.className = 'border-b border-blue-100 hover:bg-blue-50/30 transition';
-            const tdArea = tr.insertCell(); 
-            tdArea.className = 'border border-blue-200 px-4 py-3 text-slate-800 font-medium bg-blue-50/20'; 
+            const tdArea = tr.insertCell();
+            tdArea.style.fontWeight = '600'; 
             tdArea.textContent = String(item.city || '') + '-' + String(item.area || '');
             tr.dataset.city = item.city || ''; 
             tr.dataset.area = item.area || '';
@@ -562,18 +971,17 @@
                 const indKey = sanitize(indicatorName);
                 
                 const valCell = tr.insertCell(); 
-                valCell.className = 'border border-blue-200 px-2 py-2';
-                valCell.innerHTML = `<input placeholder="数值" type="text" name="data[${areaKey}][${indKey}][value]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-200">`;
+                valCell.innerHTML = `<input placeholder="数值" type="text" name="data[${areaKey}][${indKey}][value]">`;
                 
                 const noteCell = tr.insertCell(); 
-                noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm">`;
+                noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]">`;
                 
                 const srcCell = tr.insertCell(); 
-                srcCell.className = 'border border-blue-200 px-2 py-2 source-cell';
+                srcCell.className = 'source-cell';
                 srcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][${indKey}][source]`, item.city || '');
                 
                 const refCell = tr.insertCell(); 
-                refCell.className = 'border border-blue-200 px-2 py-2 text-slate-400 text-xs'; 
+                refCell.style.color = '#999'; refCell.style.fontSize = '11px'; 
                 refCell.innerText = '-';
             }
         });
@@ -662,61 +1070,183 @@
     }
 
     function populateSubfilter(categoryKey) {
-        const sub = document.getElementById('indicator-subfilter'); 
-        if (!sub) return; 
-        sub.innerHTML = '';
+        const content = document.getElementById('indicator-content');
+        if (!content) return;
+        content.innerHTML = '';
         const items = indicatorCategories[categoryKey] || [];
-        const ctrlDiv = document.createElement('div'); 
-        ctrlDiv.className = 'flex justify-end mb-2 space-x-3';
-        const btnAll = document.createElement('button'); 
-        btnAll.type = 'button'; 
-        btnAll.textContent = '全选'; 
-        btnAll.className = 'text-xs text-blue-600 hover:text-blue-800 font-medium';
-        const btnNone = document.createElement('button'); 
-        btnNone.type = 'button'; 
-        btnNone.textContent = '取消全选'; 
-        btnNone.className = 'text-xs text-slate-500 hover:text-slate-700';
-        ctrlDiv.appendChild(btnAll); 
-        ctrlDiv.appendChild(btnNone); 
-        sub.appendChild(ctrlDiv);
-        
-        const listDiv = document.createElement('div'); 
-        listDiv.className = 'flex flex-col space-y-2';
+        const ctrlDiv = document.createElement('div');
+        ctrlDiv.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px';
+        const btnAll = document.createElement('button');
+        btnAll.type = 'button';
+        btnAll.className = 'drc-btn';
+        btnAll.style.cssText = 'padding:2px 10px;font-size:11px';
+        btnAll.textContent = '全选';
+        const btnNone = document.createElement('button');
+        btnNone.type = 'button';
+        btnNone.className = 'drc-btn';
+        btnNone.style.cssText = 'padding:2px 10px;font-size:11px';
+        btnNone.textContent = '取消全选';
+        ctrlDiv.appendChild(btnAll);
+        ctrlDiv.appendChild(btnNone);
+        content.appendChild(ctrlDiv);
+        const listDiv = document.createElement('div');
         items.forEach((i, idx) => {
-            const label = ('' + i).replace(/^#/, ''); 
+            const label = ('' + i).replace(/^#/, '');
             const id = 'indicator-' + categoryKey + '-' + idx;
-            const row = document.createElement('div'); 
-            row.className = 'flex items-center w-full';
-            const input = document.createElement('input'); 
-            input.type = 'checkbox'; 
-            input.className = 'indicator-checkbox rounded border-slate-300 text-blue-500'; 
-            input.value = label; 
+            const row = document.createElement('div');
+            row.className = 'indicator-row';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'indicator-checkbox';
+            input.value = label;
             input.id = id;
-            const lab = document.createElement('label'); 
-            lab.htmlFor = id; 
-            lab.className = 'ml-2 text-slate-700 text-sm truncate cursor-pointer'; 
+            input.checked = window.globalSelectedIndicators.includes(label);
+            const lab = document.createElement('label');
+            lab.htmlFor = id;
             lab.textContent = label;
-            row.appendChild(input); 
-            row.appendChild(lab); 
+            row.appendChild(input);
+            row.appendChild(lab);
             listDiv.appendChild(row);
         });
-        sub.appendChild(listDiv);
-        
-        btnAll.onclick = () => { 
-            sub.querySelectorAll('.indicator-checkbox').forEach(cb => { 
-                cb.checked = true; 
-                if (!window.globalSelectedIndicators.includes(cb.value)) window.globalSelectedIndicators.push(cb.value); 
-            }); 
-            buildTableHeaders(window.globalSelectedIndicators); 
-            renderTableRows(); 
+        content.appendChild(listDiv);
+        btnAll.onclick = () => {
+            content.querySelectorAll('.indicator-checkbox').forEach(cb => {
+                cb.checked = true;
+                if (!window.globalSelectedIndicators.includes(cb.value)) window.globalSelectedIndicators.push(cb.value);
+            });
+            buildTableHeaders(window.globalSelectedIndicators);
+            updateFilterSummary();
+            renderTableRows();
         };
-        btnNone.onclick = () => { 
-            const vals = Array.from(sub.querySelectorAll('.indicator-checkbox')).map(cb => cb.value); 
-            sub.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false); 
-            window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => !vals.includes(v)); 
-            buildTableHeaders(window.globalSelectedIndicators); 
-            renderTableRows(); 
+        btnNone.onclick = () => {
+            const vals = Array.from(content.querySelectorAll('.indicator-checkbox')).map(cb => cb.value);
+            content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = false);
+            window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => !vals.includes(v));
+            buildTableHeaders(window.globalSelectedIndicators);
+            updateFilterSummary();
+            renderTableRows();
         };
+    }
+
+    function renderRegionSelectedTags() {
+        const container = document.getElementById('region-selected-tags');
+        const emptyHint = document.getElementById('region-selected-empty');
+        if (!container) return;
+        container.innerHTML = '';
+        const items = getSelectedAreas().sort((a, b) => (a.city + a.area).localeCompare(b.city + b.area));
+        if (emptyHint) emptyHint.style.display = items.length ? 'none' : 'block';
+        items.forEach(item => {
+            const text = String(item.city || '') + '-' + String(item.area || '');
+            const tag = document.createElement('span');
+            tag.className = 'drc-selected-tag';
+            tag.innerHTML = `${text}<button type="button" title="移除">&times;</button>`;
+            tag.querySelector('button').addEventListener('click', () => {
+                globalSelectedAreas.delete(item.key);
+                const cb = document.querySelector(`#area-items .area-checkbox[value="${CSS.escape(item.key)}"]`);
+                if (cb) cb.checked = false;
+                renderRegionSelectedTags();
+                updateFilterSummary();
+                renderTableRows();
+            });
+            container.appendChild(tag);
+        });
+    }
+
+    function updateFilterSummary() {
+        const el = document.getElementById('filter-summary');
+        if (!el) return;
+        const yearSel = document.getElementById('year-select');
+        const yearText = yearSel?.options[yearSel.selectedIndex]?.text || '未选年份';
+        const provSel = document.getElementById('province-select');
+        const prov = provSel?.value || '';
+        const cityCount = globalSelectedCities.size;
+        const areaCount = globalSelectedAreas.size;
+        const indCount = (window.globalSelectedIndicators || []).length;
+        const parts = [`年份 <strong>${yearText}</strong>`];
+        if (prov) parts.push(`省份 <strong>${prov}</strong>`);
+        parts.push(`城市 <strong>${cityCount}</strong> 个`);
+        parts.push(`区县 <strong>${areaCount}</strong> 个`);
+        parts.push(`指标 <strong>${indCount}</strong> 项`);
+        el.innerHTML = parts.join(' · ');
+    }
+
+    function setupModals() {
+        const regionMask = document.getElementById('region-modal-mask');
+        const indicatorMask = document.getElementById('indicator-modal-mask');
+        const openRegion = document.getElementById('open-region-modal-btn');
+        const openIndicator = document.getElementById('open-indicator-modal-btn');
+        const open = (mask) => mask && mask.classList.remove('hidden');
+        const close = (mask) => mask && mask.classList.add('hidden');
+        if (openRegion) openRegion.addEventListener('click', () => open(regionMask));
+        if (openIndicator) openIndicator.addEventListener('click', () => open(indicatorMask));
+        ['close-region-modal', 'cancel-region-modal', 'apply-region-modal'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', () => {
+                close(regionMask);
+                if (id === 'apply-region-modal') { updateFilterSummary(); renderTableRows(); }
+            });
+        });
+        ['close-indicator-modal', 'cancel-indicator-modal', 'apply-indicator-modal'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', () => {
+                close(indicatorMask);
+                if (id === 'apply-indicator-modal') updateFilterSummary();
+            });
+        });
+        regionMask?.addEventListener('click', e => { if (e.target === regionMask) close(regionMask); });
+        indicatorMask?.addEventListener('click', e => { if (e.target === indicatorMask) close(indicatorMask); });
+        document.getElementById('clear-all-areas-btn')?.addEventListener('click', () => {
+            globalSelectedAreas.clear();
+            document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = false; });
+            renderRegionSelectedTags();
+            updateFilterSummary();
+            renderTableRows();
+        });
+    }
+
+    function setupTabs() {
+        const manualTab = document.getElementById('manual-tab');
+        const excelTab = document.getElementById('excel-tab');
+        const manualForm = document.getElementById('manual-form');
+        const excelSection = document.getElementById('excel-section');
+        if (!manualTab || !excelTab) return;
+        manualTab.onclick = () => {
+            if (manualForm) manualForm.style.display = 'flex';
+            excelSection.classList.add('hidden');
+            manualTab.classList.add('active');
+            excelTab.classList.remove('active');
+            attachProgressListeners();
+            updateProgress();
+        };
+        excelTab.onclick = () => {
+            if (manualForm) manualForm.style.display = 'none';
+            excelSection.classList.remove('hidden');
+            excelTab.classList.add('active');
+            manualTab.classList.remove('active');
+        };
+    }
+
+    function setupIndicatorTree() {
+        const tree = document.getElementById('indicator-tree');
+        const indicatorFilter = document.getElementById('indicator-filter');
+        if (!tree || !indicatorFilter) return;
+        tree.querySelectorAll('.drc-tree-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const group = this.getAttribute('data-group');
+                if (!group) return;
+                tree.querySelectorAll('.drc-tree-item').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                indicatorFilter.value = group;
+                populateSubfilter(group);
+                const content = document.getElementById('indicator-content');
+                if (content) content.querySelectorAll('.indicator-checkbox').forEach(cb => {
+                    cb.checked = window.globalSelectedIndicators.includes(cb.value);
+                });
+            });
+        });
+    }
+
+    function refreshRegionUI() {
+        renderRegionSelectedTags();
+        updateFilterSummary();
     }
 
     function showAutoCloseMessage(message, type) { 
@@ -724,8 +1254,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function() {
+        initYearSelector();
         await Promise.all([loadProvinceCityMap(), loadFormSourceOptions()]);
         renderCitiesForProvince('');
+        renderAreasForCities([]);
         
         const provSel = document.getElementById('province-select');
         if (provSel) provSel.addEventListener('change', () => { 
@@ -735,6 +1267,7 @@
             if (window.IndicatorSourceInput) {
                 IndicatorSourceInput.refreshProvinceScoped(manualSection, provSel.value);
             }
+            refreshRegionUI();
             renderTableRows(); 
         });
         
@@ -751,11 +1284,13 @@
                     if (idx > -1) globalSelectedCityOrder.splice(idx,1); 
                 }
                 renderAreasForCities(getSelectedCities()); 
+                refreshRegionUI();
                 renderTableRows();
             }
             if (e.target.classList?.contains('area-checkbox')) {
                 if (e.target.checked) globalSelectedAreas.add(e.target.value); 
                 else globalSelectedAreas.delete(e.target.value);
+                refreshRegionUI();
                 renderTableRows();
             }
             if (e.target.classList?.contains('indicator-checkbox')) {
@@ -763,6 +1298,7 @@
                     if (!window.globalSelectedIndicators.includes(e.target.value)) window.globalSelectedIndicators.push(e.target.value); 
                 } else window.globalSelectedIndicators = window.globalSelectedIndicators.filter(v => v !== e.target.value);
                 buildTableHeaders(window.globalSelectedIndicators); 
+                updateFilterSummary();
                 renderTableRows();
             }
         });
@@ -774,21 +1310,27 @@
             globalSelectedCityOrder.length = 0; 
             globalSelectedCityOrder.push(...ordered); 
             renderAreasForCities(getSelectedCities()); 
+            refreshRegionUI();
             renderTableRows(); 
         });
         document.getElementById('deselect-all-cities')?.addEventListener('click', () => { 
             document.querySelectorAll('#city-items .city-checkbox').forEach(cb => cb.checked = false); 
             globalSelectedCities.clear(); 
             globalSelectedCityOrder.length = 0; 
+            globalSelectedAreas.clear();
+            document.querySelectorAll('#area-items .area-checkbox').forEach(cb => cb.checked = false);
             renderAreasForCities(getSelectedCities()); 
+            refreshRegionUI();
             renderTableRows(); 
         });
         document.getElementById('select-all-areas')?.addEventListener('click', () => { 
             document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = true; globalSelectedAreas.add(cb.value); }); 
+            refreshRegionUI();
             renderTableRows(); 
         });
         document.getElementById('deselect-all-areas')?.addEventListener('click', () => { 
             document.querySelectorAll('#area-items .area-checkbox').forEach(cb => { cb.checked = false; globalSelectedAreas.clear(); }); 
+            refreshRegionUI();
             renderTableRows(); 
         });
         document.getElementById('reset-button')?.addEventListener('click', () => { 
@@ -797,6 +1339,7 @@
             globalSelectedCities.clear(); 
             globalSelectedCityOrder.length = 0; 
             globalSelectedAreas.clear(); 
+            refreshRegionUI();
             renderTableRows(); 
         });
 
@@ -872,36 +1415,31 @@
         }
 
         const indicatorFilter = document.getElementById('indicator-filter');
-        indicatorFilter.addEventListener('change', () => { 
-            populateSubfilter(indicatorFilter.value); 
-            const sub=document.getElementById('indicator-subfilter'); 
-            if(sub) sub.querySelectorAll('.indicator-checkbox').forEach(cb=>cb.checked=window.globalSelectedIndicators.includes(cb.value)); 
-            buildTableHeaders(window.globalSelectedIndicators); 
-            renderTableRows(); 
-        });
+        if (indicatorFilter) {
+            indicatorFilter.addEventListener('change', () => { 
+                populateSubfilter(indicatorFilter.value); 
+                const content = document.getElementById('indicator-content');
+                if (content) content.querySelectorAll('.indicator-checkbox').forEach(cb => cb.checked = window.globalSelectedIndicators.includes(cb.value));
+                buildTableHeaders(window.globalSelectedIndicators); 
+                updateFilterSummary();
+                renderTableRows(); 
+            });
+        }
         
         populateSubfilter('population'); 
         buildTableHeaders([]); 
         renderTableRows();
+        setupModals();
+        setupTabs();
+        setupIndicatorTree();
+        updateFilterSummary();
 
-        // 选项卡切换
-        document.getElementById('manual-tab').onclick=()=>{ 
-            document.getElementById('manual-section').classList.remove('hidden'); 
-            document.getElementById('excel-section').classList.add('hidden'); 
-            attachProgressListeners(); 
-            updateProgress(); 
-        };
-        document.getElementById('excel-tab').onclick=()=>{ 
-            document.getElementById('excel-section').classList.remove('hidden'); 
-            document.getElementById('manual-section').classList.add('hidden'); 
-        };
-        
-        // Excel年份同步
-        const yearSel=document.getElementById('year-select'), excelYear=document.getElementById('excel-upload-year');
-        if(yearSel&&excelYear){ 
-            const sync=()=>{ excelYear.value=yearSel.value.replace(/[^\d]/g,''); }; 
+        const yearSel = document.getElementById('year-select');
+        const excelYear = document.getElementById('excel-upload-year');
+        if (yearSel && excelYear) { 
+            const sync = () => { excelYear.value = yearSel.value.replace(/[^\d]/g, ''); }; 
             sync(); 
-            yearSel.addEventListener('change',()=>{ sync(); renderTableRows(); }); 
+            yearSel.addEventListener('change', () => { sync(); updateFilterSummary(); renderTableRows(); }); 
         }
         
         const excelForm=document.getElementById('excel-upload-form');
