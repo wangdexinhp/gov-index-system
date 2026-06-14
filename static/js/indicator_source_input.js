@@ -16,22 +16,20 @@ window.IndicatorSourceInput = (function () {
             .replace(/>/g, '&gt;');
     }
 
+    function placeNameForCode(city, province, code) {
+        const opt = options.find(o => o.code === code);
+        const cityName = (city || '').trim();
+        const provName = (province || '').trim();
+        if (!code || !opt) return cityName;
+        if (opt.scope === 'province') return provName;
+        if (opt.scope === 'city') return cityName;
+        return cityName || provName;
+    }
+
     function composeDisplay(city, province, code) {
         const opt = options.find(o => o.code === code);
         if (!opt) return '';
-        const scope = opt.scope || 'manual';
-        const suffix = opt.suffix || opt.label || '';
-        const cityName = (city || '').trim();
-        const provName = (province || '').trim();
-        if (scope === 'province') {
-            if (!provName) return suffix;
-            return provName.endsWith(suffix) ? provName : provName + suffix;
-        }
-        if (scope === 'city') {
-            if (!cityName) return suffix;
-            return cityName.endsWith(suffix) ? cityName : cityName + suffix;
-        }
-        return suffix;
+        return opt.suffix || opt.label || '';
     }
 
     function guessCodeFromDisplay(text) {
@@ -49,12 +47,28 @@ window.IndicatorSourceInput = (function () {
         const opts = options.map(o =>
             `<option value="${escapeHtml(o.code)}">${escapeHtml(o.label)}</option>`
         ).join('');
-        return `<div class="source-input-wrap flex flex-col gap-1" data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
-            <select class="source-type-select w-full bg-white border border-slate-300 rounded-lg px-1 py-0.5 text-xs" title="来源类别">
-                <option value="">来源类别</option>${opts}
-            </select>
-            <input type="text" class="source-detail-input w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-xs" placeholder="具体来源名称（仅展示，可编辑）" title="具体来源名称（不入库）">
+        const place = (city || '').trim();
+        return `<div class="source-input-wrap" data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
+            <input type="text" class="source-place-input" readonly value="${escapeHtml(place)}" title="地市/省份">
+            <div class="source-main">
+                <select class="source-type-select" title="来源类别">
+                    <option value="">来源类别</option>${opts}
+                </select>
+                <input type="text" class="source-detail-input" placeholder="来源名称" title="来源名称（仅展示）">
+            </div>
         </div>`;
+    }
+
+    function syncPlaceAndDetail(wrapEl, city, province, code) {
+        if (!wrapEl) return;
+        const placeInput = wrapEl.querySelector('.source-place-input');
+        const input = wrapEl.querySelector('.source-detail-input');
+        if (placeInput) {
+            placeInput.value = placeNameForCode(city, province, code);
+        }
+        if (input && code) {
+            input.value = composeDisplay(city, province, code);
+        }
     }
 
     function bindCell(wrapEl, city, province) {
@@ -63,8 +77,13 @@ window.IndicatorSourceInput = (function () {
         const input = wrapEl.querySelector('.source-detail-input');
         if (!select || !input) return;
         select.addEventListener('change', function () {
-            if (!select.value) return;
-            input.value = composeDisplay(city, province, select.value);
+            if (!select.value) {
+                const placeInput = wrapEl.querySelector('.source-place-input');
+                if (placeInput) placeInput.value = (city || '').trim();
+                input.value = '';
+                return;
+            }
+            syncPlaceAndDetail(wrapEl, city, province, select.value);
         });
     }
 
@@ -85,9 +104,10 @@ window.IndicatorSourceInput = (function () {
         const code = guessCodeFromDisplay(text);
         if (code) {
             if (select) select.value = code;
-            input.value = (text === code)
-                ? composeDisplay(city, province, code)
-                : text;
+            syncPlaceAndDetail(wrapEl, city, province, code);
+            if (text !== code && !text.endsWith(composeDisplay(city, province, code))) {
+                input.value = text;
+            }
         } else {
             if (select) select.value = '';
             input.value = text;
@@ -111,8 +131,7 @@ window.IndicatorSourceInput = (function () {
             if (!select || !select.value) return;
             const opt = options.find(o => o.code === select.value);
             if (opt && opt.scope === 'province') {
-                const input = wrap.querySelector('.source-detail-input');
-                if (input) input.value = composeDisplay(wrap.dataset.city, province, select.value);
+                syncPlaceAndDetail(wrap, wrap.dataset.city, province, select.value);
             }
             wrap.dataset.province = province || '';
         });

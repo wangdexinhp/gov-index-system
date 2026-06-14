@@ -67,8 +67,44 @@
     }
     .data-table td.source-cell,
     .data-table th.source-cell {
-        min-width: 168px;
-        width: 168px;
+        min-width: 200px;
+        width: 200px;
+    }
+    .source-input-wrap {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        gap: 4px;
+        width: 100%;
+    }
+    .source-place-input {
+        width: 4.5rem;
+        min-width: 4.5rem;
+        flex-shrink: 0;
+        padding: 4px 6px;
+        font-size: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #334155;
+        text-align: center;
+        box-sizing: border-box;
+    }
+    .source-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .source-main .source-type-select,
+    .source-main .source-detail-input {
+        width: 100%;
+        padding: 4px 6px;
+        font-size: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        box-sizing: border-box;
     }
     
     .data-table input,
