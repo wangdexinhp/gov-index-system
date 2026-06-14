@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>数据指标管理系统 | 蓝色商务版</title>
 <script src="/static/js/tailwindcss.js"></script>
+<script src="/static/js/indicator_source_input.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <style>
@@ -65,6 +66,11 @@
     .data-table td:not(:first-child) {
         min-width: 120px;
         width: 120px;
+    }
+    .data-table td.source-cell,
+    .data-table th.source-cell {
+        min-width: 168px;
+        width: 168px;
     }
     
     /* 输入框在单元格内自适应宽度 */
@@ -366,6 +372,43 @@
         });
     }
 
+    const DEFAULT_FORM_SOURCE_OPTIONS = [
+        { code: 'CITY_STAT_YB', label: '地市统计年鉴', scope: 'city', suffix: '统计年鉴' },
+        { code: 'CITY_YB', label: '地市年鉴', scope: 'city', suffix: '年鉴' },
+        { code: 'CITY_DEV_BUL', label: '地市级发展公报', scope: 'city', suffix: '发展公报' },
+        { code: 'CITY_GOV_RPT', label: '地市级政府工作报告', scope: 'city', suffix: '政府工作报告' },
+        { code: 'PROV_STAT_YB', label: '省级统计年鉴', scope: 'province', suffix: '统计年鉴' },
+        { code: 'PROV_YB', label: '省级年鉴', scope: 'province', suffix: '年鉴' },
+        { code: 'PROF_YB', label: '专业年鉴', scope: 'manual', suffix: '专业年鉴' },
+        { code: 'SPECIAL_RPT', label: '专项报告', scope: 'manual', suffix: '专项报告' },
+        { code: 'GOV_INFO_RPT', label: '政府信息公开报告', scope: 'city', suffix: '政府信息公开报告' },
+    ];
+    let formSourceOptions = DEFAULT_FORM_SOURCE_OPTIONS.slice();
+
+    async function loadFormSourceOptions() {
+        try {
+            const res = await fetch('/dashboard/api/indicator-sources/?scope=form', { credentials: 'same-origin' });
+            const json = await res.json();
+            if (json.success && Array.isArray(json.sources) && json.sources.length) {
+                formSourceOptions = json.sources;
+            }
+        } catch (e) {
+            console.warn('加载数据来源选项失败，使用默认配置', e);
+        }
+        if (window.IndicatorSourceInput) {
+            IndicatorSourceInput.setOptions(formSourceOptions);
+        }
+    }
+
+    function getSelectedProvince() {
+        const provSel = document.getElementById('province-select');
+        return provSel ? provSel.value : '';
+    }
+
+    function buildSourceCellHtml(nameAttr, city) {
+        return IndicatorSourceInput.buildCellHtml(nameAttr, city, getSelectedProvince());
+    }
+
     const indicatorCategories = {
         'admin': ['#市数量(个)', '#区数量(个)', '#县数量(个)', '#辖区面积(平方公里)'],
         'population': ['#常住人口数(万人)', '#城镇人口数(万人)', '#乡村人口数(万人)', '#户籍人口数(万人)', '#年末总人口(万人)', '#年末总户数(户)', '#15-19岁人口数(万人)', '#60岁以上人口数(万人)', '#出生人口性别比(%)', '#人口出生率(‰)'],
@@ -413,7 +456,7 @@
         indicators.forEach(() => {
             ['数值', '备注', '数据来源', '去年参考'].forEach(title => {
                 const th = document.createElement('th');
-                th.className = 'border border-blue-200 px-2 py-2 text-left text-slate-700 font-medium text-xs';
+                th.className = 'border border-blue-200 px-2 py-2 text-left text-slate-700 font-medium text-xs' + (title === '数据来源' ? ' source-cell' : '');
                 th.textContent = title;
                 secondRow.appendChild(th);
             });
@@ -462,13 +505,8 @@
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${cityKey}][${indKey}][note]" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-sm">`;
                 
                 const srcCell = tr.insertCell();
-                srcCell.innerHTML = `<select name="data[${cityKey}][${indKey}][source]" class="w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-sm">
-                    <option value="">选择来源</option>
-                    <option value="CITY_STAT_YB">地市统计年鉴</option>
-                    <option value="CITY_YB">地市年鉴</option>
-                    <option value="PROV_STAT_YB">省级统计年鉴</option>
-                    <option value="GOV_INFO_RPT">政府信息公开报告</option>
-                </select>`;
+                srcCell.className = 'border border-blue-200 px-2 py-2 source-cell';
+                srcCell.innerHTML = buildSourceCellHtml(`data[${cityKey}][${indKey}][source]`, city);
                 
                 const refCell = tr.insertCell();
                 refCell.className = 'border border-blue-200 px-2 py-2 text-slate-400 text-xs';
@@ -476,6 +514,10 @@
             }
         });
         attachProgressListeners();
+        const manualSection = document.getElementById('manual-section');
+        if (window.IndicatorSourceInput) {
+            IndicatorSourceInput.bindAllIn(manualSection);
+        }
         loadExistingFormData();
         updateProgress();
     }
@@ -513,15 +555,17 @@
                     const record = cityData[indName];
                     if (!record) return;
                     const base = 1 + g * 4;
-                    const valInput = tr.cells[base]?.querySelector('input');
+                    const valInput = tr.cells[base]?.querySelector('input[placeholder="数值"]');
                     const noteInput = tr.cells[base + 1]?.querySelector('input');
-                    const srcSelect = tr.cells[base + 2]?.querySelector('select');
+                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
                     const refCell = tr.cells[base + 3];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
                     }
                     if (noteInput && record.note) noteInput.value = record.note;
-                    if (srcSelect && record.source) srcSelect.value = record.source;
+                    if (sourceWrap && record.source && window.IndicatorSourceInput) {
+                        IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
+                    }
                     if (refCell && record.reference != null && record.reference !== '') {
                         refCell.textContent = record.reference;
                     }
@@ -897,7 +941,9 @@ function setupFormSubmit() {
                         
                         const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
                         const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
-                        const source = sourceTd ? (sourceTd.querySelector('select') ? sourceTd.querySelector('select').value : '') : '';
+                        const source = sourceTd && window.IndicatorSourceInput
+                            ? IndicatorSourceInput.readSubmitCode(sourceTd)
+                            : '';
                         const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
                         const name_zh = indicatorNames[g] || '';
                         
@@ -963,7 +1009,7 @@ function setupFormSubmit() {
  
 
     document.addEventListener('DOMContentLoaded', async function() {
-        await loadProvinceCityMap();
+        await Promise.all([loadProvinceCityMap(), loadFormSourceOptions()]);
         
         const provSel = document.getElementById('province-select');
         renderCitiesForProvince('');
@@ -973,6 +1019,10 @@ function setupFormSubmit() {
             provSel.addEventListener('change', function() {
                 renderCitiesForProvince(this.value);
                 bindSelectAllButtons();
+                const manualSection = document.getElementById('manual-section');
+                if (window.IndicatorSourceInput) {
+                    IndicatorSourceInput.refreshProvinceScoped(manualSection, this.value);
+                }
             });
         }
         
