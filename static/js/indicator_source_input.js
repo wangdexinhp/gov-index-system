@@ -1,5 +1,6 @@
 /**
- * 指标录入：数据来源类别下拉 + 可编辑具体名称
+ * 指标录入：来源类别下拉 + 合并展示「城市名+来源」
+ * 入库仅存类别代码；合并名称仅用于界面展示。
  */
 window.IndicatorSourceInput = (function () {
     let options = [];
@@ -16,20 +17,22 @@ window.IndicatorSourceInput = (function () {
             .replace(/>/g, '&gt;');
     }
 
-    function placeNameForCode(city, province, code) {
-        const opt = options.find(o => o.code === code);
-        const cityName = (city || '').trim();
-        const provName = (province || '').trim();
-        if (!code || !opt) return cityName;
-        if (opt.scope === 'province') return provName;
-        if (opt.scope === 'city') return cityName;
-        return cityName || provName;
-    }
-
     function composeDisplay(city, province, code) {
         const opt = options.find(o => o.code === code);
         if (!opt) return '';
-        return opt.suffix || opt.label || '';
+        const scope = opt.scope || 'manual';
+        const suffix = opt.suffix || opt.label || '';
+        const cityName = (city || '').trim();
+        const provName = (province || '').trim();
+        if (scope === 'province') {
+            if (!provName) return suffix;
+            return provName.endsWith(suffix) ? provName : provName + suffix;
+        }
+        if (scope === 'city') {
+            if (!cityName) return suffix;
+            return cityName.endsWith(suffix) ? cityName : cityName + suffix;
+        }
+        return cityName ? (cityName + suffix) : suffix;
     }
 
     function guessCodeFromDisplay(text) {
@@ -47,43 +50,27 @@ window.IndicatorSourceInput = (function () {
         const opts = options.map(o =>
             `<option value="${escapeHtml(o.code)}">${escapeHtml(o.label)}</option>`
         ).join('');
-        const place = (city || '').trim();
         return `<div class="source-input-wrap" data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
-            <span class="source-place-label" title="地市/省份">${escapeHtml(place)}</span>
-            <div class="source-main">
-                <select class="source-type-select" title="来源类别">
-                    <option value="">来源类别</option>${opts}
-                </select>
-                <input type="text" class="source-detail-input" placeholder="来源名称" title="来源名称（仅展示）">
-            </div>
+            <select class="source-type-select w-full bg-white border border-slate-300 rounded-lg px-1 py-0.5 text-xs" title="来源类别">
+                <option value="">来源类别</option>${opts}
+            </select>
+            <input type="text" class="source-merged-input w-full bg-slate-50 border border-slate-300 rounded-lg px-1 py-1 text-xs" readonly placeholder="城市名+来源" title="城市名+来源（自动合并展示）">
         </div>`;
     }
 
-    function syncPlaceAndDetail(wrapEl, city, province, code) {
+    function syncMergedDisplay(wrapEl, city, province, code) {
         if (!wrapEl) return;
-        const placeInput = wrapEl.querySelector('.source-place-label');
-        const input = wrapEl.querySelector('.source-detail-input');
-        if (placeInput) {
-            placeInput.textContent = placeNameForCode(city, province, code);
-        }
-        if (input && code) {
-            input.value = composeDisplay(city, province, code);
-        }
+        const input = wrapEl.querySelector('.source-merged-input');
+        if (!input) return;
+        input.value = code ? composeDisplay(city, province, code) : '';
     }
 
     function bindCell(wrapEl, city, province) {
         if (!wrapEl) return;
         const select = wrapEl.querySelector('.source-type-select');
-        const input = wrapEl.querySelector('.source-detail-input');
-        if (!select || !input) return;
+        if (!select) return;
         select.addEventListener('change', function () {
-            if (!select.value) {
-                const placeInput = wrapEl.querySelector('.source-place-label');
-                if (placeInput) placeInput.textContent = (city || '').trim();
-                input.value = '';
-                return;
-            }
-            syncPlaceAndDetail(wrapEl, city, province, select.value);
+            syncMergedDisplay(wrapEl, city, province, select.value);
         });
     }
 
@@ -97,17 +84,16 @@ window.IndicatorSourceInput = (function () {
     function applyLoadedValue(wrapEl, sourceValue, city, province) {
         if (!wrapEl) return;
         const select = wrapEl.querySelector('.source-type-select');
-        const input = wrapEl.querySelector('.source-detail-input');
+        const input = wrapEl.querySelector('.source-merged-input');
         if (!input) return;
         const text = (sourceValue || '').trim();
         if (!text) return;
         const code = guessCodeFromDisplay(text);
         if (code) {
             if (select) select.value = code;
-            syncPlaceAndDetail(wrapEl, city, province, code);
-            if (text !== code && !text.endsWith(composeDisplay(city, province, code))) {
-                input.value = text;
-            }
+            input.value = (text === code)
+                ? composeDisplay(city, province, code)
+                : text;
         } else {
             if (select) select.value = '';
             input.value = text;
@@ -119,7 +105,6 @@ window.IndicatorSourceInput = (function () {
         return select ? select.value.trim() : '';
     }
 
-    /** @deprecated 入库请用 readSubmitCode；文本框仅供界面展示 */
     function readSubmitValue(sourceTd) {
         return readSubmitCode(sourceTd);
     }
@@ -131,7 +116,7 @@ window.IndicatorSourceInput = (function () {
             if (!select || !select.value) return;
             const opt = options.find(o => o.code === select.value);
             if (opt && opt.scope === 'province') {
-                syncPlaceAndDetail(wrap, wrap.dataset.city, province, select.value);
+                syncMergedDisplay(wrap, wrap.dataset.city, province, select.value);
             }
             wrap.dataset.province = province || '';
         });
