@@ -1,0 +1,157 @@
+"""
+Excel 指标录入解析：读取单元格数值与底色来源。
+"""
+from __future__ import annotations
+
+from io import BytesIO
+from typing import Any, Dict, List, Tuple
+
+from openpyxl import load_workbook
+
+from apps.coredata.excel_color_sources import build_cell_payload
+
+
+def _cell_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _build_two_level_headers(ws, header_row_count: int = 2) -> List[str]:
+    headers: List[str] = []
+    max_col = ws.max_column or 0
+    for col_idx in range(1, max_col + 1):
+        parts = []
+        for row_idx in range(1, header_row_count + 1):
+            text = _cell_text(ws.cell(row=row_idx, column=col_idx).value)
+            if text:
+                parts.append(text)
+        if parts:
+            headers.append("_".join(parts))
+        else:
+            headers.append(f"Column_{col_idx}")
+    return headers
+
+
+def _build_flexible_headers(ws) -> Tuple[List[str], int]:
+    """区县表：自动识别 1 或 2 行表头。"""
+    max_col = ws.max_column or 0
+
+    def _is_data_row(row_idx: int) -> bool:
+        values = []
+        for col_idx in range(1, max_col + 1):
+            text = _cell_text(ws.cell(row=row_idx, column=col_idx).value)
+            if text:
+                values.append(text)
+        if not values:
+            return False
+        numeric_like = 0
+        for v in values:
+            try:
+                float(v.replace(",", ""))
+                numeric_like += 1
+            except (TypeError, ValueError):
+                pass
+        return numeric_like >= max(2, len(values) // 3)
+
+    header_rows = 1
+    if ws.max_row and ws.max_row > 1 and not _is_data_row(2):
+        header_rows = 2
+
+    headers: List[str] = []
+    for col_idx in range(1, max_col + 1):
+        level1 = _cell_text(ws.cell(row=1, column=col_idx).value)
+        level2 = _cell_text(ws.cell(row=2, column=col_idx).value) if header_rows == 2 else ""
+        if header_rows == 2 and level1 and level2 and level1 != level2:
+            col_name = f"{level1}_{level2}"
+        else:
+            col_name = level1 or level2 or f"Column_{col_idx}"
+        headers.append(col_name.replace("\n", "").replace("\r", "").strip())
+
+    seen: Dict[str, int] = {}
+    unique_headers: List[str] = []
+    for name in headers:
+        seen[name] = seen.get(name, 0) + 1
+        if seen[name] == 1:
+            unique_headers.append(name)
+        else:
+            unique_headers.append(f"{name}__dup{seen[name]}")
+
+    return unique_headers, header_rows
+
+
+def _row_has_data(ws, row_idx: int, max_col: int) -> bool:
+    for col_idx in range(1, max_col + 1):
+        if _cell_text(ws.cell(row=row_idx, column=col_idx).value):
+            return True
+    return False
+
+
+def parse_city_indicator_excel(file_obj) -> List[Dict[str, Any]]:
+    """
+    地市指标录入表：第 1-2 行为表头，第 4 行起为数据（与现有 upload_excel 一致）。
+    返回每行 dict，指标列为 {value, source, note}。
+    """
+    content = file_obj.read()
+    wb = load_workbook(filename=BytesIO(content), data_only=True)
+    ws = wb["Sheet1"] if "Sheet1" in wb.sheetnames else wb.active
+
+    headers = _build_two_level_headers(ws, header_row_count=2)
+    data_start_row = 4
+    max_col = len(headers)
+    rows: List[Dict[str, Any]] = []
+
+    for row_idx in range(data_start_row, (ws.max_row or 0) + 1):
+        if not _row_has_data(ws, row_idx, max_col):
+            continue
+        row_data: Dict[str, Any] = {}
+        for col_idx, col_name in enumerate(headers, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            if col_name in ("城市", "A") or col_name.startswith("Column_"):
+                row_data[col_name] = cell.value
+            else:
+                row_data[col_name] = build_cell_payload(cell)
+        rows.append(row_data)
+
+    return rows
+
+
+def parse_area_indicator_excel(file_obj) -> List[Dict[str, Any]]:
+    """区县指标录入表：自动识别表头行数，数据行带底色来源。"""
+    content = file_obj.read()
+    wb = load_workbook(filename=BytesIO(content), data_only=True)
+    ws = wb["Sheet1"] if "Sheet1" in wb.sheetnames else wb.active
+
+    headers, header_rows = _build_flexible_headers(ws)
+    data_start_row = header_rows + 1
+    max_col = len(headers)
+    rows: List[Dict[str, Any]] = []
+
+    for row_idx in range(data_start_row, (ws.max_row or 0) + 1):
+        if not _row_has_data(ws, row_idx, max_col):
+            continue
+        row_data: Dict[str, Any] = {}
+        for col_idx, col_name in enumerate(headers, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            skip_meta = col_name in (
+                "城市", "城市名称", "地市", "area", "所辖区县名称",
+                "所辖区域名称", "区县", "区县名称", "区县名", "区域名称", "A",
+            ) or col_name.startswith("Column_")
+            if skip_meta:
+                row_data[col_name] = cell.value
+            else:
+                row_data[col_name] = build_cell_payload(cell)
+        rows.append(row_data)
+
+    return rows
+
+
+def extract_cell_fields(raw_value: Any) -> Tuple[Any, str, str]:
+    """兼容普通值与 {value, source, note} 结构。"""
+    if isinstance(raw_value, dict) and "value" in raw_value:
+        return (
+            raw_value.get("value"),
+            raw_value.get("source") or "",
+            raw_value.get("note") or "",
+        )
+    return raw_value, "", ""

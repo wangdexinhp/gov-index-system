@@ -17,8 +17,11 @@ from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT,AREA_INDIMAP,AREA_INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
-import pandas as pd
-from datetime import datetime
+from apps.coredata.services.excel_upload_service import (
+    extract_cell_fields,
+    parse_area_indicator_excel,
+    parse_city_indicator_excel,
+)
 
 import secrets
 from functools import wraps
@@ -792,8 +795,7 @@ def get_city_name_by_code(city_code):
 @login_required
 @require_http_methods(['POST'])
 def upload_excel(request):
-    """处理Excel文件上传"""
-    
+    """处理Excel文件上传，按单元格底色识别数据来源。"""
     year = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -801,61 +803,31 @@ def upload_excel(request):
             'success': False,
             'message': '未上传文件'
         }, status=400)
-    # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
-    # 创建Excel写入器
-    # tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
-    # with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
-    raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
-    print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
-    print(f"数据条数: {len(raw_data)}")
 
-
-    headers = []
-    for col_idx in range(raw_data.shape[1]):
-        col_headers = []
-        
-        # 第1行
-        level1 = raw_data.iloc[0, col_idx]
-        if pd.notna(level1):
-            col_headers.append(str(level1).strip())
-        
-        # 第2行
-        level2 = raw_data.iloc[1, col_idx]
-        if pd.notna(level2) and str(level2).strip():
-            col_headers.append(str(level2).strip())
-        
-        # 创建列名
-        if col_headers:
-            col_name = '_'.join(col_headers)
-        else:
-            col_name = f'Column_{col_idx+1}'
-        
-        headers.append(col_name)
-    
-    data_df = raw_data.iloc[3:, :].reset_index(drop=True)
-    data_df.columns = headers
-    save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
-
-        # 保存到新文件
-        # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-    return JsonResponse({
-        'success': True,
-        'message': "成功处理Excel文件"
-    })
-
-    # except Exception as e:
-    #     print(f"处理Excel文件时出错: {str(e)}")
-    #     return JsonResponse({
-    #         'success': False,
-    #         'message': f'处理Excel文件时出错: {str(e)}'
-    #     }, status=500)
+    try:
+        rows_data = parse_city_indicator_excel(excel_file)
+        if not rows_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效数据行'
+            }, status=400)
+        save_df_to_database(rows_data=rows_data, year=year)
+        return JsonResponse({
+            'success': True,
+            'message': '成功处理Excel文件（已按底色识别来源）'
+        })
+    except Exception as e:
+        print(f"处理Excel文件时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'处理Excel文件时出错: {str(e)}'
+        }, status=500)
 
 # 区县上传文件接口
 @login_required
 @require_http_methods(['POST'])
 def upload_excel_area(request):
-    """区县处理Excel文件上传"""
-    
+    """区县处理Excel文件上传，按单元格底色识别数据来源。"""
     year = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -864,92 +836,67 @@ def upload_excel_area(request):
             'message': '未上传文件'
         }, status=400)
 
-    raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
-    print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
-    print(f"数据条数: {len(raw_data)}")
+    try:
+        rows_data = parse_area_indicator_excel(excel_file)
+        if not rows_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效数据行'
+            }, status=400)
 
-    if raw_data.empty:
-        return JsonResponse({
-            'success': False,
-            'message': 'Excel为空'
-        }, status=400)
+        city_col = next((c for c in rows_data[0] if c in ['城市', '城市名称', '地市']), None)
+        if not city_col:
+            city_col = next((c for c in rows_data[0] if '城市' in str(c)), None)
 
-    def _is_data_row(row_series):
-        values = []
-        for val in row_series.tolist():
-            if pd.isna(val):
+        area_col = next((c for c in rows_data[0] if c in [
+            '所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称'
+        ]), None)
+        if not area_col:
+            area_col = next((c for c in rows_data[0] if ('区县' in str(c) or '区域' in str(c))), None)
+
+        if not city_col or not area_col:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
+            }, status=400)
+
+        normalized_rows = []
+        last_city = ''
+        for row in rows_data:
+            city_val, _, _ = extract_cell_fields(row.get(city_col))
+            city_name = str(city_val).strip() if city_val is not None else ''
+            if city_name:
+                last_city = city_name
+            else:
+                city_name = last_city
+
+            area_val, _, _ = extract_cell_fields(row.get(area_col))
+            area_name = str(area_val).strip() if area_val is not None else ''
+            if not city_name or not area_name or city_name in ('nan', 'None') or area_name in ('nan', 'None'):
                 continue
-            text = str(val).strip()
-            if text:
-                values.append(text)
-        if not values:
-            return False
-        numeric_count = sum(pd.to_numeric(v, errors='coerce') == pd.to_numeric(v, errors='coerce') for v in values)
-        return numeric_count >= max(2, len(values) // 3)
 
-    header_rows = 1
-    if raw_data.shape[0] > 1 and not _is_data_row(raw_data.iloc[1]):
-        header_rows = 2
+            normalized = dict(row)
+            normalized['城市'] = city_name
+            normalized['area'] = area_name
+            normalized_rows.append(normalized)
 
-    headers = []
-    for col_idx in range(raw_data.shape[1]):
-        level1 = raw_data.iloc[0, col_idx] if raw_data.shape[0] > 0 else ''
-        level2 = raw_data.iloc[1, col_idx] if header_rows == 2 and raw_data.shape[0] > 1 else ''
-        level1 = '' if pd.isna(level1) else str(level1).strip()
-        level2 = '' if pd.isna(level2) else str(level2).strip()
+        if not normalized_rows:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效城市/区县数据行'
+            }, status=400)
 
-        if header_rows == 2 and level1 and level2 and level1 != level2:
-            col_name = f"{level1}_{level2}"
-        else:
-            col_name = level1 or level2 or f'Column_{col_idx+1}'
-
-        col_name = col_name.replace('\n', '').replace('\r', '').strip()
-        headers.append(col_name)
-
-    seen_header_count = {}
-    unique_headers = []
-    for col_name in headers:
-        seen_header_count[col_name] = seen_header_count.get(col_name, 0) + 1
-        if seen_header_count[col_name] == 1:
-            unique_headers.append(col_name)
-        else:
-            unique_headers.append(f"{col_name}__dup{seen_header_count[col_name]}")
-
-    data_df = raw_data.iloc[header_rows:, :].reset_index(drop=True)
-    data_df.columns = unique_headers
-    data_df = data_df.dropna(how='all')
-
-    city_col = next((c for c in data_df.columns if c in ['城市', '城市名称', '地市']), None)
-    if not city_col:
-        city_col = next((c for c in data_df.columns if '城市' in str(c)), None)
-
-    area_col = next((c for c in data_df.columns if c in ['所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称']), None)
-    if not area_col:
-        area_col = next((c for c in data_df.columns if ('区县' in str(c) or '区域' in str(c))), None)
-
-    if not city_col or not area_col:
+        save_area_df_to_database(rows_data=normalized_rows, year=year)
+        return JsonResponse({
+            'success': True,
+            'message': '成功处理Excel文件（已按底色识别来源）'
+        })
+    except Exception as e:
+        print(f"处理区县Excel文件时出错: {str(e)}")
         return JsonResponse({
             'success': False,
-            'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
-        }, status=400)
-
-    data_df = data_df.rename(columns={city_col: '城市', area_col: 'area'})
-    data_df['城市'] = data_df['城市'].replace(r'^\s*$', pd.NA, regex=True).ffill()
-    data_df['城市'] = data_df['城市'].astype(str).str.strip()
-    data_df['城市'] = data_df['城市'].replace({'nan': '', 'None': ''})
-
-    data_df['area'] = data_df['area'].astype(str).str.strip()
-    data_df['area'] = data_df['area'].replace({'nan': '', 'None': ''})
-    data_df = data_df[(data_df['城市'] != '') & (data_df['area'] != '')]
-
-    save_area_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
-
-        # 保存到新文件
-        # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-    return JsonResponse({
-        'success': True,
-        'message': "成功处理Excel文件"
-    })
+            'message': f'处理Excel文件时出错: {str(e)}'
+        }, status=500)
 
 
 
@@ -965,11 +912,12 @@ def save_df_to_database(rows_data, year):
         city_code_to_province = get_city_code_to_province()
         province_info = city_code_to_province.get(city_id)
         province_id = province_info['province_code'] if province_info else 0
-        for col_name, value in row.items():
+        for col_name, raw_value in row.items():
             if col_name in ['城市', 'A']:
-                continue  
+                continue
+            value, source, note = extract_cell_fields(raw_value)
             name_zh = col_name
-            print(f"处理指标: {name_zh}，值: {value}")
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
             name_en = INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
@@ -979,11 +927,11 @@ def save_df_to_database(rows_data, year):
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source='INPUT',
+                    source=source or 'INPUT',
                     value=value or 0,
                     name_en=name_en or '',
-                    note= '',
-                    name_zh= name_zh or '',  # 备注直接写入 name_zh
+                    note=note or '',
+                    name_zh=name_zh or '',
                     input_form=Indicator.InputForm.INPUT,
                     indicator_type=Indicator.IndicatorType.OTHER,
                 )
@@ -1032,9 +980,9 @@ def save_area_df_to_database(rows_data, year):
             continue
 
         last_metric_name = None
-        for col_name, value in row.items():
+        for col_name, raw_value in row.items():
             if col_name in ['城市', '城市名称', 'area', '所辖区县名称', '区县', '区县名称', '区县名', 'A']:
-                continue  
+                continue
 
             raw_name = str(col_name).split('__dup', 1)[0].strip()
             if raw_name in ['所辖区域名称', '区域名称']:
@@ -1046,7 +994,8 @@ def save_area_df_to_database(rows_data, year):
                 name_zh = alias_map.get(raw_name, raw_name)
                 last_metric_name = raw_name
 
-            print(f"处理指标: {name_zh}，值: {value}")
+            value, source, note = extract_cell_fields(raw_value)
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
             name_en = AREA_INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
@@ -1056,11 +1005,11 @@ def save_area_df_to_database(rows_data, year):
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source='INPUT',
-                    value=0 if pd.isna(value) else (value or 0),
+                    source=source or 'INPUT',
+                    value=0 if value is None or (isinstance(value, float) and str(value) == 'nan') else (value or 0),
                     name_en=name_en or '',
-                    note= '',
-                    name_zh= name_zh or '',  # 备注直接写入 name_zh
+                    note=note or '',
+                    name_zh=name_zh or '',
                     area=area,
                     input_form=IndicatorArea.InputForm.INPUT,
                     indicator_type=IndicatorArea.IndicatorType.OTHER,

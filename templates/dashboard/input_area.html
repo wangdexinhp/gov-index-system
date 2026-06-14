@@ -252,7 +252,7 @@
                     <iconify-icon class="text-blue-600 text-4xl" icon="mdi:file-excel"></iconify-icon>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-3">上传Excel数据文件</h3>
-                <p class="text-slate-500 mb-8">支持 .xlsx 格式，请确保数据格式符合区县模板要求</p>
+                <p class="text-slate-500 mb-8">支持 .xlsx 格式，请确保数据格式符合区县模板要求。数据单元格底色将自动识别来源（见模板「颜色标示区」）。</p>
                 <div class="border-2 border-dashed border-blue-300 rounded-xl max-w-xl mx-auto p-8 bg-blue-50/40">
                     <div class="flex flex-col items-center gap-4">
                         <iconify-icon class="text-blue-500 text-4xl" icon="mdi:cloud-upload"></iconify-icon>
@@ -553,7 +553,66 @@
             }
         });
         attachProgressListeners(); 
+        loadExistingFormData();
         updateProgress();
+    }
+
+    async function loadExistingFormData() {
+        const yearSel = document.getElementById('year-select');
+        const year = (yearSel?.value || yearSel?.options[yearSel?.selectedIndex]?.text || '').replace(/[^\d]/g, '');
+        if (!year) return;
+
+        const areas = getSelectedAreas();
+        const headers = Array.from(document.querySelectorAll('#manual-section .data-table thead th[data-indicator]'));
+        const indicators = headers.map(h => h.getAttribute('data-indicator')).filter(Boolean);
+        if (!areas.length || !indicators.length) return;
+
+        const areaPayload = areas.map(item => ({ city: item.city, area: item.area }));
+
+        try {
+            const params = new URLSearchParams({
+                scope: 'area',
+                year,
+                indicators: indicators.join(','),
+                areas: JSON.stringify(areaPayload),
+            });
+            const res = await fetch(`/dashboard/api/input-form-data/?${params}`, { credentials: 'same-origin' });
+            const json = await res.json();
+            if (!json.success || !json.data) return;
+
+            const tbody = document.querySelector('#manual-section .data-table tbody');
+            if (!tbody) return;
+
+            tbody.querySelectorAll('tr').forEach(tr => {
+                const city = tr.dataset.city || '';
+                const area = tr.dataset.area || '';
+                const bucketKey = `${city}__${area}`;
+                const areaData = json.data[bucketKey];
+                if (!areaData) return;
+
+                headers.forEach((th, g) => {
+                    const indName = th.getAttribute('data-indicator');
+                    const record = areaData[indName];
+                    if (!record) return;
+                    const base = 1 + g * 4;
+                    const valInput = tr.cells[base]?.querySelector('input');
+                    const noteInput = tr.cells[base + 1]?.querySelector('input');
+                    const srcSelect = tr.cells[base + 2]?.querySelector('select');
+                    const refCell = tr.cells[base + 3];
+                    if (valInput && record.value != null && record.value !== '') {
+                        valInput.value = record.value;
+                    }
+                    if (noteInput && record.note) noteInput.value = record.note;
+                    if (srcSelect && record.source) srcSelect.value = record.source;
+                    if (refCell && record.reference != null && record.reference !== '') {
+                        refCell.textContent = record.reference;
+                    }
+                });
+            });
+            updateProgress();
+        } catch (e) {
+            console.warn('加载已录入数据失败', e);
+        }
     }
 
     window.buildTableHeaders = buildTableHeaders; 
@@ -805,7 +864,7 @@
         if(yearSel&&excelYear){ 
             const sync=()=>{ excelYear.value=yearSel.value.replace(/[^\d]/g,''); }; 
             sync(); 
-            yearSel.addEventListener('change',sync); 
+            yearSel.addEventListener('change',()=>{ sync(); renderTableRows(); }); 
         }
         
         const excelForm=document.getElementById('excel-upload-form');
@@ -819,6 +878,7 @@
                 .then(res=>res.json())
                 .then(data=>{ 
                     showAutoCloseMessage(data.success?'✅ Excel上传成功！':'❌ 上传失败：'+ (data.message||'未知错误'), data.success?'success':'error'); 
+                    if(data.success) renderTableRows();
                     if(btn){ btn.textContent=orig; btn.disabled=false; } 
                 })
                 .catch(()=>{ 
