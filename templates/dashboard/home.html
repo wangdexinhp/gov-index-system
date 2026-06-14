@@ -172,25 +172,57 @@
         min-height: 500px;
     }
     .drc-sidebar {
-        width: 220px;
+        width: 280px;
         flex-shrink: 0;
         background: #fff;
         border-right: 1px solid var(--drc-border);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+    }
+    .drc-sidebar-section {
+        border-bottom: 1px solid var(--drc-border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+    .drc-sidebar-section-grow {
+        flex: 1;
+        min-height: 0;
+        border-bottom: none;
     }
     .drc-sidebar-title {
-        padding: 8px 10px;
+        padding: 8px 12px;
         background: var(--drc-blue-light);
         border-bottom: 1px solid var(--drc-border);
         font-weight: 600;
         font-size: 12px;
         color: var(--drc-blue-dark);
     }
-    .drc-tree {
+    .drc-sidebar-body {
+        padding: 8px 10px;
+    }
+    .drc-sidebar-section-grow .drc-sidebar-body {
         flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .drc-sidebar-body select {
+        width: 100%;
+        border: 1px solid var(--drc-border);
+        padding: 4px 8px;
+        font-size: 12px;
+        background: #fff;
+        border-radius: 2px;
+        box-sizing: border-box;
+    }
+    .drc-tree {
+        max-height: 140px;
         overflow-y: auto;
-        padding: 4px 0;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+        margin-bottom: 6px;
     }
     .drc-tree-item {
         padding: 6px 12px 6px 20px;
@@ -226,39 +258,29 @@
         min-width: 0;
         background: #fff;
     }
-    .drc-filter-bar {
-        padding: 8px 12px;
-        border-bottom: 1px solid var(--drc-border);
-        background: #fafbfc;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: flex-start;
-    }
-    .drc-filter-block { min-width: 140px; }
-    .drc-filter-block .block-label {
-        font-size: 11px;
-        color: var(--drc-muted);
-        margin-bottom: 4px;
-    }
 
-    /* 城市/指标面板 */
+    /* 侧边栏：城市/指标列表 */
     #city-list, #indicator-subfilter {
         border: 1px solid var(--drc-border);
         background: #fff;
         border-radius: 2px;
-        transition: height .25s;
-        cursor: pointer;
+        margin-top: 6px;
     }
-    #city-list { min-height: 28px; }
     #city-placeholder, #indicator-placeholder {
-        padding: 6px 8px;
+        padding: 8px;
         color: #999;
         text-align: center;
         font-size: 11px;
     }
-    #city-items { max-height: 120px; overflow-y: auto; padding: 4px 8px; }
-    #indicator-content { padding: 4px 8px; max-height: 140px; overflow-y: auto; }
+    #city-items { max-height: 160px; overflow-y: auto; padding: 4px 6px; }
+    #indicator-content { padding: 4px 6px; flex: 1; overflow-y: auto; min-height: 80px; max-height: none; }
+    #indicator-subfilter {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
     .city-checkbox, .indicator-checkbox {
         width: 14px; height: 14px; cursor: pointer; accent-color: var(--drc-blue);
     }
@@ -424,28 +446,6 @@
         <a href="/dashboard/" class="drc-tab-link active">地市录入</a>
         <a href="/dashboard/area_input" class="drc-tab-link">区县录入</a>
         <a href="/dashboard/indicator-check" class="drc-tab-link">指标校验</a>
-        <span style="width:1px;height:20px;background:var(--drc-border);margin:0 4px"></span>
-        <div class="drc-field">
-            <label>年份</label>
-            <select id="year-select"><option>选择年份</option></select>
-        </div>
-        <div class="drc-field">
-            <label>省份</label>
-            <select id="province-select">
-                <option value="">请选择省份</option>
-                <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
-                <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
-                <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
-                <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
-                <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
-                <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
-                <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
-                <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
-                <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
-                <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
-                <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
-            </select>
-        </div>
         <div class="drc-progress">
             <span id="progress-text">进度：已完成0/0指标</span>
             <div class="drc-progress-bar"><div id="progress-bar" style="width:0%"></div></div>
@@ -459,75 +459,89 @@
 
 <div class="drc-workspace">
     <aside class="drc-sidebar">
-        <div class="drc-sidebar-title">指标分类</div>
-        <div class="drc-tree" id="indicator-tree">
-            <div class="drc-tree-item active" data-group="admin">行政区域数据</div>
-            <div class="drc-tree-item" data-group="population">人口数据</div>
-            <div class="drc-tree-item" data-group="economy_structure">经济结构数据</div>
-            <div class="drc-tree-item" data-group="education_tech">教育科技数据</div>
-            <div class="drc-tree-item" data-group="employment">就业数据</div>
-            <div class="drc-tree-item" data-group="finance">财政指标数据</div>
-            <div class="drc-tree-item" data-group="economic_performance">经济效果数据</div>
-            <div class="drc-tree-item" data-group="ecology">生态环保数据</div>
-            <div class="drc-tree-item" data-group="market_supervision">市场监管数据</div>
-            <div class="drc-tree-item" data-group="social_security">社会保障数据</div>
-            <div class="drc-tree-item" data-group="healthcare">医疗卫生数据</div>
-            <div class="drc-tree-item" data-group="infrastructure">基础设施数据</div>
-            <div class="drc-tree-item" data-group="public_safety">公共安全数据</div>
-            <div class="drc-tree-item" data-group="culture_sports">文化体育数据</div>
-            <div class="drc-tree-item" data-group="administrative_integrity">行政廉洁数据</div>
-            <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
-            <div class="drc-tree-item" data-group="economic_development">经济发展数据</div>
-            <div class="drc-tree-item" data-group="public_service">公共服务数据</div>
-            <div class="drc-tree-item" data-group="law_based_governance">依法行政数据</div>
-            <div class="drc-tree-item" data-group="government_affairs_openness">政务公开数据</div>
+        <div class="drc-sidebar-section">
+            <div class="drc-sidebar-title">年份</div>
+            <div class="drc-sidebar-body">
+                <select id="year-select"><option>选择年份</option></select>
+            </div>
         </div>
-        <select id="indicator-filter" style="display:none">
-            <option value="admin" selected>行政区域数据</option>
-            <option value="population">人口数据</option><option value="economy_structure">经济结构数据</option>
-            <option value="education_tech">教育科技数据</option><option value="employment">就业数据</option>
-            <option value="finance">财政指标数据</option><option value="economic_performance">经济效果数据</option>
-            <option value="ecology">生态环保数据</option><option value="market_supervision">市场监管数据</option>
-            <option value="social_security">社会保障数据</option><option value="healthcare">医疗卫生数据</option>
-            <option value="infrastructure">基础设施数据</option><option value="public_safety">公共安全数据</option>
-            <option value="culture_sports">文化体育数据</option><option value="administrative_integrity">行政廉洁数据</option>
-            <option value="economic_growth">经济增长数据</option><option value="economic_development">经济发展数据</option>
-            <option value="public_service">公共服务数据</option><option value="law_based_governance">依法行政数据</option>
-            <option value="government_affairs_openness">政务公开数据</option>
-        </select>
-    </aside>
-
-    <div class="drc-main">
-        <div class="drc-filter-bar">
-            <div class="drc-filter-block" style="flex:1;min-width:200px">
-                <div class="block-label" id="city-label" style="cursor:pointer;display:flex;align-items:center;gap:4px">
-                    <iconify-icon id="city-toggle-icon" icon="mdi:chevron-right" style="font-size:14px;transition:transform .2s"></iconify-icon>
-                    地区筛选（多选）
-                </div>
-                <div id="city-list" style="height:52px;overflow:hidden">
-                    <div id="city-placeholder">请选择省份后展开选择城市</div>
+        <div class="drc-sidebar-section">
+            <div class="drc-sidebar-title">地区</div>
+            <div class="drc-sidebar-body">
+                <select id="province-select">
+                <option value="">请选择省份</option>
+                <option value="北京市">北京市</option><option value="天津市">天津市</option><option value="上海市">上海市</option>
+                <option value="重庆市">重庆市</option><option value="河北省">河北省</option><option value="山西省">山西省</option>
+                <option value="辽宁省">辽宁省</option><option value="吉林省">吉林省</option><option value="黑龙江省">黑龙江省</option>
+                <option value="江苏省">江苏省</option><option value="浙江省">浙江省</option><option value="安徽省">安徽省</option>
+                <option value="福建省">福建省</option><option value="江西省">江西省</option><option value="山东省">山东省</option>
+                <option value="河南省">河南省</option><option value="湖北省">湖北省</option><option value="湖南省">湖南省</option>
+                <option value="广东省">广东省</option><option value="海南省">海南省</option><option value="四川省">四川省</option>
+                <option value="贵州省">贵州省</option><option value="云南省">云南省</option><option value="陕西省">陕西省</option>
+                <option value="甘肃省">甘肃省</option><option value="青海省">青海省</option><option value="内蒙古自治区">内蒙古自治区</option>
+                <option value="广西壮族自治区">广西壮族自治区</option><option value="西藏自治区">西藏自治区</option>
+                <option value="宁夏回族自治区">宁夏回族自治区</option><option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+            </select>
+                <div id="city-list">
+                    <div id="city-placeholder">请先选择省份</div>
                     <div id="city-content" class="hidden">
-                        <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
+                        <div style="display:flex;justify-content:flex-end;gap:6px;margin:4px 6px 2px">
                             <button type="button" id="select-all-cities" class="drc-btn" style="padding:2px 8px;font-size:11px">全选</button>
-                            <button type="button" id="deselect-all-cities" class="drc-btn" style="padding:2px 8px;font-size:11px">取消全选</button>
+                            <button type="button" id="deselect-all-cities" class="drc-btn" style="padding:2px 8px;font-size:11px">取消</button>
                         </div>
                         <div id="city-items"></div>
-                        <div id="city-empty" class="hidden" style="color:#999;padding:4px">暂无城市数据，请先选择省份</div>
+                        <div id="city-empty" class="hidden" style="color:#999;padding:6px;text-align:center;font-size:11px">暂无城市数据</div>
                     </div>
                 </div>
             </div>
-            <div class="drc-filter-block" style="flex:1;min-width:200px">
-                <div class="block-label" id="indicator-label" style="cursor:pointer;display:flex;align-items:center;gap:4px">
-                    <iconify-icon id="indicator-toggle-icon" icon="mdi:chevron-right" style="font-size:14px"></iconify-icon>
-                    指标筛选（多选）
+        </div>
+        <div class="drc-sidebar-section drc-sidebar-section-grow">
+            <div class="drc-sidebar-title">指标</div>
+            <div class="drc-sidebar-body" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:6px">
+                <div class="drc-tree" id="indicator-tree">
+                    <div class="drc-tree-item active" data-group="admin">行政区域数据</div>
+                    <div class="drc-tree-item" data-group="population">人口数据</div>
+                    <div class="drc-tree-item" data-group="economy_structure">经济结构数据</div>
+                    <div class="drc-tree-item" data-group="education_tech">教育科技数据</div>
+                    <div class="drc-tree-item" data-group="employment">就业数据</div>
+                    <div class="drc-tree-item" data-group="finance">财政指标数据</div>
+                    <div class="drc-tree-item" data-group="economic_performance">经济效果数据</div>
+                    <div class="drc-tree-item" data-group="ecology">生态环保数据</div>
+                    <div class="drc-tree-item" data-group="market_supervision">市场监管数据</div>
+                    <div class="drc-tree-item" data-group="social_security">社会保障数据</div>
+                    <div class="drc-tree-item" data-group="healthcare">医疗卫生数据</div>
+                    <div class="drc-tree-item" data-group="infrastructure">基础设施数据</div>
+                    <div class="drc-tree-item" data-group="public_safety">公共安全数据</div>
+                    <div class="drc-tree-item" data-group="culture_sports">文化体育数据</div>
+                    <div class="drc-tree-item" data-group="administrative_integrity">行政廉洁数据</div>
+                    <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
+                    <div class="drc-tree-item" data-group="economic_development">经济发展数据</div>
+                    <div class="drc-tree-item" data-group="public_service">公共服务数据</div>
+                    <div class="drc-tree-item" data-group="law_based_governance">依法行政数据</div>
+                    <div class="drc-tree-item" data-group="government_affairs_openness">政务公开数据</div>
                 </div>
-                <div id="indicator-subfilter" style="height:52px;overflow:hidden">
-                    <div id="indicator-placeholder">请展开并勾选指标</div>
-                    <div id="indicator-content" class="hidden"></div>
+                <div id="indicator-subfilter">
+                    <div id="indicator-placeholder" class="hidden"></div>
+                    <div id="indicator-content"></div>
                 </div>
+                <select id="indicator-filter" style="display:none">
+                    <option value="admin" selected>行政区域数据</option>
+                    <option value="population">人口数据</option><option value="economy_structure">经济结构数据</option>
+                    <option value="education_tech">教育科技数据</option><option value="employment">就业数据</option>
+                    <option value="finance">财政指标数据</option><option value="economic_performance">经济效果数据</option>
+                    <option value="ecology">生态环保数据</option><option value="market_supervision">市场监管数据</option>
+                    <option value="social_security">社会保障数据</option><option value="healthcare">医疗卫生数据</option>
+                    <option value="infrastructure">基础设施数据</option><option value="public_safety">公共安全数据</option>
+                    <option value="culture_sports">文化体育数据</option><option value="administrative_integrity">行政廉洁数据</option>
+                    <option value="economic_growth">经济增长数据</option><option value="economic_development">经济发展数据</option>
+                    <option value="public_service">公共服务数据</option><option value="law_based_governance">依法行政数据</option>
+                    <option value="government_affairs_openness">政务公开数据</option>
+                </select>
             </div>
         </div>
+    </aside>
 
+    <div class="drc-main">
         <form id="manual-form" method="post" action="/dashboard/submit/" style="display:flex;flex-direction:column;flex:1;min-height:0">
             {% csrf_token %}
             <div id="manual-section" class="drc-table-area">
@@ -840,20 +854,30 @@
     function renderCitiesForProvince(prov) {
         const container = document.getElementById('city-items');
         const emptyDiv = document.getElementById('city-empty');
+        const placeholder = document.getElementById('city-placeholder');
+        const content = document.getElementById('city-content');
         if (!container) return;
         container.innerHTML = '';
+
+        if (!prov) {
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+            return;
+        }
         
         let cities = [];
-        if (prov && prov !== '' && provinceCityMap[prov]) {
+        if (provinceCityMap[prov]) {
             cities = provinceCityMap[prov];
-        } else if (!prov || prov === '') {
-            cities = Object.values(provinceCityMap).flat();
         }
         
         if (!cities.length) {
+            if (placeholder) placeholder.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
             emptyDiv.classList.remove('hidden');
             return;
         }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
         emptyDiv.classList.add('hidden');
         
         cities.forEach(city => {
@@ -1005,77 +1029,11 @@
     }
 
     function setupCityToggle() {
-        const label = document.getElementById('city-label');
-        const cityList = document.getElementById('city-list');
-        const toggleIcon = document.getElementById('city-toggle-icon');
-        const placeholder = document.getElementById('city-placeholder');
-        const content = document.getElementById('city-content');
-        
-        function togglePanel(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const expanded = cityList.style.height !== '52px';
-            if (!expanded) {
-                placeholder.classList.add('hidden');
-                content.classList.remove('hidden');
-                cityList.style.height = '200px';
-                cityList.style.overflowY = 'auto';
-                cityList.style.cursor = 'default';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-            } else {
-                placeholder.classList.remove('hidden');
-                content.classList.add('hidden');
-                cityList.style.height = '52px';
-                cityList.style.overflowY = 'hidden';
-                cityList.style.cursor = 'pointer';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-right');
-            }
-        }
-        
-        if (label) label.addEventListener('click', togglePanel);
-        if (cityList) {
-            cityList.addEventListener('click', function(e) {
-                const expanded = cityList.style.height !== '52px';
-                if (!expanded) togglePanel(e);
-            });
-        }
+        /* 侧边栏布局：城市列表随省份选择自动展开，无需折叠 */
     }
     
     function setupIndicatorToggle() {
-        const label = document.getElementById('indicator-label');
-        const subfilter = document.getElementById('indicator-subfilter');
-        const toggleIcon = document.getElementById('indicator-toggle-icon');
-        const placeholder = document.getElementById('indicator-placeholder');
-        const content = document.getElementById('indicator-content');
-        
-        function togglePanel(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const expanded = subfilter.style.height !== '52px';
-            if (!expanded) {
-                placeholder.classList.add('hidden');
-                content.classList.remove('hidden');
-                subfilter.style.height = '200px';
-                subfilter.style.overflowY = 'auto';
-                subfilter.style.cursor = 'default';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-down');
-            } else {
-                placeholder.classList.remove('hidden');
-                content.classList.add('hidden');
-                subfilter.style.height = '52px';
-                subfilter.style.overflowY = 'hidden';
-                subfilter.style.cursor = 'pointer';
-                toggleIcon.setAttribute('icon', 'mdi:chevron-right');
-            }
-        }
-        
-        if (label) label.addEventListener('click', togglePanel);
-        if (subfilter) {
-            subfilter.addEventListener('click', function(e) {
-                const expanded = subfilter.style.height !== '52px';
-                if (!expanded) togglePanel(e);
-            });
-        }
+        /* 侧边栏布局：指标列表始终可见，无需折叠 */
     }
 
     function setupTabs() {
