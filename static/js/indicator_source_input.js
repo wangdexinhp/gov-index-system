@@ -49,7 +49,7 @@ window.IndicatorSourceInput = (function () {
         ).join('');
         const place = (city || '').trim();
         return `<div class="source-input-wrap" data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
-            <input type="text" class="source-place-input" readonly value="${escapeHtml(place)}" title="地市/省份">
+            <span class="source-place-label" title="地市/省份">${escapeHtml(place)}</span>
             <div class="source-main">
                 <select class="source-type-select" title="来源类别">
                     <option value="">来源类别</option>${opts}
@@ -61,10 +61,10 @@ window.IndicatorSourceInput = (function () {
 
     function syncPlaceAndDetail(wrapEl, city, province, code) {
         if (!wrapEl) return;
-        const placeInput = wrapEl.querySelector('.source-place-input');
+        const placeInput = wrapEl.querySelector('.source-place-label');
         const input = wrapEl.querySelector('.source-detail-input');
         if (placeInput) {
-            placeInput.value = placeNameForCode(city, province, code);
+            placeInput.textContent = placeNameForCode(city, province, code);
         }
         if (input && code) {
             input.value = composeDisplay(city, province, code);
@@ -78,8 +78,8 @@ window.IndicatorSourceInput = (function () {
         if (!select || !input) return;
         select.addEventListener('change', function () {
             if (!select.value) {
-                const placeInput = wrapEl.querySelector('.source-place-input');
-                if (placeInput) placeInput.value = (city || '').trim();
+                const placeInput = wrapEl.querySelector('.source-place-label');
+                if (placeInput) placeInput.textContent = (city || '').trim();
                 input.value = '';
                 return;
             }

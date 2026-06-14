@@ -73,27 +73,26 @@
     .source-input-wrap {
         display: flex;
         flex-direction: row;
-        align-items: stretch;
-        gap: 4px;
+        align-items: flex-start;
+        gap: 3px;
         width: 100%;
     }
-    .source-place-input {
-        width: 2.75rem;
-        min-width: 2.75rem;
-        max-width: 2.75rem;
+    .source-place-label {
         flex-shrink: 0;
+        display: inline-block;
         padding: 2px 3px;
-        font-size: 11px;
-        line-height: 1.2;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        background: #f8fafc;
-        color: #334155;
+        font-size: 10px;
+        line-height: 1.3;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        background: #f1f5f9;
+        color: #475569;
         text-align: center;
-        box-sizing: border-box;
+        max-width: 2.4rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        vertical-align: top;
     }
     .source-main {
         flex: 1;
@@ -105,10 +104,10 @@
     .source-main .source-type-select,
     .source-main .source-detail-input {
         width: 100%;
-        padding: 4px 6px;
-        font-size: 12px;
+        padding: 3px 5px;
+        font-size: 11px;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
+        border-radius: 6px;
         box-sizing: border-box;
     }
     
