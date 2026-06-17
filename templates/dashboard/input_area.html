@@ -915,20 +915,18 @@
         if (!thead) return;
         const firstRow = thead.querySelector('tr:first-child'); 
         const secondRow = thead.querySelector('tr:nth-child(2)');
-        firstRow.innerHTML = '<th>区县</th>';
+        firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">数据来源</th>';
         indicators.forEach(ind => { 
             const th = document.createElement('th'); 
-             
-            th.colSpan = 4; 
+            th.colSpan = 3; 
             th.setAttribute('data-indicator', ind); 
             th.textContent = ind; 
             firstRow.appendChild(th); 
         });
-        secondRow.innerHTML = '<th></th>';
+        secondRow.innerHTML = '';
         indicators.forEach(() => { 
-            ['数值', '备注', '数据来源', '去年参考'].forEach(title => { 
+            ['数值', '备注', '去年参考'].forEach(title => { 
                 const th = document.createElement('th'); 
-                if (title === '数据来源') th.className = 'source-cell'; 
                 th.textContent = title; 
                 secondRow.appendChild(th); 
             }); 
@@ -946,7 +944,7 @@
         
         if (!areas.length) { 
             const tr = tbody.insertRow(); 
-            tr.innerHTML = `<td colspan="${1 + (groups * 4 || 2)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
+            tr.innerHTML = `<td colspan="${2 + (groups * 3 || 1)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
             updateProgress(); 
             return; 
         }
@@ -964,11 +962,16 @@
             tdArea.textContent = String(item.city || '') + '-' + String(item.area || '');
             tr.dataset.city = item.city || ''; 
             tr.dataset.area = item.area || '';
+
+            const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
+            const areaKey = sanitize((item.city || '') + '_' + (item.area || ''));
+
+            const srcCell = tr.insertCell(); 
+            srcCell.className = 'source-cell';
+            srcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][_source]`, item.city || '');
             
             for (let g = 0; g < groups; g++) {
                 const indicatorName = headers[g].getAttribute('data-indicator');
-                const sanitize = (s) => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
-                const areaKey = sanitize((item.city || '') + '_' + (item.area || ''));
                 const indKey = sanitize(indicatorName);
                 
                 const valCell = tr.insertCell(); 
@@ -976,10 +979,6 @@
                 
                 const noteCell = tr.insertCell(); 
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]">`;
-                
-                const srcCell = tr.insertCell(); 
-                srcCell.className = 'source-cell';
-                srcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][${indKey}][source]`, item.city || '');
                 
                 const refCell = tr.insertCell(); 
                 refCell.style.color = '#999'; refCell.style.fontSize = '11px'; 
@@ -1028,26 +1027,28 @@
                 const areaData = json.data[bucketKey];
                 if (!areaData) return;
 
+                const sourceWrap = tr.cells[1]?.querySelector('.source-input-wrap');
+                let rowSource = '';
                 headers.forEach((th, g) => {
                     const indName = th.getAttribute('data-indicator');
                     const record = areaData[indName];
                     if (!record) return;
-                    const base = 1 + g * 4;
+                    const base = 2 + g * 3;
                     const valInput = tr.cells[base]?.querySelector('input[placeholder="数值"]');
                     const noteInput = tr.cells[base + 1]?.querySelector('input');
-                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
-                    const refCell = tr.cells[base + 3];
+                    const refCell = tr.cells[base + 2];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
                     }
                     if (noteInput && record.note) noteInput.value = record.note;
-                    if (sourceWrap && record.source && window.IndicatorSourceInput) {
-                        IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
-                    }
+                    if (!rowSource && record.source) rowSource = record.source;
                     if (refCell && record.reference != null && record.reference !== '') {
                         refCell.textContent = record.reference;
                     }
                 });
+                if (sourceWrap && rowSource && window.IndicatorSourceInput) {
+                    IndicatorSourceInput.applyLoadedValue(sourceWrap, rowSource, city, getSelectedProvince());
+                }
             });
             updateProgress();
         } catch (e) {
@@ -1366,21 +1367,24 @@
                     tbody.querySelectorAll('tr').forEach(tr=>{ 
                         const area=tr.dataset.area||''; 
                         const city=tr.dataset.city||''; 
-                        if(!area) return; 
-                        let cursor=1; 
+                        if(!area) return;
+
+                        const sourceTd = tr.children[1];
+                        const rowSource = sourceTd && window.IndicatorSourceInput
+                            ? IndicatorSourceInput.readSubmitCode(sourceTd)
+                            : '';
+
+                        let cursor=2; 
                         const groups=[]; 
                         for(let g=0;g<indicatorNames.length;g++){ 
                             const valTd=tr.children[cursor]; 
                             const noteTd=tr.children[cursor+1]; 
-                            const sourceTd=tr.children[cursor+2]; 
                             const val=valTd?(valTd.querySelector('input')?valTd.querySelector('input').value.trim():''):''; 
                             const note=noteTd?(noteTd.querySelector('input')?noteTd.querySelector('input').value.trim():''):''; 
-                            const source = sourceTd && window.IndicatorSourceInput
-                                ? IndicatorSourceInput.readSubmitCode(sourceTd)
-                                : ''; 
+                            const source = rowSource; 
                             const name_zh=indicatorNames[g]||''; 
                             groups.push({value:val,note:note,source:source,reference:'',name_zh:name_zh}); 
-                            cursor+=4; 
+                            cursor+=3; 
                         } 
                         out.push({city:city,area:area,province:province,year:year,groups:groups}); 
                     }); 

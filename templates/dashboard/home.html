@@ -168,9 +168,58 @@
     /* 工作区 */
     .drc-workspace {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         height: calc(100vh - 120px);
         min-height: 500px;
+    }
+    .drc-sidebar {
+        width: 200px;
+        flex-shrink: 0;
+        background: #fafbfc;
+        border-right: 1px solid var(--drc-border);
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+    }
+    .drc-sidebar-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--drc-blue-dark);
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--drc-border);
+        margin-bottom: 2px;
+    }
+    .drc-sidebar .drc-field {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .drc-sidebar .drc-field label {
+        color: var(--drc-muted);
+        font-size: 12px;
+    }
+    .drc-sidebar .drc-field select {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 5px 8px;
+    }
+    .drc-sidebar .drc-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 6px 10px;
+        box-sizing: border-box;
+    }
+    .drc-sidebar .drc-filter-summary {
+        margin-left: 0;
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px solid var(--drc-border);
+        line-height: 1.7;
+        font-size: 11px;
     }
     .drc-filter-bar-top {
         padding: 8px 12px;
@@ -515,21 +564,21 @@
 </div>
 
 <div class="drc-workspace">
-    <div class="drc-main">
-        <div class="drc-filter-bar-top">
-            <div class="drc-field">
-                <label>年份</label>
-                <select id="year-select"><option>选择年份</option></select>
-            </div>
-            <button type="button" class="drc-btn" id="open-region-modal-btn">
-                <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
-            </button>
-            <button type="button" class="drc-btn" id="open-indicator-modal-btn">
-                <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
-            </button>
-            <span class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</span>
+    <aside class="drc-sidebar">
+        <div class="drc-sidebar-title">筛选条件</div>
+        <div class="drc-field">
+            <label for="year-select">年份</label>
+            <select id="year-select"><option>选择年份</option></select>
         </div>
-
+        <button type="button" class="drc-btn" id="open-region-modal-btn">
+            <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
+        </button>
+        <button type="button" class="drc-btn" id="open-indicator-modal-btn">
+            <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
+        </button>
+        <div class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</div>
+    </aside>
+    <div class="drc-main">
         <form id="manual-form" method="post" action="/dashboard/submit/" style="display:flex;flex-direction:column;flex:1;min-height:0">
             {% csrf_token %}
             <div id="manual-section" class="drc-table-area">
@@ -801,20 +850,19 @@
         const firstRow = thead.querySelector('tr:first-child');
         const secondRow = thead.querySelector('tr:nth-child(2)');
         
-        firstRow.innerHTML = '<th>城市</th>';
+        firstRow.innerHTML = '<th rowspan="2">城市</th><th rowspan="2" class="source-cell">数据来源</th>';
         indicators.forEach(ind => {
             const th = document.createElement('th');
-            th.colSpan = 4;
+            th.colSpan = 3;
             th.setAttribute('data-indicator', ind);
             th.textContent = ind;
             firstRow.appendChild(th);
         });
         
-        secondRow.innerHTML = '<th></th>';
+        secondRow.innerHTML = '';
         indicators.forEach(() => {
-            ['数值', '备注', '数据来源', '去年参考'].forEach(title => {
+            ['数值', '备注', '去年参考'].forEach(title => {
                 const th = document.createElement('th');
-                if (title === '数据来源') th.className = 'source-cell';
                 th.textContent = title;
                 secondRow.appendChild(th);
             });
@@ -832,7 +880,7 @@
         
         if (!cities.length) {
             const tr = tbody.insertRow();
-            tr.innerHTML = `<td colspan="${1 + (groups * 4 || 2)}" style="text-align:center;color:#999;padding:24px">请在上方选择城市</td>`;
+            tr.innerHTML = `<td colspan="${2 + (groups * 3 || 1)}" style="text-align:center;color:#999;padding:24px">请在上方选择城市</td>`;
             updateProgress();
             return;
         }
@@ -848,11 +896,16 @@
             const tdCity = tr.insertCell();
             tdCity.style.fontWeight = '600';
             tdCity.textContent = city;
+
+            const safe = s => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
+            const cityKey = safe(city);
+
+            const srcCell = tr.insertCell();
+            srcCell.className = 'source-cell';
+            srcCell.innerHTML = buildSourceCellHtml(`data[${cityKey}][_source]`, city);
             
             for (let g = 0; g < groups; g++) {
                 const indName = headers[g].getAttribute('data-indicator');
-                const safe = s => ('' + s).replace(/\s+/g, '_').replace(/[^\w\-]/g, '').toLowerCase();
-                const cityKey = safe(city);
                 const indKey = safe(indName);
                 
                 const valCell = tr.insertCell();
@@ -860,10 +913,6 @@
                 
                 const noteCell = tr.insertCell();
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${cityKey}][${indKey}][note]">`;
-                
-                const srcCell = tr.insertCell();
-                srcCell.className = 'source-cell';
-                srcCell.innerHTML = buildSourceCellHtml(`data[${cityKey}][${indKey}][source]`, city);
                 
                 const refCell = tr.insertCell();
                 refCell.style.color = '#999';
@@ -908,26 +957,28 @@
                 const city = tr.cells[0]?.textContent?.trim();
                 if (!city || !json.data[city]) return;
                 const cityData = json.data[city];
+                const sourceWrap = tr.cells[1]?.querySelector('.source-input-wrap');
+                let rowSource = '';
                 headers.forEach((th, g) => {
                     const indName = th.getAttribute('data-indicator');
                     const record = cityData[indName];
                     if (!record) return;
-                    const base = 1 + g * 4;
+                    const base = 2 + g * 3;
                     const valInput = tr.cells[base]?.querySelector('input[placeholder="数值"]');
                     const noteInput = tr.cells[base + 1]?.querySelector('input');
-                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
-                    const refCell = tr.cells[base + 3];
+                    const refCell = tr.cells[base + 2];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
                     }
                     if (noteInput && record.note) noteInput.value = record.note;
-                    if (sourceWrap && record.source && window.IndicatorSourceInput) {
-                        IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
-                    }
+                    if (!rowSource && record.source) rowSource = record.source;
                     if (refCell && record.reference != null && record.reference !== '') {
                         refCell.textContent = record.reference;
                     }
                 });
+                if (sourceWrap && rowSource && window.IndicatorSourceInput) {
+                    IndicatorSourceInput.applyLoadedValue(sourceWrap, rowSource, city, getSelectedProvince());
+                }
             });
             updateProgress();
         } catch (e) {
@@ -1345,21 +1396,23 @@ function setupFormSubmit() {
                     if (!cityCell) continue;
                     const city = cityCell.textContent.trim();
                     if (!city || city === '请在上方选择城市') continue;
+
+                    const sourceTd = tr.children[1];
+                    const rowSource = sourceTd && window.IndicatorSourceInput
+                        ? IndicatorSourceInput.readSubmitCode(sourceTd)
+                        : '';
                     
-                    let cursor = 1; // 跳过第一列（城市列）
+                    let cursor = 2; // 城市列 + 数据来源列
                     const groups = [];
                     
                     for (let g = 0; g < indicatorNames.length; g++) {
                         const valTd = tr.children[cursor];
                         const noteTd = tr.children[cursor + 1];
-                        const sourceTd = tr.children[cursor + 2];
-                        const refTd = tr.children[cursor + 3];
+                        const refTd = tr.children[cursor + 2];
                         
                         const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
                         const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
-                        const source = sourceTd && window.IndicatorSourceInput
-                            ? IndicatorSourceInput.readSubmitCode(sourceTd)
-                            : '';
+                        const source = rowSource;
                         const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
                         const name_zh = indicatorNames[g] || '';
                         
@@ -1370,7 +1423,7 @@ function setupFormSubmit() {
                             reference: reference,
                             name_zh: name_zh
                         });
-                        cursor += 4;
+                        cursor += 3;
                     }
                     
                     out.push({
