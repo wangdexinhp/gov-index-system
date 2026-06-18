@@ -46,11 +46,12 @@ window.IndicatorSourceInput = (function () {
         return '';
     }
 
-    function buildCellHtml(nameAttr, city, province) {
+    function buildCellHtml(nameAttr, city, province, role) {
         const opts = options.map(o =>
             `<option value="${escapeHtml(o.code)}">${escapeHtml(o.label)}</option>`
         ).join('');
-        return `<div class="source-input-wrap" data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
+        const roleAttr = role ? ` data-role="${escapeHtml(role)}"` : '';
+        return `<div class="source-input-wrap"${roleAttr} data-city="${escapeHtml(city)}" data-province="${escapeHtml(province)}">
             <select class="source-type-select w-full bg-white border border-slate-300 rounded-lg px-1 py-0.5 text-xs" title="来源类别">
                 <option value="">来源类别</option>${opts}
             </select>
@@ -66,7 +67,8 @@ window.IndicatorSourceInput = (function () {
     }
 
     function bindCell(wrapEl, city, province) {
-        if (!wrapEl) return;
+        if (!wrapEl || wrapEl.dataset.bound === '1') return;
+        wrapEl.dataset.bound = '1';
         const select = wrapEl.querySelector('.source-type-select');
         if (!select) return;
         select.addEventListener('change', function () {
@@ -74,14 +76,73 @@ window.IndicatorSourceInput = (function () {
         });
     }
 
-    function bindAllIn(container) {
-        if (!container) return;
-        container.querySelectorAll('.source-input-wrap').forEach(function (wrap) {
-            bindCell(wrap, wrap.dataset.city, wrap.dataset.province);
+    function bindIndicatorSourceWrap(wrapEl) {
+        if (!wrapEl || wrapEl.dataset.bound === '1') return;
+        wrapEl.dataset.bound = '1';
+        const select = wrapEl.querySelector('.source-type-select');
+        if (!select) return;
+        const city = wrapEl.dataset.city;
+        const province = wrapEl.dataset.province;
+        select.addEventListener('change', function () {
+            if (!select.value) {
+                delete wrapEl.dataset.overridden;
+                const tr = wrapEl.closest('tr');
+                const rowSelect = tr && tr.querySelector('.source-input-wrap[data-role="row-source"] .source-type-select');
+                if (rowSelect && rowSelect.value) {
+                    select.value = rowSelect.value;
+                    syncMergedDisplay(wrapEl, city, province, rowSelect.value);
+                } else {
+                    syncMergedDisplay(wrapEl, city, province, '');
+                }
+                return;
+            }
+            wrapEl.dataset.overridden = 'true';
+            syncMergedDisplay(wrapEl, city, province, select.value);
         });
     }
 
-    function applyLoadedValue(wrapEl, sourceValue, city, province) {
+    function syncRowSourceToIndicators(tr) {
+        if (!tr) return;
+        const rowWrap = tr.querySelector('.source-input-wrap[data-role="row-source"]');
+        if (!rowWrap) return;
+        const rowSelect = rowWrap.querySelector('.source-type-select');
+        if (!rowSelect) return;
+        const code = rowSelect.value;
+        tr.querySelectorAll('.source-input-wrap[data-role="indicator-source"]').forEach(function (wrap) {
+            if (wrap.dataset.overridden === 'true') return;
+            const indSelect = wrap.querySelector('.source-type-select');
+            if (!indSelect) return;
+            indSelect.value = code;
+            syncMergedDisplay(wrap, wrap.dataset.city, wrap.dataset.province, code);
+        });
+    }
+
+    function bindRowSourceWrap(tr, rowWrap) {
+        if (!rowWrap || rowWrap.dataset.bound === '1') return;
+        rowWrap.dataset.bound = '1';
+        const select = rowWrap.querySelector('.source-type-select');
+        if (!select) return;
+        const city = rowWrap.dataset.city;
+        const province = rowWrap.dataset.province;
+        select.addEventListener('change', function () {
+            syncMergedDisplay(rowWrap, city, province, select.value);
+            syncRowSourceToIndicators(tr);
+        });
+    }
+
+    function bindAllIn(container) {
+        if (!container) return;
+        container.querySelectorAll('tr').forEach(function (tr) {
+            const rowWrap = tr.querySelector('.source-input-wrap[data-role="row-source"]');
+            if (rowWrap) bindRowSourceWrap(tr, rowWrap);
+            tr.querySelectorAll('.source-input-wrap[data-role="indicator-source"]').forEach(bindIndicatorSourceWrap);
+            tr.querySelectorAll('.source-input-wrap:not([data-role])').forEach(function (wrap) {
+                bindCell(wrap, wrap.dataset.city, wrap.dataset.province);
+            });
+        });
+    }
+
+    function applyLoadedValue(wrapEl, sourceValue, city, province, options) {
         if (!wrapEl) return;
         const select = wrapEl.querySelector('.source-type-select');
         const input = wrapEl.querySelector('.source-merged-input');
@@ -98,11 +159,20 @@ window.IndicatorSourceInput = (function () {
             if (select) select.value = '';
             input.value = text;
         }
+        if (options && options.markOverridden) {
+            wrapEl.dataset.overridden = 'true';
+        }
     }
 
     function readSubmitCode(sourceTd) {
         const select = sourceTd && sourceTd.querySelector('.source-type-select');
         return select ? select.value.trim() : '';
+    }
+
+    function readSubmitCodeWithFallback(indicatorTd, rowTd) {
+        const indicatorCode = readSubmitCode(indicatorTd);
+        if (indicatorCode) return indicatorCode;
+        return readSubmitCode(rowTd);
     }
 
     function readSubmitValue(sourceTd) {
@@ -130,8 +200,10 @@ window.IndicatorSourceInput = (function () {
         composeDisplay,
         applyLoadedValue,
         readSubmitCode,
+        readSubmitCodeWithFallback,
         readSubmitValue,
         refreshProvinceScoped,
+        syncRowSourceToIndicators,
         guessCodeFromDisplay,
     };
 })();

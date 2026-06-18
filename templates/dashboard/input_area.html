@@ -767,8 +767,8 @@
         return provSel ? provSel.value : '';
     }
 
-    function buildSourceCellHtml(nameAttr, city) {
-        return IndicatorSourceInput.buildCellHtml(nameAttr, city, getSelectedProvince());
+    function buildSourceCellHtml(nameAttr, city, role) {
+        return IndicatorSourceInput.buildCellHtml(nameAttr, city, getSelectedProvince(), role);
     }
 
     // 全局变量
@@ -915,18 +915,19 @@
         if (!thead) return;
         const firstRow = thead.querySelector('tr:first-child'); 
         const secondRow = thead.querySelector('tr:nth-child(2)');
-        firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">数据来源</th>';
+        firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">默认来源</th>';
         indicators.forEach(ind => { 
             const th = document.createElement('th'); 
-            th.colSpan = 3; 
+            th.colSpan = 4; 
             th.setAttribute('data-indicator', ind); 
             th.textContent = ind; 
             firstRow.appendChild(th); 
         });
         secondRow.innerHTML = '';
         indicators.forEach(() => { 
-            ['数值', '备注', '去年参考'].forEach(title => { 
+            ['数值', '备注', '数据来源', '去年参考'].forEach(title => { 
                 const th = document.createElement('th'); 
+                if (title === '数据来源') th.className = 'source-cell'; 
                 th.textContent = title; 
                 secondRow.appendChild(th); 
             }); 
@@ -944,7 +945,7 @@
         
         if (!areas.length) { 
             const tr = tbody.insertRow(); 
-            tr.innerHTML = `<td colspan="${2 + (groups * 3 || 1)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
+            tr.innerHTML = `<td colspan="${2 + (groups * 4 || 1)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
             updateProgress(); 
             return; 
         }
@@ -968,7 +969,7 @@
 
             const srcCell = tr.insertCell(); 
             srcCell.className = 'source-cell';
-            srcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][_source]`, item.city || '');
+            srcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][_source]`, item.city || '', 'row-source');
             
             for (let g = 0; g < groups; g++) {
                 const indicatorName = headers[g].getAttribute('data-indicator');
@@ -979,6 +980,10 @@
                 
                 const noteCell = tr.insertCell(); 
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]">`;
+                
+                const indSrcCell = tr.insertCell(); 
+                indSrcCell.className = 'source-cell';
+                indSrcCell.innerHTML = buildSourceCellHtml(`data[${areaKey}][${indKey}][source]`, item.city || '', 'indicator-source');
                 
                 const refCell = tr.insertCell(); 
                 refCell.style.color = '#999'; refCell.style.fontSize = '11px'; 
@@ -1027,27 +1032,51 @@
                 const areaData = json.data[bucketKey];
                 if (!areaData) return;
 
-                const sourceWrap = tr.cells[1]?.querySelector('.source-input-wrap');
+                const rowSourceWrap = tr.cells[1]?.querySelector('.source-input-wrap');
                 let rowSource = '';
+
                 headers.forEach((th, g) => {
                     const indName = th.getAttribute('data-indicator');
                     const record = areaData[indName];
                     if (!record) return;
-                    const base = 2 + g * 3;
+                    const base = 2 + g * 4;
                     const valInput = tr.cells[base]?.querySelector('input[placeholder="数值"]');
                     const noteInput = tr.cells[base + 1]?.querySelector('input');
-                    const refCell = tr.cells[base + 2];
+                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
+                    const refCell = tr.cells[base + 3];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
                     }
                     if (noteInput && record.note) noteInput.value = record.note;
+                    if (sourceWrap && record.source && window.IndicatorSourceInput) {
+                        IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
+                    }
                     if (!rowSource && record.source) rowSource = record.source;
                     if (refCell && record.reference != null && record.reference !== '') {
                         refCell.textContent = record.reference;
                     }
                 });
-                if (sourceWrap && rowSource && window.IndicatorSourceInput) {
-                    IndicatorSourceInput.applyLoadedValue(sourceWrap, rowSource, city, getSelectedProvince());
+
+                if (rowSourceWrap && rowSource && window.IndicatorSourceInput) {
+                    IndicatorSourceInput.applyLoadedValue(rowSourceWrap, rowSource, city, getSelectedProvince());
+                }
+                const rowCode = window.IndicatorSourceInput
+                    ? IndicatorSourceInput.guessCodeFromDisplay(rowSource)
+                    : rowSource;
+                headers.forEach((th, g) => {
+                    const indName = th.getAttribute('data-indicator');
+                    const record = areaData[indName];
+                    if (!record || !record.source) return;
+                    const base = 2 + g * 4;
+                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
+                    if (!sourceWrap || !window.IndicatorSourceInput) return;
+                    const indCode = IndicatorSourceInput.guessCodeFromDisplay(record.source) || record.source;
+                    if (rowCode && indCode && indCode !== rowCode) {
+                        sourceWrap.dataset.overridden = 'true';
+                    }
+                });
+                if (window.IndicatorSourceInput) {
+                    IndicatorSourceInput.syncRowSourceToIndicators(tr);
                 }
             });
             updateProgress();
@@ -1370,21 +1399,21 @@
                         if(!area) return;
 
                         const sourceTd = tr.children[1];
-                        const rowSource = sourceTd && window.IndicatorSourceInput
-                            ? IndicatorSourceInput.readSubmitCode(sourceTd)
-                            : '';
 
                         let cursor=2; 
                         const groups=[]; 
                         for(let g=0;g<indicatorNames.length;g++){ 
                             const valTd=tr.children[cursor]; 
                             const noteTd=tr.children[cursor+1]; 
+                            const indSourceTd=tr.children[cursor+2]; 
                             const val=valTd?(valTd.querySelector('input')?valTd.querySelector('input').value.trim():''):''; 
                             const note=noteTd?(noteTd.querySelector('input')?noteTd.querySelector('input').value.trim():''):''; 
-                            const source = rowSource; 
+                            const source = window.IndicatorSourceInput
+                                ? IndicatorSourceInput.readSubmitCodeWithFallback(indSourceTd, sourceTd)
+                                : ''; 
                             const name_zh=indicatorNames[g]||''; 
                             groups.push({value:val,note:note,source:source,reference:'',name_zh:name_zh}); 
-                            cursor+=3; 
+                            cursor+=4; 
                         } 
                         out.push({city:city,area:area,province:province,year:year,groups:groups}); 
                     }); 
