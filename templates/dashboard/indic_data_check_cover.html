@@ -772,6 +772,46 @@
     let coverageAbortController = null;
     let missingAbortController = null;
     let queryDebounceTimer = null;
+
+    const DEFAULT_FORM_SOURCE_OPTIONS = [
+        { code: 'CITY_STAT_YB', label: '地市统计年鉴', scope: 'city', suffix: '统计年鉴' },
+        { code: 'CITY_YB', label: '地市年鉴', scope: 'city', suffix: '年鉴' },
+        { code: 'CITY_DEV_BUL', label: '地市级发展公报', scope: 'city', suffix: '发展公报' },
+        { code: 'CITY_GOV_RPT', label: '地市级政府工作报告', scope: 'city', suffix: '政府工作报告' },
+        { code: 'PROV_STAT_YB', label: '省级统计年鉴', scope: 'province', suffix: '统计年鉴' },
+        { code: 'PROV_YB', label: '省级年鉴', scope: 'province', suffix: '年鉴' },
+        { code: 'PROF_YB', label: '专业年鉴', scope: 'manual', suffix: '专业年鉴' },
+        { code: 'SPECIAL_RPT', label: '专项报告', scope: 'manual', suffix: '专项报告' },
+        { code: 'GOV_INFO_RPT', label: '政府信息公开报告', scope: 'city', suffix: '政府信息公开报告' },
+    ];
+    let replenishSourceOptions = DEFAULT_FORM_SOURCE_OPTIONS.slice();
+
+    async function loadReplenishSourceOptions() {
+        try {
+            const res = await fetch('/dashboard/api/indicator-sources/?scope=form', { credentials: 'same-origin' });
+            const json = await parseApiResponse(res, '数据来源列表');
+            if (json.success && Array.isArray(json.sources) && json.sources.length) {
+                replenishSourceOptions = json.sources;
+            }
+        } catch (e) {
+            console.warn('加载数据来源选项失败，使用默认配置', e);
+        }
+    }
+
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function buildReplenishSourceSelectHtml(itemId) {
+        const opts = replenishSourceOptions.map(o =>
+            `<option value="${escapeHtml(o.code)}">${escapeHtml(o.label)}</option>`
+        ).join('');
+        return `<select class="replenish-select" id="src_${itemId}"><option value="">来源类别</option>${opts}</select>`;
+    }
     
     // 指标分组映射
     const indicatorGroupMap = {
@@ -1253,7 +1293,7 @@
                 <td class="text-slate-700">${item.indicator}<\/td>
                 <td class="text-slate-600">${item.year}<\/td>
                 <td><input type="text" class="replenish-input" id="val_${item.id}" placeholder="请输入数值"><\/td>
-                <td><select class="replenish-select" id="src_${item.id}"><option value="">选择来源</option><option value="地市统计年鉴">地市统计年鉴</option><option value="省级统计年鉴">省级统计年鉴</option><option value="政府工作报告">政府工作报告</option><option value="专项报告">专项报告</option></select><\/td>
+                <td>${buildReplenishSourceSelectHtml(item.id)}<\/td>
                 <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}')">补录<\/button><\/td>
             <\/tr>
         `).join('');
@@ -1491,6 +1531,7 @@
     
     document.addEventListener('DOMContentLoaded', function() {
         loadProvinceCityMap().then(async () => {
+            await loadReplenishSourceOptions();
             await initYearSelect();
             initProvinceSelect();
             updateCitySelect();
