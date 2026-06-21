@@ -4,6 +4,7 @@ Excel 指标录入解析：读取单元格数值与底色来源。
 from __future__ import annotations
 
 from io import BytesIO
+from math import isnan
 from typing import Any, Dict, List, Tuple
 
 from openpyxl import load_workbook
@@ -155,3 +156,18 @@ def extract_cell_fields(raw_value: Any) -> Tuple[Any, str, str]:
             raw_value.get("note") or "",
         )
     return raw_value, "", ""
+
+
+def has_excel_cell_value(value: Any) -> bool:
+    """Excel 单元格无有效数值时不应写入数据库。"""
+    if value is None:
+        return False
+    if isinstance(value, float) and isnan(value):
+        return False
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return False
+        if text.lower() in ("nan", "none"):
+            return False
+    return True

@@ -915,7 +915,7 @@
         if (!thead) return;
         const firstRow = thead.querySelector('tr:first-child'); 
         const secondRow = thead.querySelector('tr:nth-child(2)');
-        firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">默认来源</th>';
+        firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">区县统一数据来源</th>';
         indicators.forEach(ind => { 
             const th = document.createElement('th'); 
             th.colSpan = 4; 

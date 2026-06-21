@@ -19,6 +19,7 @@ from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_
 
 from apps.coredata.services.excel_upload_service import (
     extract_cell_fields,
+    has_excel_cell_value,
     parse_area_indicator_excel,
     parse_city_indicator_excel,
 )
@@ -916,6 +917,8 @@ def save_df_to_database(rows_data, year):
             if col_name in ['城市', 'A']:
                 continue
             value, source, note = extract_cell_fields(raw_value)
+            if not has_excel_cell_value(value):
+                continue
             name_zh = col_name
             print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
             name_en = INDIMAP.get(name_zh)
@@ -928,7 +931,7 @@ def save_df_to_database(rows_data, year):
                     province_id=province_id,
                     city_id=city_id,
                     source=source or 'INPUT',
-                    value=value or 0,
+                    value=value,
                     name_en=name_en or '',
                     note=note or '',
                     name_zh=name_zh or '',
@@ -995,6 +998,8 @@ def save_area_df_to_database(rows_data, year):
                 last_metric_name = raw_name
 
             value, source, note = extract_cell_fields(raw_value)
+            if not has_excel_cell_value(value):
+                continue
             print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
             name_en = AREA_INDIMAP.get(name_zh)
             if not name_en:
@@ -1006,7 +1011,7 @@ def save_area_df_to_database(rows_data, year):
                     province_id=province_id,
                     city_id=city_id,
                     source=source or 'INPUT',
-                    value=0 if value is None or (isinstance(value, float) and str(value) == 'nan') else (value or 0),
+                    value=value,
                     name_en=name_en or '',
                     note=note or '',
                     name_zh=name_zh or '',

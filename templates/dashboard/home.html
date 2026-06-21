@@ -850,7 +850,7 @@
         const firstRow = thead.querySelector('tr:first-child');
         const secondRow = thead.querySelector('tr:nth-child(2)');
         
-        firstRow.innerHTML = '<th rowspan="2">城市</th><th rowspan="2" class="source-cell">默认来源</th>';
+        firstRow.innerHTML = '<th rowspan="2">城市</th><th rowspan="2" class="source-cell">城市统一数据来源</th>';
         indicators.forEach(ind => {
             const th = document.createElement('th');
             th.colSpan = 4;
@@ -1428,7 +1428,7 @@ function setupFormSubmit() {
 
                     const sourceTd = tr.children[1];
                     
-                    let cursor = 2; // 城市列 + 默认来源列
+                    let cursor = 2; // 城市列 + 城市统一数据来源列
                     const groups = [];
                     
                     for (let g = 0; g < indicatorNames.length; g++) {
