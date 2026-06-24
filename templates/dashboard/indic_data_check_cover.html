@@ -923,9 +923,22 @@
         return !!(typeof echarts !== 'undefined' && echarts.getMap && echarts.getMap('china'));
     }
 
+    function disposeChinaMap() {
+        if (!myChart) return;
+        try {
+            if (!myChart.isDisposed()) {
+                myChart.dispose();
+            }
+        } catch (e) {
+            console.warn('地图实例销毁失败', e);
+        }
+        myChart = null;
+    }
+
     function showChinaMapPlaceholder(message) {
         const dom = document.getElementById('chinaMap');
         if (!dom) return;
+        disposeChinaMap();
         dom.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px;">${message}</div>`;
     }
 
@@ -1328,17 +1341,22 @@
             showChinaMapPlaceholder('中国地图资源未加载，请刷新页面后重试');
             return;
         }
-        dom.innerHTML = '';
-        if (myChart) {
-            myChart.dispose();
-            myChart = null;
+
+        // 占位文案转回图表容器：必须先 dispose，再清空 DOM
+        if (!dom.querySelector('canvas')) {
+            disposeChinaMap();
+            dom.innerHTML = '';
         }
-        try {
-            myChart = echarts.init(dom);
-        } catch (e) {
-            console.error('地图初始化失败', e);
-            showChinaMapPlaceholder('地图初始化失败');
-            return;
+
+        if (!myChart || myChart.isDisposed()) {
+            disposeChinaMap();
+            try {
+                myChart = echarts.init(dom);
+            } catch (e) {
+                console.error('地图初始化失败', e);
+                showChinaMapPlaceholder('地图初始化失败');
+                return;
+            }
         }
 
         const activeRegion = provinceToMapRegion(selectedProvince);
@@ -1392,13 +1410,9 @@
                 },
                 select: { disabled: true },
             }],
-        }, true);
+        }, { notMerge: true });
         } catch (e) {
             console.error('地图渲染失败', e);
-            if (myChart) {
-                myChart.dispose();
-                myChart = null;
-            }
             showChinaMapPlaceholder('地图渲染失败，表格数据仍可正常查看');
             return;
         }
