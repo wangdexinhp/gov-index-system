@@ -1,45 +1,41 @@
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
+from apps.coredata.indicator_catalog import (
+    INDICATOR_CATALOG_GROUPS,
+    get_group_name_map,
+)
+from apps.coredata.indicator_input_methods import (
+    get_input_method_display,
+    normalize_data_source,
+)
 from apps.coredata.indicator_sources import get_source_display
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP, INDIMAP_UNIT
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.services.coverage_service import (
-    INDICATOR_GROUP_MAP,
     get_cities_in_scope,
     get_default_coverage_year,
 )
-# 行政区域类指标
-ADMIN_INDICATOR_NAMES = {
-    "地市名称", "市数量", "市", "区数量", "区", "县数量", "县", "辖区面积",
-}
 
-AUDIT_GROUP_NAMES = {
-    "admin": "行政区域",
-    "population": "人口数据",
-    "economic_growth": "经济增长",
-    "finance": "财政指标",
-    "education_tech": "教育科技",
-    "employment": "就业数据",
-    "ecology": "生态环保",
-    "other": "其他",
-}
-
-AUDIT_INDICATOR_GROUP_MAP = dict(INDICATOR_GROUP_MAP)
-for _name in ADMIN_INDICATOR_NAMES:
-    AUDIT_INDICATOR_GROUP_MAP[_name] = "admin"
+# 与 indicator_catalog 一致的分组名称（20 组）
+AUDIT_GROUP_NAMES: Dict[str, str] = get_group_name_map()
 
 
 def _build_audit_indicators() -> List[Dict[str, str]]:
-    items = []
-    for name_zh, name_en in INDIMAP.items():
-        if name_zh.endswith("备注") or "备注" in name_zh:
-            continue
-        items.append({
-            "name_zh": name_zh,
-            "name_en": name_en,
-            "group": AUDIT_INDICATOR_GROUP_MAP.get(name_zh, "other"),
-        })
+    """从指标目录构建校验范围，分组与弹窗选择一致。"""
+    items: List[Dict[str, str]] = []
+    seen_en: set = set()
+    for group in INDICATOR_CATALOG_GROUPS:
+        for name_zh in group["indicators"]:
+            name_en = INDIMAP.get(name_zh)
+            if not name_en or name_en in seen_en:
+                continue
+            seen_en.add(name_en)
+            items.append({
+                "name_zh": name_zh,
+                "name_en": name_en,
+                "group": group["code"],
+            })
     return items
 
 
@@ -78,7 +74,7 @@ def _load_existing_map(
         year__in=years,
         city_id__in=city_ids,
         name_en__in=indicator_ens,
-    ).values("year", "city_id", "name_en", "name_zh", "value", "source", "note")
+    ).values("year", "city_id", "name_en", "name_zh", "value", "source", "note", "input_method")
 
     return {
         (row["city_id"], row["name_en"], row["year"]): row
@@ -103,7 +99,8 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
     record_id = f"{city_name}_{name_zh}_{year}"
     unit = INDIMAP_UNIT.get(indicator["name_en"], {}).get("unit", "") or ""
 
-    source_code = (existing.get("source") or "") if existing else ""
+    source_code = normalize_data_source(existing.get("source") if existing else "")
+    input_method = (existing.get("input_method") if existing else "") or ""
 
     if existing:
         return {
@@ -114,8 +111,10 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
             "value": _format_value(existing.get("value")),
             "unit": unit,
             "status": "imported",
+            "input_method": input_method,
+            "input_method_display": get_input_method_display(input_method) or "—",
             "source": source_code,
-            "source_display": get_source_display(source_code),
+            "source_display": get_source_display(source_code) or "—",
             "remark": existing.get("note") or "",
             "group": indicator["group"],
         }
@@ -128,6 +127,8 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
         "value": None,
         "unit": unit,
         "status": "missing",
+        "input_method": "",
+        "input_method_display": "",
         "source": "",
         "source_display": "",
         "remark": "暂无数据",
@@ -153,7 +154,7 @@ def _compute_group_stats(
     existing_map: Dict[Tuple[int, str, int], dict],
 ) -> Dict[str, dict]:
     stats: Dict[str, dict] = {}
-    for group_key, group_name in AUDIT_GROUP_NAMES.items():
+    for group_key, group_name in get_group_name_map().items():
         group_inds = [i for i in indicators if i["group"] == group_key]
         if not group_inds:
             continue

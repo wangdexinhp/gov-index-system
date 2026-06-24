@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>区县数据查询 | 数据指标管理系统</title>
 <script src="/static/js/tailwindcss.js"></script>
+<script src="/static/js/indicator_catalog.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -274,11 +275,8 @@
 
 <script>
 // ==================== 完整保留原始功能，仅调整视觉 ====================
-// 指标字典 (两层结构，与原始single_query_area.html保持一致)
-const dataDict = {
-    '人口数据': ['常住人口数', '户籍人口数'],
-    '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '一般公共预算收入', '一般公共预算收入增长率', '人均一般公共预算收入','城镇居民家庭人均可支配收入','农村居民家庭人均纯收入'],
-};
+// 指标字典（从后端 API 加载，区县子集）
+let dataDict = {};
 
 // 城市映射数据 (保持原样)
 const cityData = {
@@ -390,7 +388,10 @@ function updateDistricts() {
 document.addEventListener('DOMContentLoaded', () => {
     const citySelect = document.getElementById('citySelect');
     if (citySelect) citySelect.addEventListener('change', updateDistricts);
-    updateCities();
+    IndicatorCatalog.loadArea()
+        .then(dict => { dataDict = dict; })
+        .catch(err => console.error('加载指标目录失败', err))
+        .finally(() => updateCities());
 });
 
 // 查询

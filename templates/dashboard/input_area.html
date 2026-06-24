@@ -6,6 +6,7 @@
 <title>城策智库 · 区县指标录入</title>
 <script src="/static/js/tailwindcss.js"></script>
 <script src="/static/js/indicator_source_input.js"></script>
+<script src="/static/js/indicator_catalog.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <style>
@@ -440,6 +441,7 @@
     }
     .source-input-wrap { display: flex; flex-direction: column; gap: 3px; }
     .source-merged-input { background: #f5f8fb !important; color: #444; }
+    .input-method-cell { color: #666; font-size: 11px; white-space: nowrap; }
 
     .drc-footer-bar {
         padding: 8px 12px;
@@ -528,8 +530,8 @@
         </div>
     </div>
     <div class="drc-toolbar-row">
-        <button type="button" class="drc-tab active" id="manual-tab">手工录入</button>
-        <button type="button" class="drc-tab" id="excel-tab">Excel上传</button>
+        <button type="button" class="drc-tab active" id="manual-tab">手工</button>
+        <button type="button" class="drc-tab" id="excel-tab">excel</button>
     </div>
 </div>
 
@@ -579,7 +581,7 @@
                 <div class="drc-excel-panel">
                     <iconify-icon icon="mdi:file-excel" style="font-size:48px;color:var(--drc-blue)"></iconify-icon>
                     <h3 style="margin:12px 0 8px;font-size:14px">上传 Excel 数据文件</h3>
-                    <p style="font-size:12px;margin-bottom:16px">支持 .xlsx 格式；单元格底色将自动识别数据来源（见模板「颜色标示区」）。</p>
+                    <p style="font-size:12px;margin-bottom:16px">支持 .xlsx 格式；单元格底色将自动识别<strong>数据来源</strong>（见模板「颜色标示区」），导入方式为 excel。</p>
                     <div class="upload-zone">
                         <iconify-icon icon="mdi:cloud-upload" style="font-size:32px;color:var(--drc-blue);margin-bottom:8px"></iconify-icon>
                         <input type="file" name="excel_file" accept=".xlsx,.xls" required style="margin:8px 0;font-size:12px" />
@@ -674,10 +676,7 @@
             <div class="drc-modal-pane" style="flex:0 0 220px">
                 <div class="drc-modal-pane-title">指标分类</div>
                 <div class="drc-modal-pane-body" style="padding:0">
-                    <div class="drc-tree" id="indicator-tree">
-                        <div class="drc-tree-item active" data-group="population">人口数据</div>
-                        <div class="drc-tree-item" data-group="economic_growth">经济增长数据</div>
-                    </div>
+                    <div class="drc-tree" id="indicator-tree"></div>
                 </div>
             </div>
             <div class="drc-modal-pane">
@@ -686,10 +685,7 @@
                     <div id="indicator-subfilter">
                         <div id="indicator-content"></div>
                     </div>
-                    <select id="indicator-filter" style="display:none">
-                        <option value="population" selected>人口数据</option>
-                        <option value="economic_growth">经济增长数据</option>
-                    </select>
+                    <select id="indicator-filter" style="display:none"></select>
                 </div>
             </div>
         </div>
@@ -779,10 +775,9 @@
     const globalSelectedAreas = new Set();
     window.globalSelectedIndicators = window.globalSelectedIndicators || [];
     
-    const indicatorCategories = {
-        'population': ['#常住人口数', '#户籍人口数'],
-        'economic_growth': ['#GDP', '#人均GDP', '#GDP增长率', '#一般公共预算收入', '一般公共预算收入增长率', '人均一般公共预算收入', '#城镇居民人均可支配收入', '农民居民人均纯收入'],
-    };
+    let indicatorCategories = {};
+    let areaCatalogGroups = [];
+    let defaultIndicatorGroupCode = 'population';
 
     function renderCitiesForProvince(prov) {
         const container = document.getElementById('city-items');
@@ -910,6 +905,14 @@
         });
     }
 
+    const COLS_PER_INDICATOR = 5;
+    const DEFAULT_INPUT_METHOD_LABEL = '手工';
+
+    function buildInputMethodCellHtml(label) {
+        const text = label || DEFAULT_INPUT_METHOD_LABEL;
+        return `<span class="input-method-label">${text}</span>`;
+    }
+
     function buildTableHeaders(indicators) {
         const thead = document.querySelector('#manual-section .data-table thead');
         if (!thead) return;
@@ -918,16 +921,17 @@
         firstRow.innerHTML = '<th rowspan="2">区县</th><th rowspan="2" class="source-cell">区县统一数据来源</th>';
         indicators.forEach(ind => { 
             const th = document.createElement('th'); 
-            th.colSpan = 4; 
+            th.colSpan = COLS_PER_INDICATOR; 
             th.setAttribute('data-indicator', ind); 
             th.textContent = ind; 
             firstRow.appendChild(th); 
         });
         secondRow.innerHTML = '';
         indicators.forEach(() => { 
-            ['数值', '备注', '数据来源', '去年参考'].forEach(title => { 
+            ['数值', '备注', '录入方式', '数据来源', '去年参考'].forEach(title => { 
                 const th = document.createElement('th'); 
                 if (title === '数据来源') th.className = 'source-cell'; 
+                if (title === '录入方式') th.className = 'input-method-cell'; 
                 th.textContent = title; 
                 secondRow.appendChild(th); 
             }); 
@@ -945,7 +949,7 @@
         
         if (!areas.length) { 
             const tr = tbody.insertRow(); 
-            tr.innerHTML = `<td colspan="${2 + (groups * 4 || 1)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
+            tr.innerHTML = `<td colspan="${2 + (groups * COLS_PER_INDICATOR || 1)}" style="text-align:center;color:#999;padding:24px">请点击「地区筛选」选择区县</td>`; 
             updateProgress(); 
             return; 
         }
@@ -980,6 +984,10 @@
                 
                 const noteCell = tr.insertCell(); 
                 noteCell.innerHTML = `<input placeholder="备注" type="text" name="data[${areaKey}][${indKey}][note]">`;
+
+                const methodCell = tr.insertCell();
+                methodCell.className = 'input-method-cell';
+                methodCell.innerHTML = buildInputMethodCellHtml(DEFAULT_INPUT_METHOD_LABEL);
                 
                 const indSrcCell = tr.insertCell(); 
                 indSrcCell.className = 'source-cell';
@@ -1039,15 +1047,19 @@
                     const indName = th.getAttribute('data-indicator');
                     const record = areaData[indName];
                     if (!record) return;
-                    const base = 2 + g * 4;
+                    const base = 2 + g * COLS_PER_INDICATOR;
                     const valInput = tr.cells[base]?.querySelector('input[placeholder="数值"]');
                     const noteInput = tr.cells[base + 1]?.querySelector('input');
-                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
-                    const refCell = tr.cells[base + 3];
+                    const methodCell = tr.cells[base + 2];
+                    const sourceWrap = tr.cells[base + 3]?.querySelector('.source-input-wrap');
+                    const refCell = tr.cells[base + 4];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
                     }
                     if (noteInput && record.note) noteInput.value = record.note;
+                    if (methodCell && record.input_method_display) {
+                        methodCell.innerHTML = buildInputMethodCellHtml(record.input_method_display);
+                    }
                     if (sourceWrap && record.source && window.IndicatorSourceInput) {
                         IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
                     }
@@ -1067,8 +1079,8 @@
                     const indName = th.getAttribute('data-indicator');
                     const record = areaData[indName];
                     if (!record || !record.source) return;
-                    const base = 2 + g * 4;
-                    const sourceWrap = tr.cells[base + 2]?.querySelector('.source-input-wrap');
+                    const base = 2 + g * COLS_PER_INDICATOR;
+                    const sourceWrap = tr.cells[base + 3]?.querySelector('.source-input-wrap');
                     if (!sourceWrap || !window.IndicatorSourceInput) return;
                     const indCode = IndicatorSourceInput.guessCodeFromDisplay(record.source) || record.source;
                     if (rowCode && indCode && indCode !== rowCode) {
@@ -1286,6 +1298,17 @@
 
     document.addEventListener('DOMContentLoaded', async function() {
         initYearSelector();
+        try {
+            const full = await IndicatorCatalog.loadFull();
+            indicatorCategories = full.area_form_categories || {};
+            areaCatalogGroups = full.area_groups || [];
+            const tree = document.getElementById('indicator-tree');
+            const filter = document.getElementById('indicator-filter');
+            defaultIndicatorGroupCode = IndicatorCatalog.renderGroupTree(tree, filter, areaCatalogGroups, 'population') || 'population';
+        } catch (e) {
+            console.error('加载指标目录失败', e);
+        }
+
         await Promise.all([loadProvinceCityMap(), loadFormSourceOptions()]);
         renderCitiesForProvince('');
         renderAreasForCities([]);
@@ -1405,15 +1428,15 @@
                         for(let g=0;g<indicatorNames.length;g++){ 
                             const valTd=tr.children[cursor]; 
                             const noteTd=tr.children[cursor+1]; 
-                            const indSourceTd=tr.children[cursor+2]; 
+                            const indSourceTd=tr.children[cursor+3]; 
                             const val=valTd?(valTd.querySelector('input')?valTd.querySelector('input').value.trim():''):''; 
                             const note=noteTd?(noteTd.querySelector('input')?noteTd.querySelector('input').value.trim():''):''; 
                             const source = window.IndicatorSourceInput
                                 ? IndicatorSourceInput.readSubmitCodeWithFallback(indSourceTd, sourceTd)
                                 : ''; 
                             const name_zh=indicatorNames[g]||''; 
-                            groups.push({value:val,note:note,source:source,reference:'',name_zh:name_zh}); 
-                            cursor+=4; 
+                            groups.push({value:val,note:note,source:source,input_method:'MANUAL',reference:'',name_zh:name_zh}); 
+                            cursor+=COLS_PER_INDICATOR; 
                         } 
                         out.push({city:city,area:area,province:province,year:year,groups:groups}); 
                     }); 
@@ -1460,7 +1483,7 @@
             });
         }
         
-        populateSubfilter('population'); 
+        populateSubfilter(defaultIndicatorGroupCode); 
         buildTableHeaders([]); 
         renderTableRows();
         setupModals();

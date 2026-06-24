@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Tuple
 
 from django.db import models
 
+from apps.coredata.indicator_input_methods import normalize_data_source
+
 
 class IndicatorDataSource(models.TextChoices):
     CITY_STAT_YB = "CITY_STAT_YB", "地市统计年鉴"
@@ -17,7 +19,6 @@ class IndicatorDataSource(models.TextChoices):
     PROF_YB = "PROF_YB", "专业年鉴"
     SPECIAL_RPT = "SPECIAL_RPT", "专项报告"
     GOV_INFO_RPT = "GOV_INFO_RPT", "政府信息公开报告"
-    INPUT = "INPUT", "手工录入"
 
 
 SOURCE_LABEL_MAP = {choice.value: choice.label for choice in IndicatorDataSource}
@@ -76,7 +77,7 @@ def resolve_source_for_form(source_value: str) -> Tuple[str, str]:
     将库中来源值解析为 (类别代码, 展示名称)。
     兼容 Excel 存的代码与手工录入的具体名称。
     """
-    text = (source_value or "").strip()
+    text = normalize_data_source(source_value)
     if not text:
         return "", ""
     if text in SOURCE_LABEL_MAP:
@@ -90,9 +91,10 @@ def resolve_source_for_form(source_value: str) -> Tuple[str, str]:
 
 def get_source_display(source: str) -> str:
     """将来源代码转为中文；已是具体名称则原样返回。"""
-    if not source:
+    normalized = normalize_data_source(source)
+    if not normalized:
         return ""
-    return SOURCE_LABEL_MAP.get(source, source)
+    return SOURCE_LABEL_MAP.get(normalized, normalized)
 
 
 def get_source_choices() -> List[dict]:

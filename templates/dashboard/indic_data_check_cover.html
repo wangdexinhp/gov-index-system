@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>城策智库 · 指标覆盖查询</title>
 <script src="/static/js/tailwindcss.js"></script>
+<script src="/static/js/indicator_catalog.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -669,13 +670,6 @@
                 <span style="color:var(--drc-muted)">指标组</span>
                 <select id="indicatorGroupFilter" class="filter-select">
                     <option value="all">全部指标组</option>
-                    <option value="population">人口数据</option>
-                    <option value="economic_growth">经济增长数据</option>
-                    <option value="finance">财政指标数据</option>
-                    <option value="education_tech">教育科技数据</option>
-                    <option value="employment">就业数据</option>
-                    <option value="ecology">生态环保数据</option>
-                    <option value="other">其他</option>
                 </select>
                 <span id="filteredCount" style="font-size:11px;color:var(--drc-muted)"></span>
             </div>
@@ -813,51 +807,24 @@
         return `<select class="replenish-select" id="src_${itemId}"><option value="">来源类别</option>${opts}</select>`;
     }
     
-    // 指标分组映射
-    const indicatorGroupMap = {
-        "常住人口数": "population", "城镇人口数": "population", "乡村人口数": "population",
-        "户籍人口数": "population", "年末总人口": "population", "年末总户数": "population",
-        "15-19岁人口数": "population", "60岁以上人口数": "population", "出生人口性别比": "population",
-        "人口出生率": "population", "城镇化率": "population",
-        "GDP": "economic_growth", "人均GDP": "economic_growth", "GDP增长率": "economic_growth",
-        "固定资产投资总额": "economic_growth", "固定资产投资总额增长率": "economic_growth",
-        "全社会消费品零售总额": "economic_growth", "全社会消费品零售总额增长率": "economic_growth",
-        "进出口总额": "economic_growth", "进出口总额增长率": "economic_growth",
-        "实际利用外资金额": "economic_growth", "实际利用外资金额增长率": "economic_growth",
-        "规模以上工业企业增加值": "economic_growth", "第二产业增加值占GDP比重": "economic_growth",
-        "第三产业增加值占GDP比重": "economic_growth", "城镇居民人均可支配收入": "economic_growth",
-        "一般公共预算收入": "finance", "财政总收入": "finance", "财政总收入增长率": "finance",
-        "一般公共预算支出": "finance", "一般公共服务支出": "finance", "科学技术支出": "finance",
-        "公共安全支出": "finance", "文化体育传媒支出": "finance", "环保支出": "finance",
-        "社会保障和就业支出": "finance", "教育支出": "finance", "医疗卫生支出": "finance",
-        "高新技术企业产值": "education_tech", "高新技术企业增加值": "education_tech",
-        "专利授权数量": "education_tech", "有效发明专利量": "education_tech",
-        "R&D经费": "education_tech", "普通小学在校学生数": "education_tech",
-        "普通中学在校学生数": "education_tech", "高中学在校学生数": "education_tech",
-        "城镇登记失业率": "employment", "城镇登记失业人员数": "employment",
-        "城镇新增就业人数": "employment", "城镇就业人数": "employment",
-        "采矿（掘)业就业人员人数": "employment", "制造业就业人员人数": "employment",
-        "森林覆盖率": "ecology", "PM2.5": "ecology", "PM10": "ecology",
-        "二氧化硫排放总量": "ecology", "工业废水排放总量": "ecology",
-        "生活垃圾无害化处理率": "ecology", "园林绿地面积": "ecology"
-    };
-    
-    const groupNames = {
-        'population': '人口数据', 'economic_growth': '经济增长', 'finance': '财政指标',
-        'education_tech': '教育科技', 'employment': '就业数据', 'ecology': '生态环保',
-        'other': '其他'
-    };
-    
-    // 指标字典（用于弹窗）
-    const dataDict = {
-        '人口数据': ['常住人口数', '城镇人口数', '乡村人口数', '户籍人口数', '年末总人口', '年末总户数', '15-19岁人口数', '60岁以上人口数', '出生人口性别比', '人口出生率', '城镇化率'],
-        '经济增长数据': ['GDP', '人均GDP', 'GDP增长率', '固定资产投资总额', '固定资产投资总额增长率', '全社会消费品零售总额', '全社会消费品零售总额增长率', '进出口总额', '进出口总额增长率', '实际利用外资金额', '实际利用外资金额增长率', '规模以上工业企业增加值', '第二产业增加值占GDP比重', '第三产业增加值占GDP比重', '城镇居民人均可支配收入'],
-        '财政指标数据': ['一般公共预算收入', '财政总收入', '财政总收入增长率', '一般公共预算支出', '一般公共服务支出', '科学技术支出', '公共安全支出', '文化体育传媒支出', '环保支出', '社会保障和就业支出', '教育支出', '医疗卫生支出'],
-        '教育科技数据': ['高新技术企业产值', '高新技术企业增加值', '专利授权数量', '有效发明专利量', 'R&D经费', '普通小学在校学生数', '普通中学在校学生数', '高中学在校学生数'],
-        '就业数据': ['城镇登记失业率', '城镇登记失业人员数', '城镇新增就业人数', '城镇就业人数', '采矿（掘)业就业人员人数', '制造业就业人员人数'],
-        '生态环保数据': ['森林覆盖率', 'PM2.5', 'PM10', '二氧化硫排放总量', '工业废水排放总量', '生活垃圾无害化处理率', '园林绿地面积']
-    };
-    
+    // 指标目录（从后端 API 加载）
+    let dataDict = {};
+    let indicatorGroupMap = {};
+    let groupNames = {};
+    let allIndicatorsList = [];
+
+    function populateIndicatorGroupFilter(groups) {
+        const sel = document.getElementById('indicatorGroupFilter');
+        if (!sel) return;
+        sel.innerHTML = '<option value="all">全部指标组</option>';
+        (groups || []).forEach(function (g) {
+            const opt = document.createElement('option');
+            opt.value = g.code;
+            opt.textContent = g.name;
+            sel.appendChild(opt);
+        });
+    }
+
     const defaultProvinceCityMap = {
         "北京市": ["北京市"], "天津市": ["天津市"], "上海市": ["上海市"], "重庆市": ["重庆市"],
         "江苏省": ["南京市", "苏州市", "无锡市", "常州市", "镇江市", "南通市", "扬州市", "盐城市", "徐州市", "淮安市", "连云港市", "泰州市", "宿迁市"],
@@ -880,8 +847,6 @@
         "广西壮族自治区": ["南宁市", "柳州市", "桂林市", "梧州市", "北海市", "防城港市", "钦州市", "贵港市", "玉林市", "百色市", "贺州市", "河池市", "来宾市", "崇左市"],
         "黑龙江省": ["哈尔滨市", "齐齐哈尔市", "鸡西市", "鹤岗市", "双鸭山市", "大庆市", "伊春市", "佳木斯市", "七台河市", "牡丹江市", "黑河市", "绥化市", "大兴安岭地区"]
     };
-    
-    const allIndicatorsList = Object.keys(indicatorGroupMap);
 
     // ECharts 中国地图使用省级简称（如「江苏」「北京」），与库内省份全名不同
     const PROVINCE_TO_MAP_REGION = {
@@ -1530,27 +1495,38 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        loadProvinceCityMap().then(async () => {
-            await loadReplenishSourceOptions();
-            await initYearSelect();
-            initProvinceSelect();
-            updateCitySelect();
-            initModal();
-            initIndicatorSelect();
-            document.getElementById('provinceSelect').addEventListener('change', () => {
-                updateCitySelect();
-                updateProvinceCityFilter();
+        IndicatorCatalog.loadFull()
+            .then(function (full) {
+                dataDict = full.data || {};
+                indicatorGroupMap = full.group_map || {};
+                groupNames = full.group_names || {};
+                allIndicatorsList = Object.keys(indicatorGroupMap);
+                populateIndicatorGroupFilter(full.groups || []);
+            })
+            .catch(function (err) { console.error('加载指标目录失败', err); })
+            .finally(function () {
+                loadProvinceCityMap().then(async () => {
+                    await loadReplenishSourceOptions();
+                    await initYearSelect();
+                    initProvinceSelect();
+                    updateCitySelect();
+                    initModal();
+                    initIndicatorSelect();
+                    document.getElementById('provinceSelect').addEventListener('change', () => {
+                        updateCitySelect();
+                        updateProvinceCityFilter();
+                    });
+                    document.getElementById('citySelect').addEventListener('change', updateProvinceCityFilter);
+                    document.getElementById('yearSelect').addEventListener('change', updateProvinceCityFilter);
+                    document.getElementById('queryBtn').addEventListener('click', performQuery);
+                    document.getElementById('sortByRateDesc').addEventListener('click', sortByRateDesc);
+                    document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
+                    document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
+                    document.getElementById('modeSwitch').addEventListener('change', switchMode);
+                    document.getElementById('batchReplenishBtn').addEventListener('click', submitAllReplenish);
+                    performQuery();
+                });
             });
-            document.getElementById('citySelect').addEventListener('change', updateProvinceCityFilter);
-            document.getElementById('yearSelect').addEventListener('change', updateProvinceCityFilter);
-            document.getElementById('queryBtn').addEventListener('click', performQuery);
-            document.getElementById('sortByRateDesc').addEventListener('click', sortByRateDesc);
-            document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
-            document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
-            document.getElementById('modeSwitch').addEventListener('change', switchMode);
-            document.getElementById('batchReplenishBtn').addEventListener('click', submitAllReplenish);
-            performQuery();
-        });
     });
 </script>
 </body>

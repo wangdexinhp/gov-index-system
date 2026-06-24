@@ -45,6 +45,7 @@ urlpatterns = [
 
     # 指标校验 API
     path('api/check-data/', indicator_audit_views.check_data_api, name='check_data_api'),
+    path('api/indicator-catalog/', indicator_audit_views.indicator_catalog_api, name='indicator_catalog'),
     path('api/indicator-audit-years/', indicator_audit_views.indicator_audit_years_api, name='indicator_audit_years'),
     path('api/indicator-audit-groups/', indicator_audit_views.indicator_audit_groups_api, name='indicator_audit_groups'),
     path('api/indicator-sources/', indicator_audit_views.indicator_sources_api, name='indicator_sources'),

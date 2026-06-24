@@ -10,10 +10,16 @@ from apps.coredata.services.coverage_service import (
     get_year_record_counts,
 )
 from apps.coredata.indicator_sources import get_form_source_choices, get_source_choices
-from apps.coredata.services.indicator_audit_service import (
-    AUDIT_GROUP_NAMES,
-    get_indicator_audit_data,
+from apps.coredata.indicator_catalog import (
+    get_area_indicator_catalog_dict,
+    get_area_indicator_catalog_groups,
+    get_form_indicator_categories,
+    get_group_name_map,
+    get_indicator_catalog_dict,
+    get_indicator_catalog_groups,
+    get_indicator_group_map,
 )
+from apps.coredata.services.indicator_audit_service import get_indicator_audit_data
 from apps.dashboard.coverage_views import api_login_required
 
 logger = logging.getLogger(__name__)
@@ -47,13 +53,30 @@ def indicator_sources_api(request):
 
 @api_login_required
 @require_http_methods(["GET"])
+def indicator_catalog_api(request):
+    """指标分组目录（查询/录入/校验页共用）。"""
+    return JsonResponse({
+        "success": True,
+        "data": get_indicator_catalog_dict(),
+        "groups": get_indicator_catalog_groups(),
+        "form_categories": get_form_indicator_categories("city"),
+        "group_map": get_indicator_group_map(),
+        "group_names": get_group_name_map(),
+        "area_data": get_area_indicator_catalog_dict(),
+        "area_groups": get_area_indicator_catalog_groups(),
+        "area_form_categories": get_form_indicator_categories("area"),
+    })
+
+
+@api_login_required
+@require_http_methods(["GET"])
 def indicator_audit_groups_api(request):
     """指标校验页：指标组列表。"""
     return JsonResponse({
         "success": True,
         "groups": [
-            {"code": code, "name": name}
-            for code, name in AUDIT_GROUP_NAMES.items()
+            {"code": g["code"], "name": g["name"]}
+            for g in get_indicator_catalog_groups()
         ],
     })
 

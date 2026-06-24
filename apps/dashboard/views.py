@@ -17,6 +17,8 @@ from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT,AREA_INDIMAP,AREA_INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
+from apps.coredata.excel_color_sources import DEFAULT_EXCEL_SOURCE
+from apps.coredata.indicator_input_methods import IndicatorInputMethod, normalize_data_source
 from apps.coredata.services.excel_upload_service import (
     extract_cell_fields,
     has_excel_cell_value,
@@ -445,11 +447,13 @@ def save_to_database(rows_data):
         province_id = province_name_to_code.get(prov_key, 0)
         for group in groups:
             value = group.get('value')
-            source = group.get('source')
             note = group.get('note')
             name_zh = group.get('name_zh')
             name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
             name_en = group.get('name_en') or INDIMAP.get(name_zh)
+
+            source = normalize_data_source(group.get('source'))
+            input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             Indicator.objects.update_or_create(
                 year=year,
@@ -458,6 +462,7 @@ def save_to_database(rows_data):
                 defaults={
                     'province_id': province_id,
                     'source': source or '',
+                    'input_method': input_method,
                     'value': value or 0,
                     'note': note or '',
                     'name_zh': name_zh or '',
@@ -503,11 +508,13 @@ def save_area_to_database(rows_data):
         province_id = province_name_to_code.get(prov_key, 0)
         for group in groups:
             value = group.get('value')
-            source = group.get('source')
             note = group.get('note')
             name_zh = group.get('name_zh')
             name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
             name_en = INDIMAP.get(name_zh)
+
+            source = normalize_data_source(group.get('source'))
+            input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             IndicatorArea.objects.create(
                 year=year,
@@ -515,6 +522,7 @@ def save_area_to_database(rows_data):
                 city_id=city_id,
                 area=area,
                 source=source or '',
+                input_method=input_method,
                 value=value or 0,
                 name_en=name_en or '',
                 note=note or '',
@@ -920,7 +928,8 @@ def save_df_to_database(rows_data, year):
             if not has_excel_cell_value(value):
                 continue
             name_zh = col_name
-            print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
+            source = normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             name_en = INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
@@ -930,7 +939,8 @@ def save_df_to_database(rows_data, year):
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source=source or 'INPUT',
+                    source=source,
+                    input_method=Indicator.InputMethod.EXCEL,
                     value=value,
                     name_en=name_en or '',
                     note=note or '',
@@ -1000,7 +1010,8 @@ def save_area_df_to_database(rows_data, year):
             value, source, note = extract_cell_fields(raw_value)
             if not has_excel_cell_value(value):
                 continue
-            print(f"处理指标: {name_zh}，值: {value}，来源: {source or 'INPUT'}")
+            source = normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             name_en = AREA_INDIMAP.get(name_zh)
             if not name_en:
                 print(f"未找到指标英文名映射，跳过: {name_zh}")
@@ -1010,7 +1021,8 @@ def save_area_df_to_database(rows_data, year):
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source=source or 'INPUT',
+                    source=source,
+                    input_method=IndicatorArea.InputMethod.EXCEL,
                     value=value,
                     name_en=name_en or '',
                     note=note or '',

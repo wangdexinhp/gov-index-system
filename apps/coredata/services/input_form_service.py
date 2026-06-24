@@ -11,6 +11,7 @@ from apps.coredata.management.commands.indicator_zh_en import (
     AREA_INDIMAP,
     INDIMAP,
 )
+from apps.coredata.indicator_input_methods import get_input_method_display
 from apps.coredata.models.indicator import Indicator, IndicatorArea
 from apps.coredata.utils.mapper import get_city_name_to_code
 
@@ -82,7 +83,7 @@ def get_city_input_form_data(
         year=year,
         city_id__in=list(city_ids.values()),
         name_en__in=list(name_en_by_label.values()),
-    ).values("city_id", "name_en", "value", "note", "source")
+    ).values("city_id", "name_en", "value", "note", "source", "input_method")
 
     by_city_en: Dict[Tuple[int, str], dict] = {}
     for row in rows:
@@ -101,6 +102,8 @@ def get_city_input_form_data(
                 "value": _format_value(record["value"]),
                 "note": record.get("note") or "",
                 "source": record.get("source") or "",
+                "input_method": record.get("input_method") or "",
+                "input_method_display": get_input_method_display(record.get("input_method")),
                 "reference": _fetch_previous_value(
                     Indicator, year, city_id, name_en
                 ),
@@ -151,7 +154,7 @@ def get_area_input_form_data(
         city_id__in=list(city_ids),
         area__in=list(areas),
         name_en__in=list(name_en_by_label.values()),
-    ).values("city_id", "area", "name_en", "value", "note", "source")
+    ).values("city_id", "area", "name_en", "value", "note", "source", "input_method")
 
     by_key: Dict[Tuple[int, str, str], dict] = {}
     for row in rows:
@@ -169,6 +172,8 @@ def get_area_input_form_data(
                 "value": _format_value(record["value"]),
                 "note": record.get("note") or "",
                 "source": record.get("source") or "",
+                "input_method": record.get("input_method") or "",
+                "input_method_display": get_input_method_display(record.get("input_method")),
                 "reference": _fetch_previous_value(
                     IndicatorArea, year, city_id, name_en, area=area
                 ),
