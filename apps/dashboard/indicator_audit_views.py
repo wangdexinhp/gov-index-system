@@ -19,7 +19,13 @@ from apps.coredata.indicator_catalog import (
     get_indicator_catalog_groups,
     get_indicator_group_map,
 )
-from apps.coredata.services.indicator_audit_service import get_indicator_audit_data
+from apps.coredata.services.indicator_audit_service import (
+    get_area_indicator_audit_data,
+    get_area_year_record_counts,
+    get_available_area_years,
+    get_default_area_audit_year,
+    get_indicator_audit_data,
+)
 from apps.dashboard.coverage_views import api_login_required
 
 logger = logging.getLogger(__name__)
@@ -30,9 +36,20 @@ logger = logging.getLogger(__name__)
 def indicator_audit_years_api(request):
     """指标校验页：可选年份列表。"""
     try:
+        scope = (request.GET.get("scope") or "city").strip().lower()
+        if scope == "area":
+            years = get_available_area_years()
+            return JsonResponse({
+                "success": True,
+                "scope": "area",
+                "years": years,
+                "default_year": get_default_area_audit_year(),
+                "year_counts": get_area_year_record_counts(),
+            })
         years = get_available_years()
         return JsonResponse({
             "success": True,
+            "scope": "city",
             "years": years,
             "default_year": get_default_coverage_year(),
             "year_counts": get_year_record_counts(),
@@ -72,12 +89,16 @@ def indicator_catalog_api(request):
 @require_http_methods(["GET"])
 def indicator_audit_groups_api(request):
     """指标校验页：指标组列表。"""
+    scope = (request.GET.get("scope") or "city").strip().lower()
+    groups = (
+        get_area_indicator_catalog_groups()
+        if scope == "area"
+        else get_indicator_catalog_groups()
+    )
     return JsonResponse({
         "success": True,
-        "groups": [
-            {"code": g["code"], "name": g["name"]}
-            for g in get_indicator_catalog_groups()
-        ],
+        "scope": scope,
+        "groups": [{"code": g["code"], "name": g["name"]} for g in groups],
     })
 
 
@@ -102,7 +123,8 @@ def check_data_api(request):
             if name.strip()
         ] or None
 
-        data = get_indicator_audit_data(
+        scope = (request.GET.get("scope") or "city").strip().lower()
+        common_kwargs = dict(
             year_param=request.GET.get("year") or None,
             province=request.GET.get("province") or None,
             city=request.GET.get("city") or None,
@@ -112,6 +134,13 @@ def check_data_api(request):
             page=page,
             page_size=page_size,
         )
+        if scope == "area":
+            data = get_area_indicator_audit_data(
+                area=request.GET.get("area") or None,
+                **common_kwargs,
+            )
+        else:
+            data = get_indicator_audit_data(**common_kwargs)
         return JsonResponse({"success": True, **data})
     except Exception as e:
         logger.error("check_data_api failed: %s", e)

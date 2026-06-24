@@ -613,12 +613,21 @@
     <div class="drc-filter-panel">
         <div class="drc-panel-header">
             <span>查询条件</span>
+            <div class="drc-mode-switch">
+                <iconify-icon icon="mdi:swap-horizontal" style="color:var(--drc-blue)"></iconify-icon>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                    <input type="checkbox" id="modeSwitch" style="accent-color:var(--drc-blue)">
+                    <span>切换到区县校验</span>
+                </label>
+                <span class="drc-mode-hint" id="modeHint">地市校验</span>
+            </div>
             <button id="exportBtn" type="button" class="drc-btn"><iconify-icon icon="mdi:download"></iconify-icon> 导出核对表</button>
         </div>
         <div class="drc-filter-panel-body">
             <div class="drc-field"><label>年份</label><select id="yearSelect"><option value="">所有年份</option></select></div>
             <div class="drc-field"><label>省份</label><select id="provinceSelect"><option value="">全部省份</option></select></div>
             <div class="drc-field"><label>城市</label><select id="citySelect"><option value="">全部城市</option></select></div>
+            <div class="drc-field hidden" id="areaField"><label>区县</label><select id="areaSelect"><option value="">全部区县</option></select></div>
             <div class="drc-field">
                 <label>指标（多选）</label>
                 <select id="indicatorSelect" style="min-width:160px">
@@ -710,6 +719,7 @@
 </div>
 <script>
     let dataDict = {};
+    let auditScope = 'city';
 
     const selectedIndicatorValues = new Set();
     let selectedIndicatorCategory = null;
@@ -758,7 +768,7 @@
         let defaultYear = null;
         let yearCounts = {};
         try {
-            const res = await fetch('/dashboard/api/indicator-audit-years/', { credentials: 'same-origin' });
+            const res = await fetch(`/dashboard/api/indicator-audit-years/?scope=${auditScope}`, { credentials: 'same-origin' });
             const json = await parseApiResponse(res, '年份列表');
             if (json.success) {
                 years = json.years || [];
@@ -776,6 +786,91 @@
             if (y === defaultYear) opt.selected = true;
             yearSelect.appendChild(opt);
         });
+    }
+
+    function loadCatalogForScope() {
+        if (auditScope === 'area') {
+            return IndicatorCatalog.loadArea().then(function (dict) {
+                dataDict = dict || {};
+            });
+        }
+        return IndicatorCatalog.load().then(function (dict) {
+            dataDict = dict || {};
+        });
+    }
+
+    async function updateAreaSelect() {
+        const areaField = document.getElementById('areaField');
+        const areaSelect = document.getElementById('areaSelect');
+        if (!areaField || !areaSelect) return;
+        if (auditScope !== 'area') {
+            areaField.classList.add('hidden');
+            areaSelect.innerHTML = '<option value="">全部区县</option>';
+            return;
+        }
+        areaField.classList.remove('hidden');
+        const city = document.getElementById('citySelect').value;
+        areaSelect.innerHTML = '<option value="">全部区县</option>';
+        if (!city) return;
+        try {
+            const res = await fetch(`/dashboard/get-area-map/?city=${encodeURIComponent(city)}`, { credentials: 'same-origin' });
+            const areas = await res.json();
+            if (!Array.isArray(areas) || !areas.length) {
+                areaSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+                return;
+            }
+            areas.forEach(area => {
+                const opt = document.createElement('option');
+                opt.value = area;
+                opt.textContent = area;
+                areaSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.warn('加载区县失败', e);
+            areaSelect.innerHTML = '<option value="">区县加载失败</option>';
+        }
+    }
+
+    function updateTableHeader() {
+        const header = document.getElementById('tableHeader');
+        if (!header) return;
+        if (auditScope === 'area') {
+            header.innerHTML = '<th>城市</th><th>区县</th><th>指标名称</th><th>年份</th><th>录入数值</th><th>单位</th><th>录入状态</th><th>录入方式</th><th>数据来源</th><th>备注</th>';
+        } else {
+            header.innerHTML = '<th>城市</th><th>指标名称</th><th>年份</th><th>录入数值</th><th>单位</th><th>录入状态</th><th>录入方式</th><th>数据来源</th><th>备注</th>';
+        }
+    }
+
+    function switchAuditMode() {
+        const isArea = document.getElementById('modeSwitch').checked;
+        const modeHint = document.getElementById('modeHint');
+        const nextScope = isArea ? 'area' : 'city';
+        if (nextScope === auditScope) return;
+
+        auditScope = nextScope;
+        selectedIndicatorValues.clear();
+        selectedIndicatorCategory = null;
+        renderSelectedIndicatorTags();
+        currentPage = 1;
+
+        if (isArea) {
+            modeHint.textContent = '区县校验';
+            modeHint.className = 'drc-mode-hint';
+            modeHint.style.background = '#fef3c7';
+            modeHint.style.color = '#a16207';
+        } else {
+            modeHint.textContent = '地市校验';
+            modeHint.className = 'drc-mode-hint';
+            modeHint.style.background = '';
+            modeHint.style.color = '';
+        }
+
+        updateTableHeader();
+        loadCatalogForScope()
+            .then(() => initYearSelect())
+            .then(() => updateAreaSelect())
+            .then(() => performQuery())
+            .catch(err => console.error('切换校验模式失败', err));
     }
     
     // 初始化省份下拉
@@ -808,6 +903,7 @@
             opt.textContent = city;
             citySelect.appendChild(opt);
         });
+        updateAreaSelect();
     }
     
     function renderSelectedIndicatorTags() {
@@ -931,6 +1027,7 @@
         const indicators = Array.from(selectedIndicatorValues).join(',');
 
         const params = new URLSearchParams({
+            scope: auditScope,
             year: year || '',
             province: province || '',
             city: city || '',
@@ -939,6 +1036,10 @@
             page: String(currentPage),
             page_size: String(pageSize),
         });
+        if (auditScope === 'area') {
+            const area = document.getElementById('areaSelect')?.value || '';
+            if (area) params.set('area', area);
+        }
 
         const queryBtn = document.getElementById('queryBtn');
         const originalText = queryBtn.innerHTML;
@@ -1002,9 +1103,10 @@
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const pageData = filteredData;
+        const colSpan = auditScope === 'area' ? 10 : 9;
 
         if (pageData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-12">暂无数据，请调整筛选条件</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-slate-400 py-12">暂无数据，请调整筛选条件</td></tr>`;
             document.getElementById('paginationInfo').innerText = totalRecords
                 ? `共 ${totalRecords} 条，当前第 ${currentPage}/${totalPages} 页`
                 : '';
@@ -1029,8 +1131,12 @@
             
             const row = document.createElement('tr');
             row.className = 'hover:bg-blue-50/30 transition-colors';
+            const areaCell = auditScope === 'area'
+                ? `<td class="text-slate-700">${record.area || '—'}</td>`
+                : '';
             row.innerHTML = `
                 <td class="font-medium text-slate-800">${record.city}</td>
+                ${areaCell}
                 <td class="text-slate-700">${record.indicator}</td>
                 <td class="text-slate-600">${record.year}年</td>
                 <td class="text-right">${valueDisplay}</td>
@@ -1056,18 +1162,26 @@
             alert('暂无数据可导出');
             return;
         }
-        const headers = ['城市', '指标名称', '年份', '录入数值', '单位', '录入状态', '录入方式', '数据来源', '备注'];
-        const rows = filteredData.map(record => [
-            record.city,
-            record.indicator,
-            record.year,
-            record.value || '',
-            record.unit || '',
-            record.status === 'imported' ? '已录入' : '未录入',
-            record.input_method_display || '',
-            record.source_display || '',
-            record.remark || ''
-        ]);
+        const headers = auditScope === 'area'
+            ? ['城市', '区县', '指标名称', '年份', '录入数值', '单位', '录入状态', '录入方式', '数据来源', '备注']
+            : ['城市', '指标名称', '年份', '录入数值', '单位', '录入状态', '录入方式', '数据来源', '备注'];
+        const rows = filteredData.map(record => {
+            const base = [
+                record.city,
+                record.indicator,
+                record.year,
+                record.value || '',
+                record.unit || '',
+                record.status === 'imported' ? '已录入' : '未录入',
+                record.input_method_display || '',
+                record.source_display || '',
+                record.remark || '',
+            ];
+            if (auditScope === 'area') {
+                base.splice(1, 0, record.area || '');
+            }
+            return base;
+        });
         
         const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1087,6 +1201,8 @@
 
     function bindEvents() {
         document.getElementById('provinceSelect').addEventListener('change', updateCitySelect);
+        document.getElementById('citySelect').addEventListener('change', updateAreaSelect);
+        document.getElementById('modeSwitch').addEventListener('change', switchAuditMode);
         document.getElementById('queryBtn').addEventListener('click', performQuery);
         document.getElementById('exportBtn').addEventListener('click', exportToCSV);
         document.getElementById('prevPage').addEventListener('click', () => {
@@ -1098,8 +1214,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        IndicatorCatalog.load()
-            .then(function (dict) { dataDict = dict; })
+        updateTableHeader();
+        loadCatalogForScope()
             .catch(function (err) { console.error('加载指标目录失败', err); })
             .finally(function () {
                 setupIndicatorModal();

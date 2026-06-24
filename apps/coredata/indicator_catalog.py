@@ -267,3 +267,17 @@ def get_indicator_group_map() -> Dict[str, str]:
 
 def get_group_name_map() -> Dict[str, str]:
     return {group["code"]: group["name"] for group in INDICATOR_CATALOG_GROUPS}
+
+
+def get_area_group_name_map() -> Dict[str, str]:
+    return {group["code"]: group["name"] for group in AREA_INDICATOR_CATALOG_GROUPS}
+
+
+def get_area_indicator_group_map() -> Dict[str, str]:
+    """{指标中文名: 分组 code}，区县指标子集。"""
+    result: Dict[str, str] = {}
+    for group in AREA_INDICATOR_CATALOG_GROUPS:
+        for name in group["indicators"]:
+            if not _is_remark_name(name):
+                result[name] = group["code"]
+    return result
