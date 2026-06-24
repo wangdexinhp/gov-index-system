@@ -9,7 +9,7 @@
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts-map/js/china.js"></script>
+<script src="/static/js/maps/china-map.js"></script>
 <style>
 
     :root {
@@ -919,6 +919,16 @@
             }));
     }
 
+    function isChinaMapRegistered() {
+        return !!(typeof echarts !== 'undefined' && echarts.getMap && echarts.getMap('china'));
+    }
+
+    function showChinaMapPlaceholder(message) {
+        const dom = document.getElementById('chinaMap');
+        if (!dom) return;
+        dom.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px;">${message}</div>`;
+    }
+
     function getCsrfToken() {
         const match = document.cookie.match(/csrftoken=([^;]+)/);
         return match ? decodeURIComponent(match[1]) : '';
@@ -1314,14 +1324,29 @@
     function renderChinaMap() {
         const dom = document.getElementById('chinaMap');
         if (!dom) return;
-        if (myChart) myChart.dispose();
-        myChart = echarts.init(dom);
+        if (!isChinaMapRegistered()) {
+            showChinaMapPlaceholder('中国地图资源未加载，请刷新页面后重试');
+            return;
+        }
+        dom.innerHTML = '';
+        if (myChart) {
+            myChart.dispose();
+            myChart = null;
+        }
+        try {
+            myChart = echarts.init(dom);
+        } catch (e) {
+            console.error('地图初始化失败', e);
+            showChinaMapPlaceholder('地图初始化失败');
+            return;
+        }
 
         const activeRegion = provinceToMapRegion(selectedProvince);
         const mapData = buildProvinceMapData(cityCompletionData);
         const zoom = activeRegion ? 3.2 : 1.2;
         const center = activeRegion && PROVINCE_MAP_CENTER[activeRegion] ? PROVINCE_MAP_CENTER[activeRegion] : undefined;
 
+        try {
         myChart.setOption({
             tooltip: {
                 trigger: 'item',
@@ -1367,7 +1392,16 @@
                 },
                 select: { disabled: true },
             }],
-        });
+        }, true);
+        } catch (e) {
+            console.error('地图渲染失败', e);
+            if (myChart) {
+                myChart.dispose();
+                myChart = null;
+            }
+            showChinaMapPlaceholder('地图渲染失败，表格数据仍可正常查看');
+            return;
+        }
 
         if (!window._chinaMapResizeBound) {
             window._chinaMapResizeBound = true;
