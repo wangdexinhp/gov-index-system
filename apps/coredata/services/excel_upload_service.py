@@ -5,11 +5,82 @@ from __future__ import annotations
 
 from io import BytesIO
 from math import isnan
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from openpyxl import load_workbook
 
 from apps.coredata.excel_color_sources import build_cell_payload
+from apps.coredata.management.commands.indicator_zh_en import AREA_INDIMAP, AREA_INDIMAP_UNIT
+
+_AREA_EXCEL_UNIT_SUFFIXES = ("_万人", "_亿元", "_万元", "_元", "_%")
+
+# Excel 列名简称 → AREA_INDIMAP 中的中文名（比对前预处理，目标名须在 map 内）
+_AREA_EXCEL_NAME_ALIASES = {
+    "常住人口": "常住人口数",
+    "户籍人口": "户籍人口数",
+    "一般预算收入": "一般公共预算收入",
+    "人均一般预算收入": "人均一般公共预算收入",
+    "城镇居民家庭人均可支配收入": "城镇居民人均可支配收入",
+    "农村居民家庭人均纯收入": "农村居民家庭人均纯收入",
+}
+
+
+def match_area_indicator_name(name_zh: str) -> Optional[Tuple[str, str]]:
+    """
+    在区县统一映射 AREA_INDIMAP / AREA_INDIMAP_UNIT 中查找。
+    命中返回 (规范中文名, name_en)；未命中返回 None。
+    """
+    text = (name_zh or "").strip()
+    if not text:
+        return None
+    name_en = AREA_INDIMAP.get(text)
+    if not name_en or name_en not in AREA_INDIMAP_UNIT:
+        return None
+    canonical = AREA_INDIMAP_UNIT[name_en].get("name_zh") or text
+    return canonical, name_en
+
+
+def strip_unit_suffix(name: str) -> str:
+    import re
+    text = (name or "").strip().lstrip("#")
+    return re.sub(r"\([^)]*\)$", "", text).strip()
+
+
+def strip_excel_column_suffix(name: str) -> str:
+    """去掉 Excel 列名中的 #、(单位)、_单位 等后缀。"""
+    text = strip_unit_suffix(name)
+    for suffix in _AREA_EXCEL_UNIT_SUFFIXES:
+        if text.endswith(suffix):
+            return text[: -len(suffix)]
+    return text
+
+
+def resolve_area_excel_indicator(
+    col_name: str,
+    last_metric_raw: Optional[str] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    区县 Excel 列名 → 预处理 → 与 AREA_INDIMAP 比对。
+    仅当与统一 map 一致时返回 (规范中文名, name_en)。
+    """
+    raw = str(col_name).split("__dup", 1)[0].strip().replace("\n", "").replace("\r", "")
+    if raw in ("所辖区域名称", "区域名称", "省份名称", "城市名称", "城市", "地市"):
+        return None, None
+
+    base = strip_excel_column_suffix(raw)
+
+    if base == "增长率":
+        prev_base = ""
+        if last_metric_raw:
+            prev_base = strip_excel_column_suffix(last_metric_raw)
+            prev_base = _AREA_EXCEL_NAME_ALIASES.get(prev_base, prev_base)
+        matched = match_area_indicator_name(f"{prev_base}增长率")
+        if matched:
+            return matched
+        return match_area_indicator_name("GDP增长率") or (None, None)
+
+    candidate = _AREA_EXCEL_NAME_ALIASES.get(base, base)
+    return match_area_indicator_name(candidate) or (None, None)
 
 
 def _cell_text(value: Any) -> str:

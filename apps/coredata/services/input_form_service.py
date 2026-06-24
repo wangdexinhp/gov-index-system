@@ -7,10 +7,8 @@ import re
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
-from apps.coredata.management.commands.indicator_zh_en import (
-    AREA_INDIMAP,
-    INDIMAP,
-)
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP
+from apps.coredata.services.excel_upload_service import match_area_indicator_name
 from apps.coredata.indicator_input_methods import get_input_method_display
 from apps.coredata.models.indicator import Indicator, IndicatorArea
 from apps.coredata.utils.mapper import get_city_name_to_code
@@ -126,8 +124,9 @@ def get_area_input_form_data(
     city_name_to_code = get_city_name_to_code()
     name_en_by_label: Dict[str, str] = {}
     for label in indicator_labels:
-        name_en = resolve_name_en(label, AREA_INDIMAP) or resolve_name_en(label, INDIMAP)
-        if name_en:
+        matched = match_area_indicator_name(strip_unit_suffix(label))
+        if matched:
+            _, name_en = matched
             name_en_by_label[label] = name_en
 
     if not name_en_by_label or not area_items:
