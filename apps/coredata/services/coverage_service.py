@@ -5,76 +5,41 @@ from django.db import DatabaseError
 from django.db.models import Count
 from django.utils import timezone
 
+from apps.coredata.indicator_catalog import get_group_name_map, get_indicator_group_map
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
+from apps.coredata.management.commands.indicator_zh_en import INDIMAP as _INDIMAP
 from apps.coredata.models.indicator import Indicator
 from apps.coredata.models.stats import CityCompletionStats, IndicatorCoverageStats
-from apps.coredata.utils.mapper import get_city_code_to_province
 
-# 与 indic_data_check_cover.html 保持一致的指标组映射
-INDICATOR_GROUP_MAP: Dict[str, str] = {
-    "常住人口数": "population", "城镇人口数": "population", "乡村人口数": "population",
-    "户籍人口数": "population", "年末总人口": "population", "年末总户数": "population",
-    "15-19岁人口数": "population", "60岁以上人口数": "population", "出生人口性别比": "population",
-    "人口出生率": "population", "城镇化率": "population",
-    "GDP": "economic_growth", "人均GDP": "economic_growth", "GDP增长率": "economic_growth",
-    "固定资产投资总额": "economic_growth", "固定资产投资总额增长率": "economic_growth",
-    "全社会消费品零售总额": "economic_growth", "全社会消费品零售总额增长率": "economic_growth",
-    "进出口总额": "economic_growth", "进出口总额增长率": "economic_growth",
-    "实际利用外资金额": "economic_growth", "实际利用外资金额增长率": "economic_growth",
-    "规模以上工业企业增加值": "economic_growth", "第二产业增加值占GDP比重": "economic_growth",
-    "第三产业增加值占GDP比重": "economic_growth", "城镇居民人均可支配收入": "economic_growth",
-    "一般公共预算收入": "finance", "财政总收入": "finance", "财政总收入增长率": "finance",
-    "一般公共预算支出": "finance", "一般公共服务支出": "finance", "科学技术支出": "finance",
-    "公共安全支出": "finance", "文化体育传媒支出": "finance", "环保支出": "finance",
-    "社会保障和就业支出": "finance", "教育支出": "finance", "医疗卫生支出": "finance",
-    "高新技术企业产值": "education_tech", "高新技术企业增加值": "education_tech",
-    "专利授权数量": "education_tech", "有效发明专利量": "education_tech",
-    "R&D经费": "education_tech", "普通小学在校学生数": "education_tech",
-    "普通中学在校学生数": "education_tech", "高中学在校学生数": "education_tech",
-    "城镇登记失业率": "employment", "城镇登记失业人员数": "employment",
-    "城镇新增就业人数": "employment", "城镇就业人数": "employment",
-    "采矿（掘)业就业人员人数": "employment", "制造业就业人员人数": "employment",
-    "森林覆盖率": "ecology", "PM2.5": "ecology", "PM10": "ecology",
-    "二氧化硫排放总量": "ecology", "工业废水排放总量": "ecology",
-    "生活垃圾无害化处理率": "ecology", "园林绿地面积": "ecology",
-}
+# 覆盖统计业务口径：336 个地市级（排除港澳台、省直辖县级市、三沙、儋州）
+COVERAGE_EXCLUDED_PROVINCES = frozenset({"台湾省", "香港特别行政区", "澳门特别行政区"})
+COVERAGE_EXCLUDED_CITIES = frozenset({
+    "仙桃市", "潜江市", "天门市", "神农架林区",
+    "石河子市", "阿拉尔市", "图木舒克市", "五家渠市", "铁门关市",
+    "三沙市", "儋州市",
+})
 
-GROUP_NAMES = {
-    "population": "人口数据",
-    "economic_growth": "经济增长",
-    "finance": "财政指标",
-    "education_tech": "教育科技",
-    "employment": "就业数据",
-    "ecology": "生态环保",
-    "other": "其他",
-}
+GROUP_NAMES = get_group_name_map()
 
-# 中文名 -> 英文名（与 INDIMAP 对齐的子集）
-from apps.coredata.management.commands.indicator_zh_en import INDIMAP as _INDIMAP
-
-# 页面展示名与 INDIMAP 键名不完全一致时的别名
-INDICATOR_NAME_ALIASES = {
-    "有效发明专利量": "有效发明专利量（发明专利有效量）",
-    "第二产业增加值占GDP比重": "第二产业增加值占GDP（增量）比重",
-    "第三产业增加值占GDP比重": "第三产业增加值占GDP（增量）比重",
-}
+# 不参与覆盖统计的指标（元数据列）
+COVERAGE_EXCLUDED_NAME_EN = frozenset({"city_name"})
 
 
-def _resolve_name_en(name_zh: str) -> str:
-    key = INDICATOR_NAME_ALIASES.get(name_zh, name_zh)
-    return _INDIMAP.get(key, "")
+def _build_trackable_indicators() -> List[Dict[str, str]]:
+    """从指标目录 + INDIMAP 构建可追踪指标列表（不含备注项）。"""
+    group_map = get_indicator_group_map()
+    seen_en: set = set()
+    items: List[Dict[str, str]] = []
+    for name_zh, group in group_map.items():
+        name_en = _INDIMAP.get(name_zh, "")
+        if not name_en or name_en in seen_en or name_en in COVERAGE_EXCLUDED_NAME_EN:
+            continue
+        seen_en.add(name_en)
+        items.append({"name_zh": name_zh, "name_en": name_en, "group": group})
+    return items
 
 
-TRACKABLE_INDICATORS: List[Dict[str, str]] = []
-for _name_zh, _group in INDICATOR_GROUP_MAP.items():
-    _name_en = _resolve_name_en(_name_zh)
-    if _name_en:
-        TRACKABLE_INDICATORS.append({
-            "name_zh": _name_zh,
-            "name_en": _name_en,
-            "group": _group,
-        })
-
+TRACKABLE_INDICATORS = _build_trackable_indicators()
 TRACKABLE_NAME_EN_SET = {item["name_en"] for item in TRACKABLE_INDICATORS}
 
 
@@ -120,15 +85,17 @@ def resolve_year(year_param: Optional[str]) -> int:
 
 def _build_city_catalog() -> List[Dict]:
     catalog = []
-    code_map = get_city_code_to_province()
     for prov in CHINA_REGIONS:
         province_name = prov["province_name"]
+        if province_name in COVERAGE_EXCLUDED_PROVINCES:
+            continue
         province_code = int(prov["province_code"])
         for city in prov.get("cities", []):
-            city_code = int(city["code"])
             city_name = city["name"]
+            if city_name in COVERAGE_EXCLUDED_CITIES:
+                continue
             catalog.append({
-                "city_id": city_code,
+                "city_id": int(city["code"]),
                 "city": city_name,
                 "province_id": province_code,
                 "province": province_name,
@@ -247,7 +214,7 @@ def compute_indicator_coverage(
 
 def build_summary(city_completion: List[Dict], indicator_coverage: List[Dict]) -> Dict:
     total_cities = len(city_completion)
-    total_indicators = len(TRACKABLE_INDICATORS)
+    total_indicators = len(indicator_coverage) or len(TRACKABLE_INDICATORS)
     avg_completion = (
         round(sum(c["rate"] for c in city_completion) / total_cities, 1) if total_cities else 0.0
     )
