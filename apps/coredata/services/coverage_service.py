@@ -268,6 +268,17 @@ def _load_cached_overview(year: int) -> Optional[Dict]:
         return None
 
 
+def _cache_matches_scope(cached: Dict, cities: List[Dict]) -> bool:
+    """缓存与当前地市/指标口径不一致时丢弃，避免仍显示 371 地市等旧数据。"""
+    expected_city_ids = {c["city_id"] for c in cities}
+    cached_city_ids = {c["city_id"] for c in cached.get("city_completion", [])}
+    if cached_city_ids != expected_city_ids:
+        return False
+    if len(cached.get("indicator_coverage", [])) != len(TRACKABLE_INDICATORS):
+        return False
+    return True
+
+
 def get_coverage_overview(
     year_param: Optional[str] = None,
     province: Optional[str] = None,
@@ -279,6 +290,8 @@ def get_coverage_overview(
 
     use_cache = not province and not city and not indicator_group
     cached = _load_cached_overview(year) if use_cache else None
+    if cached and not _cache_matches_scope(cached, cities):
+        cached = None
 
     if cached:
         city_completion = cached["city_completion"]
