@@ -21,12 +21,16 @@ from apps.coredata.excel_color_sources import DEFAULT_EXCEL_SOURCE
 from apps.coredata.indicator_input_methods import IndicatorInputMethod, normalize_data_source
 from apps.coredata.services.excel_upload_service import (
     extract_cell_fields,
+    excel_column_name_base,
     has_excel_cell_value,
+    match_area_indicator_name,
+    match_city_indicator_name,
     parse_area_indicator_excel,
     parse_city_indicator_excel,
     resolve_area_excel_indicator,
-    strip_excel_column_suffix,
+    resolve_city_excel_indicator,
 )
+from apps.coredata.services.input_form_service import strip_unit_suffix
 
 import secrets
 from functools import wraps
@@ -450,9 +454,11 @@ def save_to_database(rows_data):
         for group in groups:
             value = group.get('value')
             note = group.get('note')
-            name_zh = group.get('name_zh')
-            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
-            name_en = group.get('name_en') or INDIMAP.get(name_zh)
+            label = group.get('name_zh') or ''
+            matched = match_city_indicator_name(strip_unit_suffix(label))
+            if not matched:
+                continue
+            name_zh, name_en = matched
 
             source = normalize_data_source(group.get('source'))
             input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
@@ -511,9 +517,11 @@ def save_area_to_database(rows_data):
         for group in groups:
             value = group.get('value')
             note = group.get('note')
-            name_zh = group.get('name_zh')
-            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
-            name_en = INDIMAP.get(name_zh)
+            label = group.get('name_zh') or ''
+            matched = match_area_indicator_name(strip_unit_suffix(label))
+            if not matched:
+                continue
+            name_zh, name_en = matched
 
             source = normalize_data_source(group.get('source'))
             input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
@@ -528,7 +536,7 @@ def save_area_to_database(rows_data):
                 value=value or 0,
                 name_en=name_en or '',
                 note=note or '',
-                name_zh= name_zh or '',  
+                name_zh=name_zh or '',
                 input_form=IndicatorArea.InputForm.INPUT,
                 indicator_type=IndicatorArea.IndicatorType.OTHER,
             )
@@ -921,19 +929,24 @@ def save_df_to_database(rows_data, year):
         city_code_to_province = get_city_code_to_province()
         province_info = city_code_to_province.get(city_id)
         province_id = province_info['province_code'] if province_info else 0
+        last_metric_raw = None
         for col_name, raw_value in row.items():
-            if col_name in ['城市', 'A']:
+            if col_name in ['城市', 'A'] or str(col_name).startswith('Column_'):
                 continue
+
+            raw_name = str(col_name).split('__dup', 1)[0].strip()
+            name_zh, name_en = resolve_city_excel_indicator(col_name, last_metric_raw)
+            if excel_column_name_base(raw_name) != '增长率':
+                last_metric_raw = raw_name
+
             value, source, note = extract_cell_fields(raw_value)
             if not has_excel_cell_value(value):
                 continue
-            name_zh = col_name
+            if not name_en or name_en not in INDIMAP_UNIT:
+                continue
+
             source = normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE
             print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
-            name_en = INDIMAP.get(name_zh)
-            if not name_en:
-                print(f"未找到指标英文名映射，跳过: {name_zh}")
-                continue
             try:
                 Indicator.objects.create(
                     year=year,
@@ -989,7 +1002,7 @@ def save_area_df_to_database(rows_data, year):
 
             raw_name = str(col_name).split('__dup', 1)[0].strip()
             name_zh, name_en = resolve_area_excel_indicator(col_name, last_metric_raw)
-            if strip_excel_column_suffix(raw_name) != '增长率':
+            if excel_column_name_base(raw_name) != '增长率':
                 last_metric_raw = raw_name
 
             value, source, note = extract_cell_fields(raw_value)

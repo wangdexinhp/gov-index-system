@@ -10,9 +10,14 @@ from typing import Any, Dict, List, Optional, Tuple
 from openpyxl import load_workbook
 
 from apps.coredata.excel_color_sources import build_cell_payload
-from apps.coredata.management.commands.indicator_zh_en import AREA_INDIMAP, AREA_INDIMAP_UNIT
+from apps.coredata.management.commands.indicator_zh_en import (
+    AREA_INDIMAP,
+    AREA_INDIMAP_UNIT,
+    INDIMAP,
+    INDIMAP_UNIT,
+)
 
-_AREA_EXCEL_UNIT_SUFFIXES = ("_万人", "_亿元", "_万元", "_元", "_%")
+# Excel 表头第二行经 _ 拼入列名；匹配指标时只取 _ 前第一段，单位以 *_UNIT map 为准。
 
 # Excel 列名简称 → AREA_INDIMAP 中的中文名（比对前预处理，目标名须在 map 内）
 _AREA_EXCEL_NAME_ALIASES = {
@@ -23,6 +28,18 @@ _AREA_EXCEL_NAME_ALIASES = {
     "城镇居民家庭人均可支配收入": "城镇居民人均可支配收入",
     "农村居民家庭人均纯收入": "农村居民家庭人均纯收入",
 }
+
+
+def match_city_indicator_name(name_zh: str) -> Optional[Tuple[str, str]]:
+    """在地市统一映射 INDIMAP / INDIMAP_UNIT 中查找。"""
+    text = (name_zh or "").strip()
+    if not text:
+        return None
+    name_en = INDIMAP.get(text)
+    if not name_en or name_en not in INDIMAP_UNIT:
+        return None
+    canonical = INDIMAP_UNIT[name_en].get("name_zh") or text
+    return canonical, name_en
 
 
 def match_area_indicator_name(name_zh: str) -> Optional[Tuple[str, str]]:
@@ -46,13 +63,37 @@ def strip_unit_suffix(name: str) -> str:
     return re.sub(r"\([^)]*\)$", "", text).strip()
 
 
-def strip_excel_column_suffix(name: str) -> str:
-    """去掉 Excel 列名中的 #、(单位)、_单位 等后缀。"""
-    text = strip_unit_suffix(name)
-    for suffix in _AREA_EXCEL_UNIT_SUFFIXES:
-        if text.endswith(suffix):
-            return text[: -len(suffix)]
-    return text
+def excel_column_name_base(col_name: str) -> str:
+    """Excel 列名按 _ 拆分，取第一部分作为指标名（后面通常是单位，不参与匹配）。"""
+    raw = str(col_name).split("__dup", 1)[0].strip().replace("\n", "").replace("\r", "")
+    raw = strip_unit_suffix(raw)
+    if "_" in raw:
+        return raw.split("_", 1)[0].strip()
+    return raw
+
+
+def resolve_city_excel_indicator(
+    col_name: str,
+    last_metric_raw: Optional[str] = None,
+) -> Tuple[Optional[str], Optional[str]]:
+    """地市 Excel 列名 → 取 _ 前第一段 → 与 INDIMAP 比对，规范名取自 INDIMAP_UNIT。"""
+    raw = str(col_name).split("__dup", 1)[0].strip().replace("\n", "").replace("\r", "")
+    if raw in ("城市", "A") or raw.startswith("Column_"):
+        return None, None
+
+    base = excel_column_name_base(col_name)
+    if base == "增长率":
+        prev_base = excel_column_name_base(last_metric_raw) if last_metric_raw else ""
+        matched = match_city_indicator_name(f"{prev_base}增长率")
+        if matched:
+            return matched
+        return match_city_indicator_name("GDP增长率") or (None, None)
+
+    for candidate in (base, raw):
+        matched = match_city_indicator_name(candidate)
+        if matched:
+            return matched
+    return None, None
 
 
 def resolve_area_excel_indicator(
@@ -60,20 +101,18 @@ def resolve_area_excel_indicator(
     last_metric_raw: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
     """
-    区县 Excel 列名 → 预处理 → 与 AREA_INDIMAP 比对。
-    仅当与统一 map 一致时返回 (规范中文名, name_en)。
+    区县 Excel 列名 → 取 _ 前第一段 → 与 AREA_INDIMAP 比对。
+    命中则返回 (规范中文名, name_en)，单位以 AREA_INDIMAP_UNIT 为准。
     """
     raw = str(col_name).split("__dup", 1)[0].strip().replace("\n", "").replace("\r", "")
     if raw in ("所辖区域名称", "区域名称", "省份名称", "城市名称", "城市", "地市"):
         return None, None
 
-    base = strip_excel_column_suffix(raw)
+    base = excel_column_name_base(col_name)
 
     if base == "增长率":
-        prev_base = ""
-        if last_metric_raw:
-            prev_base = strip_excel_column_suffix(last_metric_raw)
-            prev_base = _AREA_EXCEL_NAME_ALIASES.get(prev_base, prev_base)
+        prev_base = excel_column_name_base(last_metric_raw) if last_metric_raw else ""
+        prev_base = _AREA_EXCEL_NAME_ALIASES.get(prev_base, prev_base)
         matched = match_area_indicator_name(f"{prev_base}增长率")
         if matched:
             return matched
