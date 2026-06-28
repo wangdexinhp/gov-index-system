@@ -233,6 +233,30 @@ def get_area_indicator_catalog_groups() -> List[IndicatorGroup]:
     return AREA_INDICATOR_CATALOG_GROUPS
 
 
+def get_indicator_unit_map(scope: str = "city") -> Dict[str, str]:
+    """{指标中文名: 单位}，供补录/查询页展示。"""
+    if scope == "area":
+        zh_to_en = _AREA_ZH_TO_EN
+        unit_map = AREA_INDIMAP_UNIT
+        groups = AREA_INDICATOR_CATALOG_GROUPS
+    else:
+        zh_to_en = _ZH_TO_EN
+        unit_map = INDIMAP_UNIT
+        groups = INDICATOR_CATALOG_GROUPS
+    result: Dict[str, str] = {}
+    for group in groups:
+        for name_zh in group["indicators"]:
+            if _is_remark_name(name_zh):
+                continue
+            name_en = zh_to_en.get(name_zh)
+            if not name_en:
+                continue
+            unit = unit_map.get(name_en, {}).get("unit")
+            if unit:
+                result[name_zh] = unit
+    return result
+
+
 def get_indicator_catalog_dict() -> Dict[str, List[str]]:
     """{分组显示名: [指标中文名, ...]}，供前端 dataDict 使用。"""
     return {group["name"]: list(group["indicators"]) for group in INDICATOR_CATALOG_GROUPS}

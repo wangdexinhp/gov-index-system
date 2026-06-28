@@ -615,38 +615,50 @@
             <span>查询条件</span>
             <div class="drc-mode-switch">
                 <iconify-icon icon="mdi:swap-horizontal" style="color:var(--drc-blue)"></iconify-icon>
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                    <input type="checkbox" id="modeSwitch" style="accent-color:var(--drc-blue)">
-                    <span>切换到补录模式</span>
-                </label>
-                <span class="drc-mode-hint" id="modeHint">覆盖查询模式</span>
+                <div class="drc-mode-tabs" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                        <input type="radio" name="viewMode" value="coverage" checked style="accent-color:var(--drc-blue)">
+                        <span>覆盖查询</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                        <input type="radio" name="viewMode" value="replenish" style="accent-color:var(--drc-blue)">
+                        <span>补录</span>
+                    </label>
+                    <span style="color:#ccc">|</span>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                        <input type="checkbox" id="scopeSwitch" style="accent-color:var(--drc-blue)">
+                        <span id="scopeSwitchLabel">区县数据</span>
+                    </label>
+                </div>
+                <span class="drc-mode-hint" id="modeHint">地市 · 覆盖查询</span>
             </div>
         </div>
         <div class="drc-filter-panel-body">
             <div class="drc-field"><label>年份</label><select id="yearSelect"><option value="">所有年份</option></select></div>
             <div class="drc-field"><label>省份</label><select id="provinceSelect"><option value="">全部省份</option></select></div>
             <div class="drc-field"><label>城市</label><select id="citySelect"><option value="">全部城市</option></select></div>
+            <div class="drc-field hidden" id="areaField"><label>区县</label><select id="areaSelect"><option value="">全部区县</option></select></div>
             <button id="queryBtn" type="button" class="drc-btn drc-btn-primary"><iconify-icon icon="mdi:refresh"></iconify-icon> 查询</button>
         </div>
     </div>
 
     <div class="drc-stat-grid">
-        <div class="drc-stat-card"><div class="stat-label">地市级总数</div><div class="stat-value" id="totalCities">0</div></div>
+        <div class="drc-stat-card"><div class="stat-label" id="totalEntitiesLabel">地市级总数</div><div class="stat-value" id="totalCities">0</div></div>
         <div class="drc-stat-card"><div class="stat-label">平均完成率</div><div class="stat-value green" id="avgCompletionRate">0%</div></div>
         <div class="drc-stat-card"><div class="stat-label">指标总数</div><div class="stat-value amber" id="totalIndicators">0</div></div>
         <div class="drc-stat-card"><div class="stat-label">平均覆盖率</div><div class="stat-value purple" id="avgCoverageRate">0%</div></div>
     </div>
 
     <div id="coverageModeContent" class="drc-grid-2">
-        <div class="drc-panel">
+        <div class="drc-panel" id="mapPanel">
             <div class="drc-panel-header">
-                <span><iconify-icon icon="mdi:map"></iconify-icon> 地市级数据完成率分布图</span>
+                <span id="mapPanelTitle"><iconify-icon icon="mdi:map"></iconify-icon> 地市级数据完成率分布图</span>
             </div>
             <div class="drc-panel-body"><div id="chinaMap" style="height:450px;width:100%"></div></div>
         </div>
         <div class="drc-panel">
             <div class="drc-panel-header">
-                <span><iconify-icon icon="mdi:format-list-numbered"></iconify-icon> 地市完成率排行榜</span>
+                <span id="rankingPanelTitle"><iconify-icon icon="mdi:format-list-numbered"></iconify-icon> 地市完成率排行榜</span>
                 <div style="display:flex;gap:8px;font-size:11px;font-weight:400">
                     <button id="sortByRateDesc" type="button" class="drc-btn" style="padding:2px 8px">按完成率</button>
                     <button id="sortByNameAsc" type="button" class="drc-btn" style="padding:2px 8px">按城市</button>
@@ -655,7 +667,7 @@
             <div class="drc-panel-body">
                 <div class="table-wrapper">
                     <table class="data-table">
-                        <thead><tr><th>排名</th><th>城市</th><th>所属省份</th><th>已录入指标</th><th>完成率</th></tr></thead>
+                        <thead id="rankingTableHead"><tr><th>排名</th><th>城市</th><th>所属省份</th><th>已录入指标</th><th>完成率</th></tr></thead>
                         <tbody id="cityRankingBody"><tr><td colspan="5" style="text-align:center;color:#999;padding:24px">加载中...</td></tr></tbody>
                     </table>
                 </div>
@@ -677,7 +689,7 @@
         <div class="drc-panel-body">
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead><tr><th>排名</th><th>指标名称</th><th>所属指标组</th><th>已录入城市数</th><th>覆盖率</th></tr></thead>
+                    <thead id="indicatorCoverageHead"><tr><th>排名</th><th>指标名称</th><th>所属指标组</th><th id="coverageCountHead">已录入城市数</th><th>覆盖率</th></tr></thead>
                     <tbody id="indicatorCoverageBody"><tr><td colspan="5" style="text-align:center;color:#999;padding:24px">加载中...</td></tr></tbody>
                 </table>
             </div>
@@ -687,7 +699,7 @@
     <div id="replenishModeContent" class="hidden">
         <div class="drc-panel">
             <div class="drc-panel-header">
-                <span><iconify-icon icon="mdi:database-edit"></iconify-icon> 缺失指标补录清单</span>
+                <span id="replenishPanelTitle"><iconify-icon icon="mdi:database-edit"></iconify-icon> 缺失指标补录清单</span>
                 <div class="filter-bar">
                     <span style="color:var(--drc-blue-dark);font-weight:600">按指标筛选</span>
                     <select id="replenishIndicatorSelect" class="filter-select" style="min-width:160px">
@@ -701,8 +713,8 @@
             <div class="drc-panel-body">
                 <div class="table-wrapper">
                     <table class="data-table">
-                        <thead><tr><th>序号</th><th>城市</th><th>指标名称</th><th>年份</th><th>数值</th><th>数据来源</th><th>操作</th></tr></thead>
-                        <tbody id="replenishTableBody"><tr><td colspan="7" style="text-align:center;color:#999;padding:24px">加载中...</td></tr></tbody>
+                        <thead id="replenishTableHead"><tr><th>序号</th><th>城市</th><th>指标名称</th><th>单位</th><th>年份</th><th>数值</th><th>数据来源</th><th>操作</th></tr></thead>
+                        <tbody id="replenishTableBody"><tr><td colspan="8" style="text-align:center;color:#999;padding:24px">加载中...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -751,6 +763,7 @@
     // ==================== 全局变量 ====================
     let provinceCityMap = {};
     let cityCompletionData = [];
+    let areaCompletionData = [];
     let indicatorCoverageData = [];
     let filteredIndicatorData = [];
     let missingDataList = [];
@@ -758,10 +771,12 @@
     let totalCities = 336;
     let totalIndicators = 0;
     let myChart = null;
-    let currentMode = 'coverage';
-    let selectedReplenishIndicator = '';      // 补录模式选中的指标
+    let coverageScope = 'city';   // city | area
+    let viewMode = 'coverage';    // coverage | replenish
+    let selectedReplenishIndicator = '';
     let selectedProvince = '';
     let selectedCity = '';
+    let selectedArea = '';
     let selectedYear = '';
     let coverageAbortController = null;
     let missingAbortController = null;
@@ -810,8 +825,130 @@
     // 指标目录（从后端 API 加载）
     let dataDict = {};
     let indicatorGroupMap = {};
+    let indicatorUnitMap = {};
     let groupNames = {};
     let allIndicatorsList = [];
+    let catalogGroups = [];
+
+    function formatIndicatorLabel(nameZh) {
+        const unit = indicatorUnitMap[nameZh];
+        return unit ? `${nameZh}（${unit}）` : nameZh;
+    }
+
+    function getCompletionData() {
+        return coverageScope === 'area' ? areaCompletionData : cityCompletionData;
+    }
+
+    function updateScopeLabels() {
+        const isArea = coverageScope === 'area';
+        document.getElementById('totalEntitiesLabel').textContent = isArea ? '区县总数' : '地市级总数';
+        document.getElementById('coverageCountHead').textContent = isArea ? '已录入区县数' : '已录入城市数';
+        document.getElementById('rankingPanelTitle').innerHTML = isArea
+            ? '<iconify-icon icon="mdi:format-list-numbered"></iconify-icon> 区县完成率排行榜'
+            : '<iconify-icon icon="mdi:format-list-numbered"></iconify-icon> 地市完成率排行榜';
+        document.getElementById('mapPanelTitle').innerHTML = isArea
+            ? '<iconify-icon icon="mdi:map"></iconify-icon> 区县数据说明'
+            : '<iconify-icon icon="mdi:map"></iconify-icon> 地市级数据完成率分布图';
+        document.getElementById('replenishPanelTitle').innerHTML = isArea
+            ? '<iconify-icon icon="mdi:database-edit"></iconify-icon> 区县缺失指标补录清单'
+            : '<iconify-icon icon="mdi:database-edit"></iconify-icon> 地市缺失指标补录清单';
+        const rankingHead = document.getElementById('rankingTableHead');
+        if (rankingHead) {
+            rankingHead.innerHTML = isArea
+                ? '<tr><th>排名</th><th>城市</th><th>区县</th><th>所属省份</th><th>已录入指标</th><th>完成率</th></tr>'
+                : '<tr><th>排名</th><th>城市</th><th>所属省份</th><th>已录入指标</th><th>完成率</th></tr>';
+        }
+        const replenishHead = document.getElementById('replenishTableHead');
+        if (replenishHead) {
+            replenishHead.innerHTML = isArea
+                ? '<tr><th>序号</th><th>城市</th><th>区县</th><th>指标名称</th><th>单位</th><th>年份</th><th>数值</th><th>数据来源</th><th>操作</th></tr>'
+                : '<tr><th>序号</th><th>城市</th><th>指标名称</th><th>单位</th><th>年份</th><th>数值</th><th>数据来源</th><th>操作</th></tr>';
+        }
+        const mapPanel = document.getElementById('mapPanel');
+        const coverageContent = document.getElementById('coverageModeContent');
+        if (mapPanel) {
+            if (isArea) {
+                mapPanel.classList.add('hidden');
+            } else {
+                mapPanel.classList.remove('hidden');
+            }
+        }
+        if (coverageContent) {
+            coverageContent.style.gridTemplateColumns = isArea ? '1fr' : '';
+        }
+        updateModeHint();
+    }
+
+    function updateModeHint() {
+        const hint = document.getElementById('modeHint');
+        const scopeLabel = coverageScope === 'area' ? '区县' : '地市';
+        const modeLabel = viewMode === 'replenish' ? '补录' : '覆盖查询';
+        hint.textContent = `${scopeLabel} · ${modeLabel}`;
+        hint.className = viewMode === 'replenish'
+            ? 'drc-mode-hint'
+            : 'drc-mode-hint';
+        hint.style.background = viewMode === 'replenish' ? '#fef3c7' : '#e8f1fb';
+        hint.style.color = viewMode === 'replenish' ? '#a16207' : 'var(--drc-blue-dark)';
+    }
+
+    function loadCatalogForScope(full) {
+        if (coverageScope === 'area') {
+            dataDict = full.area_data || {};
+            indicatorGroupMap = {};
+            (full.area_groups || []).forEach(function (g) {
+                (g.indicators || []).forEach(function (name) {
+                    indicatorGroupMap[name] = g.code;
+                });
+            });
+            indicatorUnitMap = full.area_unit_map || {};
+            groupNames = {};
+            (full.area_groups || []).forEach(function (g) {
+                groupNames[g.code] = g.name;
+            });
+            catalogGroups = full.area_groups || [];
+        } else {
+            dataDict = full.data || {};
+            indicatorGroupMap = full.group_map || {};
+            indicatorUnitMap = full.unit_map || {};
+            groupNames = full.group_names || {};
+            catalogGroups = full.groups || [];
+        }
+        allIndicatorsList = Object.keys(indicatorGroupMap);
+        populateIndicatorGroupFilter(catalogGroups);
+    }
+
+    async function updateAreaSelect() {
+        const areaField = document.getElementById('areaField');
+        const areaSelect = document.getElementById('areaSelect');
+        if (!areaField || !areaSelect) return;
+        if (coverageScope !== 'area') {
+            areaField.classList.add('hidden');
+            areaSelect.innerHTML = '<option value="">全部区县</option>';
+            selectedArea = '';
+            return;
+        }
+        areaField.classList.remove('hidden');
+        const city = document.getElementById('citySelect').value;
+        areaSelect.innerHTML = '<option value="">全部区县</option>';
+        if (!city) return;
+        try {
+            const res = await fetch(`/dashboard/get-area-map/?city=${encodeURIComponent(city)}`, { credentials: 'same-origin' });
+            const areas = await res.json();
+            if (!Array.isArray(areas) || !areas.length) {
+                areaSelect.innerHTML = '<option value="">该城市暂无区县数据</option>';
+                return;
+            }
+            areas.forEach(area => {
+                const opt = document.createElement('option');
+                opt.value = area;
+                opt.textContent = area;
+                areaSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.warn('加载区县失败', e);
+            areaSelect.innerHTML = '<option value="">区县加载失败</option>';
+        }
+    }
 
     function populateIndicatorGroupFilter(groups) {
         const sel = document.getElementById('indicatorGroupFilter');
@@ -966,9 +1103,11 @@
 
     function buildQueryParams() {
         const params = new URLSearchParams();
+        params.set('scope', coverageScope);
         if (selectedYear) params.set('year', selectedYear);
         if (selectedProvince) params.set('province', selectedProvince);
         if (selectedCity) params.set('city', selectedCity);
+        if (coverageScope === 'area' && selectedArea) params.set('area', selectedArea);
         return params;
     }
     
@@ -1014,13 +1153,13 @@
             dataDict[category].forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'item';
-                itemDiv.textContent = item;
+                itemDiv.textContent = formatIndicatorLabel(item);
                 if (selectedValue === item) itemDiv.classList.add('selected');
                 itemDiv.addEventListener('click', () => {
                     selectedValue = item;
                     document.querySelectorAll('#secondColumn .item').forEach(i => i.classList.remove('selected'));
                     itemDiv.classList.add('selected');
-                    modalResultContent.innerHTML = `已选择: ${category} -> ${item}`;
+                    modalResultContent.innerHTML = `已选择: ${category} -> ${formatIndicatorLabel(item)}`;
                 });
                 secondColumn.appendChild(itemDiv);
             });
@@ -1037,12 +1176,12 @@
                 selectedReplenishIndicator = selectedValue;
                 // 更新显示标签
                 const tagSpan = document.getElementById('selectedIndicatorTag');
-                tagSpan.innerHTML = `${selectedValue} <span class="clear-indicator" onclick="clearIndicatorFilter()">✕</span>`;
+                tagSpan.innerHTML = `${formatIndicatorLabel(selectedValue)} <span class="clear-indicator" onclick="clearIndicatorFilter()">✕</span>`;
                 tagSpan.classList.remove('hidden');
                 // 重置下拉框显示
                 const indicatorSelect = document.getElementById('replenishIndicatorSelect');
                 indicatorSelect.value = '';
-                if (currentMode === 'replenish') {
+                if (viewMode === 'replenish') {
                     fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
                 }
             } else {
@@ -1059,7 +1198,7 @@
         tagSpan.innerHTML = '';
         const indicatorSelect = document.getElementById('replenishIndicatorSelect');
         indicatorSelect.value = '';
-        if (currentMode === 'replenish') {
+        if (viewMode === 'replenish') {
             fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
         } else {
             applyReplenishFilters();
@@ -1087,6 +1226,7 @@
         const json = await parseApiResponse(res, '覆盖查询');
         if (!json.success) throw new Error(json.message || '覆盖查询失败');
         cityCompletionData = json.city_completion || [];
+        areaCompletionData = json.area_completion || [];
         indicatorCoverageData = (json.indicator_coverage || []).map(item => ({
             indicator: item.indicator,
             group: item.group,
@@ -1099,8 +1239,10 @@
             updateStatistics(json.summary);
         }
         applyIndicatorGroupFilter();
-        renderCityRanking();
-        renderChinaMap();
+        renderEntityRanking();
+        if (coverageScope === 'city') {
+            renderChinaMap();
+        }
     }
 
     async function fetchMissingRecords() {
@@ -1145,30 +1287,40 @@
             document.getElementById('avgCoverageRate').innerText = summary.avg_coverage_rate + '%';
             return;
         }
-        const avgCompletion = cityCompletionData.reduce((sum, c) => sum + c.rate, 0) / (cityCompletionData.length || 1);
+        const avgCompletion = getCompletionData().reduce((sum, c) => sum + c.rate, 0) / (getCompletionData().length || 1);
         const avgCoverage = indicatorCoverageData.reduce((sum, i) => sum + i.rate, 0) / (indicatorCoverageData.length || 1);
-        document.getElementById('totalCities').innerText = cityCompletionData.length;
+        document.getElementById('totalCities').innerText = getCompletionData().length;
         document.getElementById('avgCompletionRate').innerText = avgCompletion.toFixed(1) + '%';
         document.getElementById('totalIndicators').innerText = totalIndicators;
         document.getElementById('avgCoverageRate').innerText = avgCoverage.toFixed(1) + '%';
     }
     
-    function renderCityRanking() {
+    function renderEntityRanking() {
         const tbody = document.getElementById('cityRankingBody');
-        if (!cityCompletionData.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-400 py-8">暂无数据<\/td><\/tr>';
+        const data = getCompletionData();
+        const colSpan = coverageScope === 'area' ? 6 : 5;
+        if (!data.length) {
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-slate-400 py-8">暂无数据<\/td><\/tr>`;
             return;
         }
-        tbody.innerHTML = cityCompletionData.slice(0, 20).map((item, idx) => {
+        tbody.innerHTML = data.slice(0, 20).map((item, idx) => {
             let progressClass = item.rate >= 70 ? 'high' : (item.rate >= 40 ? 'medium' : 'low');
+            const areaCell = coverageScope === 'area'
+                ? `<td class="text-slate-700">${item.area}<\/td>`
+                : '';
             return `<tr class="hover:bg-blue-50/30 transition">
                 <td class="text-center font-medium">${idx + 1}<\/td>
                 <td class="font-medium text-slate-800">${item.city}<\/td>
+                ${areaCell}
                 <td class="text-slate-600">${item.province}<\/td>
                 <td class="text-center">${item.completed}/${item.total}<\/td>
                 <td><div class="flex items-center gap-2"><div class="progress-bar flex-1"><div class="progress-fill ${progressClass}" style="width: ${item.rate}%"><\/div><\/div><span class="text-sm font-medium ${item.rate >= 70 ? 'text-green-600' : (item.rate >= 40 ? 'text-yellow-600' : 'text-red-500')}">${item.rate}%<\/span><\/div><\/td>
             <\/tr>`;
         }).join('');
+    }
+
+    function renderCityRanking() {
+        renderEntityRanking();
     }
     
     function renderIndicatorCoverage() {
@@ -1207,7 +1359,9 @@
             }
 
             readyCount += 1;
-            const key = `${item.city}|${item.province}|${item.year}`;
+            const key = coverageScope === 'area'
+                ? `${item.city}|${item.area}|${item.province}|${item.year}`
+                : `${item.city}|${item.province}|${item.year}`;
             if (!rowsMap[key]) {
                 rowsMap[key] = {
                     city: item.city,
@@ -1215,6 +1369,9 @@
                     year: item.year,
                     groups: [],
                 };
+                if (coverageScope === 'area') {
+                    rowsMap[key].area = item.area;
+                }
             }
             rowsMap[key].groups.push({
                 name_zh: item.indicator,
@@ -1254,7 +1411,8 @@
     async function postReplenishRows(rows, successMsg) {
         const formData = new FormData();
         formData.append('rows_json', JSON.stringify(rows));
-        const res = await fetch('/dashboard/submit/', {
+        const submitUrl = coverageScope === 'area' ? '/dashboard/submit-area/' : '/dashboard/submit/';
+        const res = await fetch(submitUrl, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'X-CSRFToken': getCsrfToken() },
@@ -1262,46 +1420,80 @@
         });
         const json = await parseApiResponse(res, '补录提交');
         if (!json.success) throw new Error(json.message || '补录失败');
-        alert(successMsg || `✅ 补录成功！共提交 ${json.count || rows.length} 条城市记录`);
-        await fetchCoverageData();
-        if (currentMode === 'replenish') await fetchMissingRecords();
+        const entityLabel = coverageScope === 'area' ? '区县' : '城市';
+        alert(successMsg || `✅ 补录成功！共提交 ${json.count || rows.length} 条${entityLabel}记录`);
+        if (viewMode === 'coverage') {
+            await fetchCoverageData();
+        } else {
+            await fetchMissingRecords();
+        }
     }
 
     function renderReplenishTable() {
         const tbody = document.getElementById('replenishTableBody');
+        const colSpan = coverageScope === 'area' ? 9 : 8;
         if (!filteredMissingData.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 py-8">暂无缺失数据，所有指标均已录入！<\/td><\/tr>';
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-slate-400 py-8">暂无缺失数据，所有指标均已录入！<\/td><\/tr>`;
             updateReplenishReadyCount();
             return;
         }
-        tbody.innerHTML = filteredMissingData.map((item, idx) => `
+        tbody.innerHTML = filteredMissingData.map((item, idx) => {
+            const areaCell = coverageScope === 'area'
+                ? `<td class="text-slate-700">${item.area || '—'}<\/td>`
+                : '';
+            const submitArgs = coverageScope === 'area'
+                ? `'${item.id}', '${item.city}', '${item.area}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}'`
+                : `'${item.id}', '${item.city}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}'`;
+            return `
             <tr class="hover:bg-blue-50/30 transition">
                 <td class="text-center">${idx + 1}<\/td>
                 <td class="font-medium text-slate-800">${item.city}<\/td>
+                ${areaCell}
                 <td class="text-slate-700">${item.indicator}<\/td>
+                <td class="text-slate-500 text-sm">${item.unit || '—'}<\/td>
                 <td class="text-slate-600">${item.year}<\/td>
-                <td><input type="text" class="replenish-input" id="val_${item.id}" placeholder="请输入数值"><\/td>
+                <td><input type="text" class="replenish-input" id="val_${item.id}" placeholder="${item.unit ? '请输入数值（' + item.unit + '）' : '请输入数值'}"><\/td>
                 <td>${buildReplenishSourceSelectHtml(item.id)}<\/td>
-                <td><button class="btn-replenish" onclick="submitReplenish('${item.id}', '${item.city}', '${item.indicator}', '${item.indicator_en}', ${item.year}, '${item.province}')">补录<\/button><\/td>
+                <td><button class="btn-replenish" onclick="submitReplenish(${submitArgs})">补录<\/button><\/td>
             <\/tr>
-        `).join('');
+        `;
+        }).join('');
         bindReplenishInputEvents();
     }
 
-    window.submitReplenish = async function(id, city, indicator, indicatorEn, year, province) {
+    window.submitReplenish = async function(id, city, arg3, arg4, arg5, arg6, arg7) {
+        let area = '';
+        let indicator, indicatorEn, year, province;
+        if (coverageScope === 'area') {
+            area = arg3;
+            indicator = arg4;
+            indicatorEn = arg5;
+            year = arg6;
+            province = arg7;
+        } else {
+            indicator = arg3;
+            indicatorEn = arg4;
+            year = arg5;
+            province = arg6;
+        }
         const valueInput = document.getElementById(`val_${id}`);
         const sourceSelect = document.getElementById(`src_${id}`);
         const value = valueInput?.value.trim();
         const source = sourceSelect?.value;
         if (!value) { alert('请填写数值'); return; }
         if (!source) { alert('请选择数据来源'); return; }
+        const row = {
+            city: city,
+            province: province,
+            year: year,
+            groups: [{ name_zh: indicator, name_en: indicatorEn, value: value, source: source, note: '' }],
+        };
+        if (coverageScope === 'area') {
+            row.area = area;
+        }
+        const entityLabel = coverageScope === 'area' ? `${city} · ${area}` : city;
         try {
-            await postReplenishRows([{
-                city: city,
-                province: province,
-                year: year,
-                groups: [{ name_zh: indicator, name_en: indicatorEn, value: value, source: source, note: '' }],
-            }], `✅ 补录成功！\n城市：${city}\n指标：${indicator}\n年份：${year}`);
+            await postReplenishRows([row], `✅ 补录成功！\n${entityLabel}\n指标：${indicator}\n年份：${year}`);
         } catch (e) {
             alert('补录失败：' + e.message);
         }
@@ -1423,13 +1615,77 @@
         }
     }
     
-    function sortByRateDesc() { cityCompletionData.sort((a, b) => b.rate - a.rate); renderCityRanking(); }
-    function sortByNameAsc() { cityCompletionData.sort((a, b) => a.city.localeCompare(b.city)); renderCityRanking(); }
+    function sortByRateDesc() {
+        const data = getCompletionData();
+        data.sort((a, b) => b.rate - a.rate);
+        renderEntityRanking();
+    }
+    function sortByNameAsc() {
+        const data = getCompletionData();
+        data.sort((a, b) => {
+            const cmp = a.city.localeCompare(b.city);
+            return cmp !== 0 ? cmp : (a.area || '').localeCompare(b.area || '');
+        });
+        renderEntityRanking();
+    }
     
+    function applyViewMode() {
+        const coverageContent = document.getElementById('coverageModeContent');
+        const coverageTable = document.getElementById('coverageIndicatorTable');
+        const replenishContent = document.getElementById('replenishModeContent');
+        const statGrid = document.querySelector('.drc-stat-grid');
+
+        if (viewMode === 'replenish') {
+            coverageContent.classList.add('hidden');
+            coverageTable.classList.add('hidden');
+            if (statGrid) statGrid.classList.add('hidden');
+            replenishContent.classList.remove('hidden');
+            fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
+        } else {
+            coverageContent.classList.remove('hidden');
+            coverageTable.classList.remove('hidden');
+            if (statGrid) statGrid.classList.remove('hidden');
+            replenishContent.classList.add('hidden');
+            applyIndicatorGroupFilter();
+            renderEntityRanking();
+            if (coverageScope === 'city') renderChinaMap();
+        }
+        updateModeHint();
+    }
+
+    function switchViewMode(nextMode) {
+        if (viewMode === nextMode) return;
+        viewMode = nextMode;
+        applyViewMode();
+    }
+
+    async function switchScope(isArea) {
+        const nextScope = isArea ? 'area' : 'city';
+        if (coverageScope === nextScope) return;
+        coverageScope = nextScope;
+        selectedReplenishIndicator = '';
+        const tagSpan = document.getElementById('selectedIndicatorTag');
+        if (tagSpan) {
+            tagSpan.classList.add('hidden');
+            tagSpan.innerHTML = '';
+        }
+        updateScopeLabels();
+        IndicatorCatalog.loadFull()
+            .then(function (full) {
+                loadCatalogForScope(full);
+                initModal();
+                return initYearSelect();
+            })
+            .then(() => updateAreaSelect())
+            .then(() => performQuery())
+            .catch(err => console.error('切换数据口径失败', err));
+    }
+
     function updateProvinceCityFilter() {
         selectedProvince = document.getElementById('provinceSelect').value;
         selectedCity = document.getElementById('citySelect').value;
         selectedYear = document.getElementById('yearSelect').value;
+        selectedArea = document.getElementById('areaSelect')?.value || '';
         scheduleQuery();
     }
 
@@ -1438,33 +1694,8 @@
         queryDebounceTimer = setTimeout(() => performQuery(), 300);
     }
     
-    function switchMode() {
-        const isReplenish = document.getElementById('modeSwitch').checked;
-        const modeHint = document.getElementById('modeHint');
-        const coverageContent = document.getElementById('coverageModeContent');
-        const coverageTable = document.getElementById('coverageIndicatorTable');
-        const replenishContent = document.getElementById('replenishModeContent');
-        
-        if (isReplenish) {
-            currentMode = 'replenish';
-            modeHint.innerHTML = '✏️ 补录模式';
-            modeHint.className = 'text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full';
-            coverageContent.classList.add('hidden');
-            coverageTable.classList.add('hidden');
-            replenishContent.classList.remove('hidden');
-            fetchMissingRecords().catch(err => alert('加载缺失数据失败：' + err.message));
-        } else {
-            currentMode = 'coverage';
-            modeHint.innerHTML = '📊 覆盖查询模式';
-            modeHint.className = 'text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full';
-            coverageContent.classList.remove('hidden');
-            coverageTable.classList.remove('hidden');
-            replenishContent.classList.add('hidden');
-            applyIndicatorGroupFilter();
-            renderChinaMap();
-        }
-    }
-    
+    function switchMode() { /* legacy noop */ }
+
     function loadProvinceCityMap() {
         return fetch('/dashboard/get-city-map/')
             .then(res => res.json())
@@ -1480,7 +1711,7 @@
         let defaultYear = currentYear;
         let yearCounts = {};
         try {
-            const res = await fetch('/dashboard/api/coverage-years/', { credentials: 'same-origin' });
+            const res = await fetch(`/dashboard/api/coverage-years/?scope=${coverageScope}`, { credentials: 'same-origin' });
             const json = await parseApiResponse(res, '年份列表');
             if (json.success && json.years?.length) {
                 years = json.years;
@@ -1531,8 +1762,11 @@
         queryBtn.innerHTML = '<iconify-icon icon="mdi:loading" class="animate-spin"></iconify-icon> 查询中...';
         queryBtn.disabled = true;
         try {
-            await fetchCoverageData();
-            if (currentMode === 'replenish') await fetchMissingRecords();
+            if (viewMode === 'coverage') {
+                await fetchCoverageData();
+            } else {
+                await fetchMissingRecords();
+            }
         } catch (e) {
             if (e.name === 'AbortError') return;
             alert('查询失败：' + e.message);
@@ -1545,32 +1779,41 @@
     document.addEventListener('DOMContentLoaded', function() {
         IndicatorCatalog.loadFull()
             .then(function (full) {
-                dataDict = full.data || {};
-                indicatorGroupMap = full.group_map || {};
-                groupNames = full.group_names || {};
+                loadCatalogForScope(full);
                 allIndicatorsList = Object.keys(indicatorGroupMap);
-                populateIndicatorGroupFilter(full.groups || []);
             })
             .catch(function (err) { console.error('加载指标目录失败', err); })
             .finally(function () {
+                updateScopeLabels();
                 loadProvinceCityMap().then(async () => {
                     await loadReplenishSourceOptions();
                     await initYearSelect();
                     initProvinceSelect();
                     updateCitySelect();
+                    await updateAreaSelect();
                     initModal();
                     initIndicatorSelect();
                     document.getElementById('provinceSelect').addEventListener('change', () => {
                         updateCitySelect();
-                        updateProvinceCityFilter();
+                        updateAreaSelect().then(updateProvinceCityFilter);
                     });
-                    document.getElementById('citySelect').addEventListener('change', updateProvinceCityFilter);
+                    document.getElementById('citySelect').addEventListener('change', () => {
+                        updateAreaSelect().then(updateProvinceCityFilter);
+                    });
+                    document.getElementById('areaSelect').addEventListener('change', updateProvinceCityFilter);
                     document.getElementById('yearSelect').addEventListener('change', updateProvinceCityFilter);
                     document.getElementById('queryBtn').addEventListener('click', performQuery);
                     document.getElementById('sortByRateDesc').addEventListener('click', sortByRateDesc);
                     document.getElementById('sortByNameAsc').addEventListener('click', sortByNameAsc);
                     document.getElementById('indicatorGroupFilter').addEventListener('change', () => applyIndicatorGroupFilter());
-                    document.getElementById('modeSwitch').addEventListener('change', switchMode);
+                    document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+                        radio.addEventListener('change', (e) => {
+                            if (e.target.checked) switchViewMode(e.target.value);
+                        });
+                    });
+                    document.getElementById('scopeSwitch').addEventListener('change', (e) => {
+                        switchScope(e.target.checked);
+                    });
                     document.getElementById('batchReplenishBtn').addEventListener('click', submitAllReplenish);
                     performQuery();
                 });

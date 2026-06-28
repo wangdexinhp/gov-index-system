@@ -18,6 +18,7 @@ from apps.coredata.indicator_catalog import (
     get_indicator_catalog_dict,
     get_indicator_catalog_groups,
     get_indicator_group_map,
+    get_indicator_unit_map,
 )
 from apps.coredata.services.indicator_audit_service import (
     get_area_indicator_audit_data,
@@ -79,9 +80,11 @@ def indicator_catalog_api(request):
         "form_categories": get_form_indicator_categories("city"),
         "group_map": get_indicator_group_map(),
         "group_names": get_group_name_map(),
+        "unit_map": get_indicator_unit_map("city"),
         "area_data": get_area_indicator_catalog_dict(),
         "area_groups": get_area_indicator_catalog_groups(),
         "area_form_categories": get_form_indicator_categories("area"),
+        "area_unit_map": get_indicator_unit_map("area"),
     })
 
 

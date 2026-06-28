@@ -9,8 +9,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from apps.coredata.services.coverage_service import (
+    get_area_coverage_overview,
+    get_area_missing_records,
+    get_area_year_record_counts,
+    get_available_area_years,
     get_available_years,
     get_coverage_overview,
+    get_default_area_coverage_year,
     get_default_coverage_year,
     get_missing_records,
     get_year_record_counts,
@@ -39,14 +44,29 @@ def _require_admin(request):
     return None
 
 
+def _parse_scope(request) -> str:
+    scope = (request.GET.get("scope") or "city").strip().lower()
+    return "area" if scope == "area" else "city"
+
+
 @api_login_required
 @require_http_methods(["GET"])
 def coverage_years_api(request):
     """返回指标库中可用于覆盖查询的年份列表。"""
     try:
+        if _parse_scope(request) == "area":
+            years = get_available_area_years()
+            return JsonResponse({
+                "success": True,
+                "scope": "area",
+                "years": years,
+                "default_year": get_default_area_coverage_year(),
+                "year_counts": get_area_year_record_counts(),
+            })
         years = get_available_years()
         return JsonResponse({
             "success": True,
+            "scope": "city",
             "years": years,
             "default_year": get_default_coverage_year(),
             "year_counts": get_year_record_counts(),
@@ -62,15 +82,25 @@ def coverage_overview_api(request):
     """
     数据覆盖查询主接口
     GET /dashboard/api/coverage-overview/
-    参数: year, province, city, indicator_group
+    参数: scope(city|area), year, province, city, area, indicator_group
     """
     try:
-        data = get_coverage_overview(
-            year_param=request.GET.get("year") or None,
-            province=request.GET.get("province") or None,
-            city=request.GET.get("city") or None,
-            indicator_group=request.GET.get("indicator_group") or None,
-        )
+        scope = _parse_scope(request)
+        if scope == "area":
+            data = get_area_coverage_overview(
+                year_param=request.GET.get("year") or None,
+                province=request.GET.get("province") or None,
+                city=request.GET.get("city") or None,
+                area=request.GET.get("area") or None,
+                indicator_group=request.GET.get("indicator_group") or None,
+            )
+        else:
+            data = get_coverage_overview(
+                year_param=request.GET.get("year") or None,
+                province=request.GET.get("province") or None,
+                city=request.GET.get("city") or None,
+                indicator_group=request.GET.get("indicator_group") or None,
+            )
         return JsonResponse({"success": True, **data})
     except Exception as e:
         logger.error("coverage_overview_api failed: %s", e)
@@ -84,19 +114,31 @@ def missing_records_api(request):
     """
     缺失指标补录清单
     GET /dashboard/api/missing-records/
-    参数: year, province, city, indicator, page, page_size
+    参数: scope(city|area), year, province, city, area, indicator, page, page_size
     """
     try:
         page = max(1, int(request.GET.get("page", 1)))
         page_size = min(500, max(1, int(request.GET.get("page_size", 100))))
-        data = get_missing_records(
-            year_param=request.GET.get("year") or None,
-            province=request.GET.get("province") or None,
-            city=request.GET.get("city") or None,
-            indicator=request.GET.get("indicator") or None,
-            page=page,
-            page_size=page_size,
-        )
+        scope = _parse_scope(request)
+        if scope == "area":
+            data = get_area_missing_records(
+                year_param=request.GET.get("year") or None,
+                province=request.GET.get("province") or None,
+                city=request.GET.get("city") or None,
+                area=request.GET.get("area") or None,
+                indicator=request.GET.get("indicator") or None,
+                page=page,
+                page_size=page_size,
+            )
+        else:
+            data = get_missing_records(
+                year_param=request.GET.get("year") or None,
+                province=request.GET.get("province") or None,
+                city=request.GET.get("city") or None,
+                indicator=request.GET.get("indicator") or None,
+                page=page,
+                page_size=page_size,
+            )
         return JsonResponse({"success": True, **data})
     except Exception as e:
         logger.error("missing_records_api failed: %s", e)
