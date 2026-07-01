@@ -114,3 +114,8 @@ def get_form_source_choices() -> List[dict]:
             "suffix": meta.get("suffix", choice.label),
         })
     return result
+
+
+def get_default_form_source_options() -> List[dict]:
+    """录入界面默认数据来源选项，供模板注入与 API 共用。"""
+    return get_form_source_choices()

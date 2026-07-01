@@ -9,7 +9,10 @@ from apps.coredata.services.coverage_service import (
     get_default_coverage_year,
     get_year_record_counts,
 )
-from apps.coredata.indicator_sources import get_form_source_choices, get_source_choices
+from apps.coredata.indicator_sources import (
+    get_default_form_source_options,
+    get_source_choices,
+)
 from apps.coredata.indicator_catalog import (
     get_area_indicator_catalog_dict,
     get_area_indicator_catalog_groups,
@@ -65,7 +68,7 @@ def indicator_audit_years_api(request):
 def indicator_sources_api(request):
     """指标数据来源代码与中文名称（全量 / 录入表单子集）。"""
     scope = request.GET.get("scope", "all")
-    sources = get_form_source_choices() if scope == "form" else get_source_choices()
+    sources = get_default_form_source_options() if scope == "form" else get_source_choices()
     return JsonResponse({"success": True, "sources": sources})
 
 

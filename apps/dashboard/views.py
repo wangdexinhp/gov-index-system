@@ -19,6 +19,7 @@ from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_
 
 from apps.coredata.excel_color_sources import DEFAULT_EXCEL_SOURCE
 from apps.coredata.indicator_input_methods import IndicatorInputMethod, normalize_data_source
+from apps.coredata.indicator_sources import get_default_form_source_options
 from apps.coredata.services.excel_upload_service import (
     extract_cell_fields,
     excel_column_name_base,
@@ -138,13 +139,17 @@ def check_membership(view_func):
     return _wrapped_view
 
 
+def _form_source_page_context():
+    return {"form_source_options": get_default_form_source_options()}
+
+
 @login_required
 @require_http_methods(['GET'])
 def dashboard_home(request):
     print(f"用户 {request.user.profile.membership_level} 访问了仪表盘首页")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
-    return render(request, 'dashboard/home.html')
+    return render(request, 'dashboard/home.html', _form_source_page_context())
 
 @login_required
 @require_http_methods(['GET'])
@@ -152,7 +157,7 @@ def area_input(request):
     print(f"用户 {request.user.profile.membership_level} 访问了区域输入页面")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
-    return render(request, 'dashboard/input_area.html')
+    return render(request, 'dashboard/input_area.html', _form_source_page_context())
 
 @login_required
 @login_required
@@ -164,7 +169,7 @@ def indicator_check(request):
 @login_required
 @require_http_methods(['GET'])
 def indicator_check_2(request):
-    return render(request, 'dashboard/indic_data_check_cover.html')
+    return render(request, 'dashboard/indic_data_check_cover.html', _form_source_page_context())
 
 
 

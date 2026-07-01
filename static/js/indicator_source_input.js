@@ -9,6 +9,34 @@ window.IndicatorSourceInput = (function () {
         options = Array.isArray(opts) ? opts : [];
     }
 
+    function getOptions() {
+        return options.slice();
+    }
+
+    function initFromScript(scriptId) {
+        const el = document.getElementById(scriptId || 'form-source-options');
+        if (!el || !el.textContent) return;
+        try {
+            const parsed = JSON.parse(el.textContent);
+            if (Array.isArray(parsed) && parsed.length) setOptions(parsed);
+        } catch (e) {
+            console.warn('解析数据来源配置失败', e);
+        }
+    }
+
+    async function loadFromApi(url) {
+        try {
+            const res = await fetch(url, { credentials: 'same-origin' });
+            const json = await res.json();
+            if (json.success && Array.isArray(json.sources) && json.sources.length) {
+                setOptions(json.sources);
+            }
+        } catch (e) {
+            console.warn('加载数据来源选项失败，使用页面初始配置', e);
+        }
+        return options;
+    }
+
     function escapeHtml(str) {
         return String(str || '')
             .replace(/&/g, '&amp;')
@@ -194,6 +222,9 @@ window.IndicatorSourceInput = (function () {
 
     return {
         setOptions,
+        getOptions,
+        initFromScript,
+        loadFromApi,
         buildCellHtml,
         bindCell,
         bindAllIn,

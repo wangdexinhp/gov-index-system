@@ -715,6 +715,7 @@
     </div>
 </div>
 
+{{ form_source_options|json_script:"form-source-options" }}
 <script>
     function initYearSelector() {
         const select = document.getElementById('year-select');
@@ -749,32 +750,13 @@
         });
     }
 
-    const DEFAULT_FORM_SOURCE_OPTIONS = [
-        { code: 'CITY_STAT_YB', label: '地市统计年鉴', scope: 'city', suffix: '统计年鉴' },
-        { code: 'CITY_YB', label: '地市年鉴', scope: 'city', suffix: '年鉴' },
-        { code: 'CITY_DEV_BUL', label: '地市级发展公报', scope: 'city', suffix: '发展公报' },
-        { code: 'CITY_GOV_RPT', label: '地市级政府工作报告', scope: 'city', suffix: '政府工作报告' },
-        { code: 'PROV_STAT_YB', label: '省级统计年鉴', scope: 'province', suffix: '统计年鉴' },
-        { code: 'PROV_YB', label: '省级年鉴', scope: 'province', suffix: '年鉴' },
-        { code: 'PROF_YB', label: '专业年鉴', scope: 'manual', suffix: '专业年鉴' },
-        { code: 'SPECIAL_RPT', label: '专项报告', scope: 'manual', suffix: '专项报告' },
-        { code: 'GOV_INFO_RPT', label: '政府信息公开报告', scope: 'city', suffix: '政府信息公开报告' },
-    ];
-    let formSourceOptions = DEFAULT_FORM_SOURCE_OPTIONS.slice();
+<script>
+    const FORM_SOURCE_API = '/dashboard/api/indicator-sources/?scope=form';
 
     async function loadFormSourceOptions() {
-        try {
-            const res = await fetch('/dashboard/api/indicator-sources/?scope=form', { credentials: 'same-origin' });
-            const json = await res.json();
-            if (json.success && Array.isArray(json.sources) && json.sources.length) {
-                formSourceOptions = json.sources;
-            }
-        } catch (e) {
-            console.warn('加载数据来源选项失败，使用默认配置', e);
-        }
-        if (window.IndicatorSourceInput) {
-            IndicatorSourceInput.setOptions(formSourceOptions);
-        }
+        if (!window.IndicatorSourceInput) return;
+        IndicatorSourceInput.initFromScript('form-source-options');
+        await IndicatorSourceInput.loadFromApi(FORM_SOURCE_API);
     }
 
     function getSelectedProvince() {
