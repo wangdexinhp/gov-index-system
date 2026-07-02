@@ -41,7 +41,7 @@ INDICATOR_CATALOG_GROUPS: List[IndicatorGroup] = [
     },
     {
         "code": "finance",
-        "name": "财政指标数据",
+        "name": "公共财政数据",
         "indicators": [
             "财政总收入",
             "财政总收入增长率",
