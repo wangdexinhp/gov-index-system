@@ -526,6 +526,29 @@
             <div style="font-size: 12px; color: #6c868e;" id="indicatorHint">
                 💡 加载中...
             </div>
+            <div id="orgVerifyHint" style="display:none; font-size: 12px; color: #b45309; margin-left: 8px;">
+                机构用户需先完成机构认证
+                <a href="/dashboard/profile/" style="color: #1f6392; text-decoration: underline; margin-left: 4px;">去认证</a>
+            </div>
+        </div>
+
+        <!-- 机构认证弹窗 -->
+        <div id="orgVerifyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:16px; padding:24px; width:min(420px,92vw); box-shadow:0 12px 40px rgba(0,0,0,.18);">
+                <h3 style="margin:0 0 8px; font-size:18px;">机构认证</h3>
+                <p style="margin:0 0 16px; font-size:13px; color:#6c868e;">购买机构用户前，请核验单位名称与统一社会信用代码。</p>
+                <label style="display:block; font-size:13px; margin-bottom:4px;">单位名称</label>
+                <input id="orgVerifyName" type="text" placeholder="与营业执照一致的单位全称"
+                       style="width:100%; padding:10px 12px; border:1px solid #d0d7de; border-radius:8px; margin-bottom:12px; box-sizing:border-box;">
+                <label style="display:block; font-size:13px; margin-bottom:4px;">统一社会信用代码</label>
+                <input id="orgVerifyCreditCode" type="text" placeholder="18位统一社会信用代码" maxlength="32"
+                       style="width:100%; padding:10px 12px; border:1px solid #d0d7de; border-radius:8px; margin-bottom:12px; box-sizing:border-box;">
+                <p id="orgVerifyError" style="display:none; color:#dc2626; font-size:13px; margin:0 0 12px;"></p>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" id="orgVerifyCancel" style="padding:10px 16px; border:1px solid #d0d7de; background:#fff; border-radius:40px; cursor:pointer;">取消</button>
+                    <button type="button" id="orgVerifySubmit" style="padding:10px 16px; border:none; background:#1f6392; color:#fff; border-radius:40px; cursor:pointer;">提交认证</button>
+                </div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -607,6 +630,7 @@
         // ==================== 全局变量 ====================
         let priceList = [];              // 从接口获取的价格配置
         let currentUserType = 'personal';
+        let isOrgVerified = false;
         let selectedPermissions = [];
         let currentLevel = '全国';
         let currentItemName = '';
@@ -1030,7 +1054,112 @@
             updateOrderSummary();
         }
         
-        function setUserType(type) {
+        async function loadOrgVerifyStatus() {
+            try {
+                const res = await fetch('/api/org-verify/status/', { credentials: 'same-origin' });
+                if (res.status === 401 || res.status === 403) {
+                    isOrgVerified = false;
+                    updateOrgVerifyHint();
+                    return;
+                }
+                const json = await res.json();
+                isOrgVerified = !!(json.success && json.data && json.data.is_org_verified);
+                updateOrgVerifyHint();
+            } catch (e) {
+                isOrgVerified = false;
+                updateOrgVerifyHint();
+            }
+        }
+
+        function updateOrgVerifyHint() {
+            const hint = document.getElementById('orgVerifyHint');
+            if (!hint) return;
+            if (currentUserType === 'organization' && !isOrgVerified) {
+                hint.style.display = 'inline';
+            } else {
+                hint.style.display = 'none';
+            }
+        }
+
+        function showOrgVerifyModal() {
+            const modal = document.getElementById('orgVerifyModal');
+            const err = document.getElementById('orgVerifyError');
+            if (err) {
+                err.style.display = 'none';
+                err.textContent = '';
+            }
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function hideOrgVerifyModal() {
+            const modal = document.getElementById('orgVerifyModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitOrgVerify() {
+            const nameInput = document.getElementById('orgVerifyName');
+            const codeInput = document.getElementById('orgVerifyCreditCode');
+            const err = document.getElementById('orgVerifyError');
+            const submitBtn = document.getElementById('orgVerifySubmit');
+            const org_name = (nameInput && nameInput.value || '').trim();
+            const org_credit_code = (codeInput && codeInput.value || '').trim().toUpperCase();
+
+            if (!org_name || !org_credit_code) {
+                if (err) {
+                    err.textContent = '请填写单位名称和统一社会信用代码';
+                    err.style.display = 'block';
+                }
+                return;
+            }
+
+            const original = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '核验中...';
+            try {
+                const res = await fetch('/api/org-verify/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({ org_name, org_credit_code }),
+                });
+                const json = await res.json();
+                if (res.status === 401 || res.status === 403) {
+                    alert('请先登录后再进行机构认证');
+                    window.location.href = '/accounts/login/?next=/landing/pricing/';
+                    return;
+                }
+                if (!json.success) {
+                    if (err) {
+                        err.textContent = json.message || '认证失败';
+                        err.style.display = 'block';
+                    }
+                    return;
+                }
+                isOrgVerified = true;
+                updateOrgVerifyHint();
+                hideOrgVerifyModal();
+                setUserType('organization', true);
+                alert(json.message || '机构认证通过');
+            } catch (e) {
+                if (err) {
+                    err.textContent = '网络错误，请重试';
+                    err.style.display = 'block';
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = original;
+            }
+        }
+
+        function setUserType(type, force) {
+            if (type === 'organization' && !isOrgVerified && !force) {
+                showOrgVerifyModal();
+                return;
+            }
+
             currentUserType = type;
             document.querySelectorAll('.user-type-btn').forEach(btn => {
                 if (btn.getAttribute('data-type') === type) {
@@ -1039,9 +1168,10 @@
                     btn.classList.remove('active');
                 }
             });
-            
+
             updateIndicatorHint();
-            
+            updateOrgVerifyHint();
+
             // 清空购物车并刷新价格显示
             selectedPermissions = [];
             updateTagsDisplay();
@@ -1216,6 +1346,10 @@
                     return;
                 }
                 if (!result.success) {
+                    if (result.code === 'ORG_VERIFY_REQUIRED') {
+                        showOrgVerifyModal();
+                        return;
+                    }
                     alert('创建订单失败：' + (result.message || '未知错误'));
                     return;
                 }
@@ -1251,12 +1385,18 @@
             await loadDurationMultipliers();
             await loadPriceConfig();
             await loadIndicators();
-            
+            await loadOrgVerifyStatus();
+
             document.querySelectorAll('.user-type-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     setUserType(btn.getAttribute('data-type'));
                 });
             });
+
+            const orgVerifyCancel = document.getElementById('orgVerifyCancel');
+            const orgVerifySubmit = document.getElementById('orgVerifySubmit');
+            if (orgVerifyCancel) orgVerifyCancel.addEventListener('click', hideOrgVerifyModal);
+            if (orgVerifySubmit) orgVerifySubmit.addEventListener('click', submitOrgVerify);
             
             const levelSelect = document.getElementById('levelSelect');
             levelSelect.addEventListener('change', function(e) {

@@ -20,7 +20,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
-from apps.accounts.views import CustomSignupView, RefreshCaptchaView, SendSmsCodeView, CheckMobileView
+from apps.accounts.views import (
+    CustomSignupView,
+    RefreshCaptchaView,
+    SendSmsCodeView,
+    CheckMobileView,
+    org_verify_api,
+    org_verify_status_api,
+)
 
 urlpatterns = [
     # 1. 根路径重定向到 landing 首页
@@ -46,8 +53,8 @@ urlpatterns = [
     path('send-sms-code/', SendSmsCodeView.as_view(), name='send_sms_code'),
     path('refresh-captcha/', RefreshCaptchaView.as_view(), name='refresh_captcha'),
     path('check-mobile/', CheckMobileView.as_view(), name='check_mobile'),
-
-
+    path('api/org-verify/', org_verify_api, name='org_verify'),
+    path('api/org-verify/status/', org_verify_status_api, name='org_verify_status'),
 ]
 
 if settings.DEBUG:

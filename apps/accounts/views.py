@@ -6,19 +6,35 @@ import re,os
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from functools import wraps
 from django.utils.decorators import method_decorator
-from django.core.mail import send_mail
-from django.conf import settings
+from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 from django.core.cache import cache
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
 from allauth.account.views import SignupView
 from .forms import CustomSignupForm
+from .models import UserProfile
+from .services.qichacha_service import verify_company_two_elements
 
 from alibabacloud_tea_openapi.models import Config  
 from alibabacloud_dysmsapi20170525.client import Client
 from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
 from alibabacloud_tea_util import models as util_models
+
+# 统一社会信用代码：18 位，末位可为数字或 X
+CREDIT_CODE_RE = re.compile(r'^[0-9A-Z]{17}[0-9A-ZX]$')
+
+
+def login_required_json(view_func):
+    """未登录时返回 JSON，避免 API 被重定向到登录页。"""
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'message': '请先登录后再操作'}, status=401)
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 
 
@@ -185,3 +201,84 @@ class CheckMobileView(View):
             return JsonResponse({'status': 'error', 'msg': '该手机号已被注册'})
 
         return JsonResponse({'status': 'success', 'msg': '手机号可用'})
+
+
+def _org_status_payload(profile: UserProfile) -> dict:
+    return {
+        'org_name': profile.org_name or '',
+        'org_credit_code': profile.org_credit_code or '',
+        'org_verify_status': profile.org_verify_status,
+        'org_verify_status_display': profile.get_org_verify_status_display(),
+        'is_org_verified': profile.is_org_verified,
+        'org_verified_at': profile.org_verified_at.isoformat() if profile.org_verified_at else None,
+        'org_verify_message': profile.org_verify_message or '',
+    }
+
+
+@login_required_json
+@require_http_methods(['GET'])
+def org_verify_status_api(request):
+    """查询当前用户机构认证状态。"""
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    return JsonResponse({'success': True, 'data': _org_status_payload(profile)})
+
+
+@login_required_json
+@require_http_methods(['POST'])
+def org_verify_api(request):
+    """提交机构二要素核验（单位名称 + 统一社会信用代码）。"""
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '请求数据格式错误'}, status=400)
+
+    org_name = (data.get('org_name') or '').strip()
+    org_credit_code = (data.get('org_credit_code') or '').strip().upper()
+
+    if not org_name:
+        return JsonResponse({'success': False, 'message': '请填写单位名称'}, status=400)
+    if not org_credit_code:
+        return JsonResponse({'success': False, 'message': '请填写统一社会信用代码'}, status=400)
+    if not (
+        CREDIT_CODE_RE.match(org_credit_code)
+        or org_credit_code.startswith('MOCK')  # Mock 联调
+    ):
+        return JsonResponse({'success': False, 'message': '统一社会信用代码格式不正确'}, status=400)
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if profile.is_org_verified and profile.org_credit_code == org_credit_code and profile.org_name == org_name:
+        return JsonResponse({
+            'success': True,
+            'message': '机构已认证',
+            'data': _org_status_payload(profile),
+        })
+
+    result = verify_company_two_elements(org_credit_code, org_name)
+    profile.org_name = org_name
+    profile.org_credit_code = org_credit_code
+    profile.org_verify_message = result.message
+
+    if result.success:
+        profile.org_verify_status = UserProfile.ORG_VERIFY_VERIFIED
+        profile.org_verified_at = timezone.now()
+        profile.save(update_fields=[
+            'org_name', 'org_credit_code', 'org_verify_status',
+            'org_verified_at', 'org_verify_message', 'updated_at',
+        ])
+        return JsonResponse({
+            'success': True,
+            'message': result.message,
+            'data': _org_status_payload(profile),
+        })
+
+    profile.org_verify_status = UserProfile.ORG_VERIFY_FAILED
+    profile.org_verified_at = None
+    profile.save(update_fields=[
+        'org_name', 'org_credit_code', 'org_verify_status',
+        'org_verified_at', 'org_verify_message', 'updated_at',
+    ])
+    return JsonResponse({
+        'success': False,
+        'message': result.message,
+        'data': _org_status_payload(profile),
+    }, status=400)

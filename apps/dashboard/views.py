@@ -237,15 +237,50 @@ def get_area_map(request):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def profile(request):
+    from apps.accounts.models import UserProfile
+
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
-        # Handle profile update
+        action = request.POST.get('action', 'profile')
+        if action == 'org_verify':
+            from apps.accounts.services.qichacha_service import verify_company_two_elements
+            import re as _re
+
+            org_name = (request.POST.get('org_name') or '').strip()
+            org_credit_code = (request.POST.get('org_credit_code') or '').strip().upper()
+            credit_re = _re.compile(r'^[0-9A-Z]{17}[0-9A-ZX]$')
+
+            if not org_name or not org_credit_code:
+                messages.error(request, '请填写单位名称和统一社会信用代码')
+            elif not (credit_re.match(org_credit_code) or org_credit_code.startswith('MOCK')):
+                messages.error(request, '统一社会信用代码格式不正确')
+            else:
+                result = verify_company_two_elements(org_credit_code, org_name)
+                profile_obj.org_name = org_name
+                profile_obj.org_credit_code = org_credit_code
+                profile_obj.org_verify_message = result.message
+                if result.success:
+                    profile_obj.org_verify_status = UserProfile.ORG_VERIFY_VERIFIED
+                    profile_obj.org_verified_at = timezone.now()
+                    messages.success(request, result.message)
+                else:
+                    profile_obj.org_verify_status = UserProfile.ORG_VERIFY_FAILED
+                    profile_obj.org_verified_at = None
+                    messages.error(request, result.message)
+                profile_obj.save()
+            return redirect('dashboard:profile')
+
         user = request.user
         user.first_name = request.POST.get('first_name', '')
         user.last_name = request.POST.get('last_name', '')
         user.save()
-        messages.success(request, 'Profile updated successfully.')
+        messages.success(request, '资料已更新')
         return redirect('dashboard:profile')
-    return render(request, 'dashboard/profile.html')
+
+    return render(request, 'dashboard/profile.html', {
+        'profile': profile_obj,
+    })
 
 @login_required
 @require_http_methods(['GET', 'POST'])
@@ -1346,11 +1381,22 @@ def create_order_api(request):
         from django.conf import settings as dj_settings
         from apps.coredata.services.alipay_service import create_face_to_face_payment, is_alipay_mock_mode
         from apps.coredata.services.order_service import create_membership_order
+        from apps.accounts.models import UserProfile
 
         data = json.loads(request.body)
         user_type = data.get("user_type", "personal")
         duration = data.get("duration", "year")
         permissions = data.get("permissions", [])
+
+        if user_type in ("organization", "org"):
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if not profile.is_org_verified:
+                return JsonResponse({
+                    "success": False,
+                    "message": "购买机构用户前请先完成机构认证",
+                    "code": "ORG_VERIFY_REQUIRED",
+                }, status=403)
+
         order = create_membership_order(request.user, user_type, duration, permissions)
         pay = create_face_to_face_payment(
             order.order_no,

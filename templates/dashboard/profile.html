@@ -51,11 +51,6 @@
                         </p>
                     </div>
 
-                    <!-- Company -->
-                    <div>
-                        <label for="company" class="block text-sm font-medium text-black uppercase tracking-wider">COMPANY NAME</label>
-                        <input type="text" name="company" id="company" autocomplete="organization" class="mt-2 block w-full border border-light-gray p-2 focus:border-black">
-                    </div>
                 </div>
                 <div class="px-8 py-4 border-t border-light-gray text-right">
                     <button type="submit" class="px-8 py-3 text-sm font-medium uppercase tracking-wider text-white bg-black hover:bg-dark-gray">
@@ -64,6 +59,67 @@
                 </div>
             </div>
         </form>
+    </div>
+
+    <!-- 机构认证 -->
+    <div class="mt-16">
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div>
+                <h3 class="text-lg font-medium text-black uppercase tracking-wide">机构认证</h3>
+                <p class="mt-2 text-sm text-gray">
+                    购买机构用户前需完成企查查二要素核验（单位名称 + 统一社会信用代码）。
+                </p>
+            </div>
+            <div class="md:col-span-2">
+                <form action="{% url 'dashboard:profile' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="org_verify">
+                    <div class="border border-light-gray">
+                        <div class="px-8 py-8 space-y-6">
+                            <div>
+                                <span class="text-sm font-medium text-black uppercase tracking-wider">认证状态</span>
+                                <p class="mt-2 text-sm">
+                                    {% if profile.is_org_verified %}
+                                        <span class="text-green-700 font-medium">已认证</span>
+                                        {% if profile.org_verified_at %}
+                                            <span class="text-gray ml-2">{{ profile.org_verified_at|date:"Y-m-d H:i" }}</span>
+                                        {% endif %}
+                                    {% elif profile.org_verify_status == 'failed' %}
+                                        <span class="text-red-600 font-medium">认证失败</span>
+                                        {% if profile.org_verify_message %}
+                                            <span class="text-gray ml-2">{{ profile.org_verify_message }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-gray">未认证</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div>
+                                <label for="org_name" class="block text-sm font-medium text-black uppercase tracking-wider">单位名称</label>
+                                <input type="text" name="org_name" id="org_name" value="{{ profile.org_name }}"
+                                       {% if profile.is_org_verified %}readonly{% endif %}
+                                       class="mt-2 block w-full border border-light-gray p-2 focus:border-black {% if profile.is_org_verified %}bg-light-gray{% endif %}"
+                                       placeholder="与营业执照一致的单位全称" autocomplete="organization">
+                            </div>
+                            <div>
+                                <label for="org_credit_code" class="block text-sm font-medium text-black uppercase tracking-wider">统一社会信用代码</label>
+                                <input type="text" name="org_credit_code" id="org_credit_code" value="{{ profile.org_credit_code }}"
+                                       {% if profile.is_org_verified %}readonly{% endif %}
+                                       class="mt-2 block w-full border border-light-gray p-2 focus:border-black {% if profile.is_org_verified %}bg-light-gray{% endif %}"
+                                       placeholder="18位统一社会信用代码" maxlength="32">
+                            </div>
+                        </div>
+                        {% if not profile.is_org_verified %}
+                        <div class="px-8 py-4 border-t border-light-gray text-right">
+                            <button type="submit" class="px-8 py-3 text-sm font-medium uppercase tracking-wider text-white bg-black hover:bg-dark-gray">
+                                提交认证
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Security Section -->

@@ -243,6 +243,13 @@ ALIPAY_RETURN_URL = os.getenv(
 )
 ORDER_PAY_TIMEOUT_MINUTES = int(os.getenv('ORDER_PAY_TIMEOUT_MINUTES', '30'))
 
+# 企查查企业二要素核验（ApiCode 855）
+# 开放平台 https://openapi.qcc.com/dataApi/855
+QICHACHA_APP_KEY = os.getenv('QICHACHA_APP_KEY', '')
+QICHACHA_SECRET_KEY = os.getenv('QICHACHA_SECRET_KEY', '')
+# true=未配置密钥时使用 Mock（信用代码以 MOCK 开头视为通过）
+QICHACHA_MOCK = os.getenv('QICHACHA_MOCK', 'true').lower() == 'true'
+
 # Stripe settings
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
