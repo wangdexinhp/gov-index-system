@@ -118,6 +118,42 @@
                placeholder="再次输入密码">
       </div>
 
+      <!-- 机构认证（可选） -->
+      <div class="pt-2 border-t border-light-gray">
+        <label class="flex items-start space-x-3 cursor-pointer">
+          <input type="checkbox" name="register_as_org" id="id_register_as_org" value="true"
+                 class="mt-1 h-4 w-4 border-black text-black focus:ring-black"
+                 {% if form.register_as_org.value %}checked{% endif %}>
+          <span>
+            <span class="block text-xs font-medium tracking-widest uppercase">注册为机构用户</span>
+            <span class="block text-xs text-gray mt-1">勾选后需填写单位信息并通过企查查二要素核验，方可购买机构套餐</span>
+          </span>
+        </label>
+
+        <div id="org-fields" class="mt-4 space-y-4 {% if not form.register_as_org.value %}hidden{% endif %}">
+          <div>
+            <label for="id_org_name" class="block text-xs font-medium tracking-widest uppercase mb-1">单位名称</label>
+            <input id="id_org_name" name="org_name" type="text" autocomplete="organization"
+                   value="{{ form.org_name.value|default:'' }}"
+                   class="border-b-2 border-t-0 border-x-0 border-black p-3 w-full focus:border-dark-gray focus:outline-none"
+                   placeholder="与营业执照一致的单位全称">
+            {% if form.org_name.errors %}
+            <div class="text-red-600 text-xs mt-1">{{ form.org_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div>
+            <label for="id_org_credit_code" class="block text-xs font-medium tracking-widest uppercase mb-1">统一社会信用代码</label>
+            <input id="id_org_credit_code" name="org_credit_code" type="text" maxlength="32"
+                   value="{{ form.org_credit_code.value|default:'' }}"
+                   class="border-b-2 border-t-0 border-x-0 border-black p-3 w-full focus:border-dark-gray focus:outline-none"
+                   placeholder="18位统一社会信用代码">
+            {% if form.org_credit_code.errors %}
+            <div class="text-red-600 text-xs mt-1">{{ form.org_credit_code.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
       <!-- 其他错误显示 -->
       {% if form.errors %}
       <div class="border border-light-gray p-4 mt-6">
@@ -130,7 +166,7 @@
             <div class="mt-2 text-sm text-gray">
               <ul class="list-disc pl-5 space-y-1">
                 {% for field, errors in form.errors.items %}
-                  {% if field != 'captcha' and field != 'captcha_0' and field != 'captcha_1' %}
+                  {% if field != 'captcha' and field != 'captcha_0' and field != 'captcha_1' and field != 'org_name' and field != 'org_credit_code' %}
                     {% for error in errors %}
                       <li>{{ error }}</li>
                     {% endfor %}
@@ -240,6 +276,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendSmsBtn = document.getElementById('send-sms-btn');
     const mobileInput = document.getElementById('id_mobile');
     const mobileError = document.getElementById('mobile-error');
+    const orgCheckbox = document.getElementById('id_register_as_org');
+    const orgFields = document.getElementById('org-fields');
+
+    function toggleOrgFields() {
+        if (!orgCheckbox || !orgFields) return;
+        if (orgCheckbox.checked) {
+            orgFields.classList.remove('hidden');
+        } else {
+            orgFields.classList.add('hidden');
+        }
+    }
+    if (orgCheckbox) {
+        orgCheckbox.addEventListener('change', toggleOrgFields);
+        toggleOrgFields();
+    }
 
     // 页面加载时加载验证码
     setTimeout(loadNewCaptcha, 100);
@@ -335,9 +386,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
+            if (orgCheckbox && orgCheckbox.checked) {
+                const orgName = (document.getElementById('id_org_name').value || '').trim();
+                const orgCode = (document.getElementById('id_org_credit_code').value || '').trim();
+                if (!orgName || !orgCode) {
+                    event.preventDefault();
+                    alert('注册机构用户请填写单位名称和统一社会信用代码');
+                    return false;
+                }
+            }
+
             // 自动生成一个email（如果用户没有输入）
             const emailInput = document.getElementById('id_email');
-            if (!emailInput.value) {
+            if (emailInput && !emailInput.value) {
                 emailInput.value = mobile + '@mobile.user';
             }
 
