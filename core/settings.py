@@ -263,12 +263,10 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 
-# 日志部分
-BASE_DIR = "/var/log/gov"
-# 创建日志目录
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
+# 日志目录（勿覆盖上方项目 BASE_DIR，否则相对路径如证书会解析错）
+LOG_DIR = os.getenv('LOG_DIR', '/var/log/gov/logs')
 if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+    os.makedirs(LOG_DIR, exist_ok=True)
 
 LOGGING = {
     'version': 1,
