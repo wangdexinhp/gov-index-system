@@ -1434,30 +1434,13 @@ def confirm_order_payment_api(request):
     }, status=403)
 
 
-# ==================== 会员激活接口（保留兼容，建议使用 confirm-order-payment） ====================
+# ==================== 会员激活接口（已关闭，禁止绕过支付） ====================
 @login_required
 @require_http_methods(["POST"])
 def activate_membership(request):
-    """直接激活会员（旧接口，仅兼容）。"""
-    try:
-        from apps.coredata.services.membership_service import apply_membership
-
-        data = json.loads(request.body)
-        result = apply_membership(
-            request.user,
-            duration=data.get("duration", "month"),
-            cities=data.get("cities", []),
-            indicators=data.get("indicators", []),
-        )
-        return JsonResponse({
-            "success": True,
-            "message": f"会员已激活，有效期至 {result['expires_at']}",
-            "data": result,
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
-    except ValueError as e:
-        return JsonResponse({"success": False, "message": str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({"success": False, "message": f"激活会员失败: {str(e)}"}, status=500)
+    """已关闭：请通过下单 + 支付宝支付开通权限，禁止直接激活。"""
+    return JsonResponse({
+        "success": False,
+        "message": "该接口已关闭，请通过购买流程完成支付后自动开通权限",
+    }, status=403)
 
