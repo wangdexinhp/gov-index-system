@@ -232,6 +232,7 @@ LOGIN_URL = 'account_login'
 ALIPAY_APP_ID = os.getenv('ALIPAY_APP_ID', 'mock_sandbox_app_id')
 ALIPAY_PRIVATE_KEY = os.getenv('ALIPAY_PRIVATE_KEY', '')
 ALIPAY_PRIVATE_KEY_PATH = os.getenv('ALIPAY_PRIVATE_KEY_PATH', 'certs/alipay/app_private_key.pem')
+ALIPAY_PRIVATE_KEY_PASSWORD = os.getenv('ALIPAY_PRIVATE_KEY_PASSWORD', '')
 ALIPAY_APP_CERT = os.getenv('ALIPAY_APP_CERT', '')
 ALIPAY_APP_CERT_PATH = os.getenv('ALIPAY_APP_CERT_PATH', 'certs/alipay/appCertPublicKey.crt')
 ALIPAY_PUBLIC_CERT = os.getenv('ALIPAY_PUBLIC_CERT', '')

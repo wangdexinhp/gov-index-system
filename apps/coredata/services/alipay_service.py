@@ -11,54 +11,114 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _format_private_key(key: str) -> str:
-    """
-    规范化应用私钥为 PKCS#1 PEM（BEGIN RSA PRIVATE KEY）。
-    支付宝密钥工具常输出 PKCS#8（BEGIN PRIVATE KEY），Cryptodome 直接加载可能报
-    “RSA key format is not supported”。
-    """
-    key = (key or "").strip().replace("\r\n", "\n").replace("\r", "\n")
-    if not key:
-        return key
+def _pem_wrap(body: str, header: str, footer: str) -> str:
+    body = "".join(body.split())
+    lines = "\n".join(body[i : i + 64] for i in range(0, len(body), 64))
+    return f"-----{header}-----\n{lines}\n-----{footer}-----"
 
-    if "BEGIN" not in key:
-        # 无头尾的纯 base64，先按 PKCS#1 包装再尝试导入
-        body = "".join(key.split())
-        key = (
-            "-----BEGIN RSA PRIVATE KEY-----\n"
-            + "\n".join(body[i : i + 64] for i in range(0, len(body), 64))
-            + "\n-----END RSA PRIVATE KEY-----"
-        )
 
-    from Cryptodome.PublicKey import RSA
+def _try_export_pkcs1(pem: str, password: bytes | None = None) -> str | None:
+    """尝试把任意 PEM/DER 私钥导出为 PKCS#1 PEM。"""
+    raw = pem.encode("utf-8") if isinstance(pem, str) else pem
 
+    # 1) Cryptodome
     try:
-        rsa_key = RSA.import_key(key)
+        from Cryptodome.PublicKey import RSA
+
+        rsa_key = RSA.import_key(raw, passphrase=password)
         return rsa_key.export_key(format="PEM", pkcs=1).decode("utf-8")
-    except (ValueError, IndexError, TypeError, OSError):
+    except Exception:
         pass
 
-    # PKCS#8 / 其他 PEM：用 cryptography 转成传统 PKCS#1
+    # 2) cryptography PEM / DER
     try:
         from cryptography.hazmat.primitives.serialization import (
             Encoding,
             NoEncryption,
             PrivateFormat,
             load_pem_private_key,
+            load_der_private_key,
         )
 
-        private_key = load_pem_private_key(key.encode("utf-8"), password=None)
-        pkcs1 = private_key.private_bytes(
+        try:
+            private_key = load_pem_private_key(raw, password=password)
+        except Exception:
+            import base64
+
+            text = raw.decode("utf-8", errors="ignore")
+            text = "".join(
+                line for line in text.splitlines()
+                if line and not line.startswith("-----")
+            )
+            der = base64.b64decode(text)
+            private_key = load_der_private_key(der, password=password)
+
+        return private_key.private_bytes(
             Encoding.PEM,
             PrivateFormat.TraditionalOpenSSL,
             NoEncryption(),
-        )
-        return pkcs1.decode("utf-8")
-    except Exception as e:
+        ).decode("utf-8")
+    except Exception:
+        return None
+
+
+def _format_private_key(key: str) -> str:
+    """
+    规范化应用私钥为 PKCS#1 PEM（BEGIN RSA PRIVATE KEY）。
+    兼容：PKCS#1 / PKCS#8 / 加密 PKCS#8（需 ALIPAY_PRIVATE_KEY_PASSWORD）。
+    """
+    key = (key or "").strip().replace("\r\n", "\n").replace("\r", "\n")
+    if key.startswith("\ufeff"):
+        key = key.lstrip("\ufeff")
+    if not key:
+        return key
+
+    password_raw = getattr(settings, "ALIPAY_PRIVATE_KEY_PASSWORD", "") or ""
+    password = password_raw.encode("utf-8") if password_raw else None
+
+    if "ENCRYPTED PRIVATE KEY" in key and not password:
         raise ValueError(
-            "应用私钥格式无法识别，请确认是 RSA 私钥（PEM）。"
-            "可用 openssl rsa -in private_key.pem -out app_private_key.pem -traditional 转换"
-        ) from e
+            "应用私钥已加密（BEGIN ENCRYPTED PRIVATE KEY），请在 .env 设置 "
+            "ALIPAY_PRIVATE_KEY_PASSWORD=生成密钥时的密码；"
+            "或用 openssl 解密成非加密私钥后再用。"
+        )
+
+    candidates = [key]
+    if "BEGIN" not in key:
+        body = key
+        candidates = [
+            _pem_wrap(body, "BEGIN PRIVATE KEY", "END PRIVATE KEY"),
+            _pem_wrap(body, "BEGIN RSA PRIVATE KEY", "END RSA PRIVATE KEY"),
+        ]
+    elif "BEGIN PRIVATE KEY" in key and "BEGIN RSA PRIVATE KEY" not in key:
+        body = "\n".join(
+            line for line in key.splitlines() if line and not line.startswith("-----")
+        )
+        candidates = [
+            key,
+            _pem_wrap(body, "BEGIN PRIVATE KEY", "END PRIVATE KEY"),
+            _pem_wrap(body, "BEGIN RSA PRIVATE KEY", "END RSA PRIVATE KEY"),
+        ]
+    elif "BEGIN RSA PRIVATE KEY" in key:
+        body = "\n".join(
+            line for line in key.splitlines() if line and not line.startswith("-----")
+        )
+        candidates = [
+            key,
+            _pem_wrap(body, "BEGIN PRIVATE KEY", "END PRIVATE KEY"),
+        ]
+
+    for candidate in candidates:
+        exported = _try_export_pkcs1(candidate, password=password)
+        if exported:
+            return exported
+
+    preview = key.splitlines()[0] if key else "(empty)"
+    raise ValueError(
+        f"应用私钥格式无法识别（文件首行: {preview}）。"
+        "若是加密私钥请检查 ALIPAY_PRIVATE_KEY_PASSWORD；"
+        "或执行 openssl rsa -in app_private_key.pem -out app_private_key.pem -traditional 解密转换。"
+    )
 
 
 
