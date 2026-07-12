@@ -227,10 +227,17 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'account_login'
 
-# 支付宝当面付（沙箱联调，替换 .env 中 mock 值为真实密钥）
+# 支付宝当面付 — 公钥证书模式（DCAliPay）
+# 证书文件放到 certs/alipay/，或通过 *_PATH / 内联内容配置
 ALIPAY_APP_ID = os.getenv('ALIPAY_APP_ID', 'mock_sandbox_app_id')
 ALIPAY_PRIVATE_KEY = os.getenv('ALIPAY_PRIVATE_KEY', '')
-ALIPAY_PUBLIC_KEY = os.getenv('ALIPAY_PUBLIC_KEY', '')
+ALIPAY_PRIVATE_KEY_PATH = os.getenv('ALIPAY_PRIVATE_KEY_PATH', 'certs/alipay/app_private_key.pem')
+ALIPAY_APP_CERT = os.getenv('ALIPAY_APP_CERT', '')
+ALIPAY_APP_CERT_PATH = os.getenv('ALIPAY_APP_CERT_PATH', 'certs/alipay/appCertPublicKey.crt')
+ALIPAY_PUBLIC_CERT = os.getenv('ALIPAY_PUBLIC_CERT', '')
+ALIPAY_PUBLIC_CERT_PATH = os.getenv('ALIPAY_PUBLIC_CERT_PATH', 'certs/alipay/alipayCertPublicKey_RSA2.crt')
+ALIPAY_ROOT_CERT = os.getenv('ALIPAY_ROOT_CERT', '')
+ALIPAY_ROOT_CERT_PATH = os.getenv('ALIPAY_ROOT_CERT_PATH', 'certs/alipay/alipayRootCert.crt')
 ALIPAY_SANDBOX = os.getenv('ALIPAY_SANDBOX', 'true').lower() == 'true'
 ALIPAY_MOCK = os.getenv('ALIPAY_MOCK', 'true').lower() == 'true'
 ALIPAY_NOTIFY_URL = os.getenv(

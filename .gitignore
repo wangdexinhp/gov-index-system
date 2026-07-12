@@ -8,3 +8,8 @@ venv/
 .DS_Store
 __pycache__/
 *.pyc
+
+# 支付宝证书与私钥（勿提交）
+certs/alipay/*
+!certs/alipay/.gitkeep
+.env
