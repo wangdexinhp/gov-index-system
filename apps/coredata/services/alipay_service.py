@@ -12,14 +12,54 @@ logger = logging.getLogger(__name__)
 
 
 def _format_private_key(key: str) -> str:
-    key = (key or "").strip()
-    if not key or "BEGIN" in key:
+    """
+    规范化应用私钥为 PKCS#1 PEM（BEGIN RSA PRIVATE KEY）。
+    支付宝密钥工具常输出 PKCS#8（BEGIN PRIVATE KEY），Cryptodome 直接加载可能报
+    “RSA key format is not supported”。
+    """
+    key = (key or "").strip().replace("\r\n", "\n").replace("\r", "\n")
+    if not key:
         return key
-    return (
-        "-----BEGIN RSA PRIVATE KEY-----\n"
-        + "\n".join(key[i : i + 64] for i in range(0, len(key), 64))
-        + "\n-----END RSA PRIVATE KEY-----"
-    )
+
+    if "BEGIN" not in key:
+        # 无头尾的纯 base64，先按 PKCS#1 包装再尝试导入
+        body = "".join(key.split())
+        key = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "\n".join(body[i : i + 64] for i in range(0, len(body), 64))
+            + "\n-----END RSA PRIVATE KEY-----"
+        )
+
+    from Cryptodome.PublicKey import RSA
+
+    try:
+        rsa_key = RSA.import_key(key)
+        return rsa_key.export_key(format="PEM", pkcs=1).decode("utf-8")
+    except (ValueError, IndexError, TypeError, OSError):
+        pass
+
+    # PKCS#8 / 其他 PEM：用 cryptography 转成传统 PKCS#1
+    try:
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding,
+            NoEncryption,
+            PrivateFormat,
+            load_pem_private_key,
+        )
+
+        private_key = load_pem_private_key(key.encode("utf-8"), password=None)
+        pkcs1 = private_key.private_bytes(
+            Encoding.PEM,
+            PrivateFormat.TraditionalOpenSSL,
+            NoEncryption(),
+        )
+        return pkcs1.decode("utf-8")
+    except Exception as e:
+        raise ValueError(
+            "应用私钥格式无法识别，请确认是 RSA 私钥（PEM）。"
+            "可用 openssl rsa -in private_key.pem -out app_private_key.pem -traditional 转换"
+        ) from e
+
 
 
 def _resolve_path(path_value: str) -> Path | None:
