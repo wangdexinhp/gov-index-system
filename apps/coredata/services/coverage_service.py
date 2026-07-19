@@ -90,14 +90,13 @@ AREA_TRACKABLE_NAME_EN_SET = {item["name_en"] for item in AREA_TRACKABLE_INDICAT
 
 
 def get_available_area_years() -> List[int]:
-    db_years = sorted({
-        y for y in IndicatorArea.objects.values_list("year", flat=True).distinct() if y
-    }, reverse=True)
+    """返回区县覆盖查询可选年份：固定窗口(近21年) ∪ 库中已有年份，降序。"""
     current = timezone.now().year
-    if current not in db_years:
-        db_years.append(current)
-        db_years.sort(reverse=True)
-    return db_years
+    years = set(range(current - 20, current + 1))
+    years.update(
+        y for y in IndicatorArea.objects.values_list("year", flat=True).distinct() if y
+    )
+    return sorted(years, reverse=True)
 
 
 def get_default_area_coverage_year() -> int:
@@ -150,15 +149,13 @@ def _build_area_slots(
 
 
 def get_available_years() -> List[int]:
-    """返回指标库中有数据的年份（降序），并附带当前年份。"""
-    db_years = sorted({
-        y for y in Indicator.objects.values_list("year", flat=True).distinct() if y
-    }, reverse=True)
+    """返回覆盖查询可选年份：固定窗口(近21年) ∪ 库中已有年份，降序。"""
     current = timezone.now().year
-    if current not in db_years:
-        db_years.append(current)
-        db_years.sort(reverse=True)
-    return db_years
+    years = set(range(current - 20, current + 1))
+    years.update(
+        y for y in Indicator.objects.values_list("year", flat=True).distinct() if y
+    )
+    return sorted(years, reverse=True)
 
 
 def get_default_coverage_year() -> int:

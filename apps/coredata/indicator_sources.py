@@ -89,12 +89,23 @@ def resolve_source_for_form(source_value: str) -> Tuple[str, str]:
     return "", text
 
 
-def get_source_display(source: str) -> str:
-    """将来源代码转为中文；已是具体名称则原样返回。"""
+def get_source_display(source: str, city: str = "", province: str = "") -> str:
+    """
+    将来源转为展示名称。
+    - 已是具体名称（如「沈阳市政府信息公开报告」）→ 原样返回
+    - 仅存类别代码时 → 按地市/省份自动拼接，避免只显示「政府信息公开报告」等笼统标签
+    """
     normalized = normalize_data_source(source)
     if not normalized:
         return ""
-    return SOURCE_LABEL_MAP.get(normalized, normalized)
+    if normalized in SOURCE_LABEL_MAP:
+        composed = compose_source_display_name(
+            city=city,
+            province=province,
+            source_code=normalized,
+        )
+        return composed or SOURCE_LABEL_MAP[normalized]
+    return normalized
 
 
 def get_source_choices() -> List[dict]:

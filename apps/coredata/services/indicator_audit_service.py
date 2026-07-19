@@ -77,14 +77,12 @@ ALL_AREA_AUDIT_NAME_EN_SET = {i["name_en"] for i in ALL_AREA_AUDIT_INDICATORS}
 
 
 def get_available_area_years() -> List[int]:
-    db_years = sorted({
-        y for y in IndicatorArea.objects.values_list("year", flat=True).distinct() if y
-    }, reverse=True)
     current = timezone.now().year
-    if current not in db_years:
-        db_years.append(current)
-        db_years.sort(reverse=True)
-    return db_years
+    years = set(range(current - 20, current + 1))
+    years.update(
+        y for y in IndicatorArea.objects.values_list("year", flat=True).distinct() if y
+    )
+    return sorted(years, reverse=True)
 
 
 def get_default_area_audit_year() -> int:
@@ -216,7 +214,11 @@ def _build_area_record(
             "input_method": input_method,
             "input_method_display": get_input_method_display(input_method) or "—",
             "source": source_code,
-            "source_display": get_source_display(source_code) or "—",
+            "source_display": get_source_display(
+                source_code,
+                city=city_name,
+                province=slot.get("province", ""),
+            ) or "—",
             "remark": existing.get("note") or "",
             "group": indicator["group"],
         }
@@ -406,7 +408,11 @@ def _build_record(city_info: dict, indicator: dict, year: int, existing: Optiona
             "input_method": input_method,
             "input_method_display": get_input_method_display(input_method) or "—",
             "source": source_code,
-            "source_display": get_source_display(source_code) or "—",
+            "source_display": get_source_display(
+                source_code,
+                city=city_name,
+                province=city_info.get("province", ""),
+            ) or "—",
             "remark": existing.get("note") or "",
             "group": indicator["group"],
         }

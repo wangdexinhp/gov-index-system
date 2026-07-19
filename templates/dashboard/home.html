@@ -489,7 +489,7 @@
         box-sizing: border-box;
     }
     .source-input-wrap { display: flex; flex-direction: column; gap: 3px; }
-    .source-merged-input { background: #f5f8fb !important; color: #444; }
+    .source-merged-input { background: #fff !important; color: #222; }
     .input-method-cell { color: #666; font-size: 11px; white-space: nowrap; }
 
     .drc-footer-bar {
@@ -1388,7 +1388,7 @@ function setupFormSubmit() {
                         const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
                         const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
                         const source = window.IndicatorSourceInput
-                            ? IndicatorSourceInput.readSubmitCodeWithFallback(indSourceTd, sourceTd)
+                            ? IndicatorSourceInput.readSubmitValueWithFallback(indSourceTd, sourceTd)
                             : '';
                         const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
                         const name_zh = indicatorNames[g] || '';

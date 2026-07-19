@@ -1,6 +1,7 @@
 /**
- * 指标录入：来源类别下拉 + 合并展示「城市名+来源」
- * 入库仅存类别代码；合并名称仅用于界面展示。
+ * 指标录入：来源类别下拉 + 可编辑的具体来源名称。
+ * 选择类别后自动填入默认名称；用户可修改具体名称（如国家级专业年鉴全称）。
+ * 提交时优先保存具体名称文本。
  */
 window.IndicatorSourceInput = (function () {
     let options = [];
@@ -45,8 +46,12 @@ window.IndicatorSourceInput = (function () {
             .replace(/>/g, '&gt;');
     }
 
+    function getOptionMeta(code) {
+        return options.find(o => o.code === code) || null;
+    }
+
     function composeDisplay(city, province, code) {
-        const opt = options.find(o => o.code === code);
+        const opt = getOptionMeta(code);
         if (!opt) return '';
         const scope = opt.scope || 'manual';
         const suffix = opt.suffix || opt.label || '';
@@ -60,7 +65,8 @@ window.IndicatorSourceInput = (function () {
             if (!cityName) return suffix;
             return cityName.endsWith(suffix) ? cityName : cityName + suffix;
         }
-        return cityName ? (cityName + suffix) : suffix;
+        // manual：仅给出类别后缀作为初始值，由用户改成具体名称
+        return suffix;
     }
 
     function guessCodeFromDisplay(text) {
@@ -70,6 +76,7 @@ window.IndicatorSourceInput = (function () {
         for (const opt of options) {
             const suffix = opt.suffix || '';
             if (suffix && value.endsWith(suffix)) return opt.code;
+            if (opt.label && value === opt.label) return opt.code;
         }
         return '';
     }
@@ -83,15 +90,32 @@ window.IndicatorSourceInput = (function () {
             <select class="source-type-select w-full bg-white border border-slate-300 rounded-lg px-1 py-0.5 text-xs" title="来源类别">
                 <option value="">来源类别</option>${opts}
             </select>
-            <input type="text" class="source-merged-input w-full bg-slate-50 border border-slate-300 rounded-lg px-1 py-1 text-xs" readonly placeholder="城市名+来源" title="城市名+来源（自动合并展示）">
+            <input type="text" class="source-merged-input w-full bg-white border border-slate-300 rounded-lg px-1 py-1 text-xs" placeholder="具体来源名称（可编辑）" title="可修改为具体年鉴/报告名称，如国家级专业年鉴全称">
         </div>`;
     }
 
-    function syncMergedDisplay(wrapEl, city, province, code) {
+    function syncMergedDisplay(wrapEl, city, province, code, force) {
         if (!wrapEl) return;
         const input = wrapEl.querySelector('.source-merged-input');
         if (!input) return;
+        // 用户已手改过名称时，切换类别才强制刷新；否则保留手改内容
+        if (!force && wrapEl.dataset.nameEdited === 'true' && input.value.trim()) {
+            return;
+        }
         input.value = code ? composeDisplay(city, province, code) : '';
+        delete wrapEl.dataset.nameEdited;
+    }
+
+    function bindMergedInputEdit(wrapEl) {
+        const input = wrapEl.querySelector('.source-merged-input');
+        if (!input || input.dataset.editBound === '1') return;
+        input.dataset.editBound = '1';
+        input.addEventListener('input', function () {
+            wrapEl.dataset.nameEdited = 'true';
+            if (wrapEl.dataset.role === 'indicator-source') {
+                wrapEl.dataset.overridden = 'true';
+            }
+        });
     }
 
     function bindCell(wrapEl, city, province) {
@@ -99,8 +123,9 @@ window.IndicatorSourceInput = (function () {
         wrapEl.dataset.bound = '1';
         const select = wrapEl.querySelector('.source-type-select');
         if (!select) return;
+        bindMergedInputEdit(wrapEl);
         select.addEventListener('change', function () {
-            syncMergedDisplay(wrapEl, city, province, select.value);
+            syncMergedDisplay(wrapEl, city, province, select.value, true);
         });
     }
 
@@ -111,21 +136,23 @@ window.IndicatorSourceInput = (function () {
         if (!select) return;
         const city = wrapEl.dataset.city;
         const province = wrapEl.dataset.province;
+        bindMergedInputEdit(wrapEl);
         select.addEventListener('change', function () {
             if (!select.value) {
                 delete wrapEl.dataset.overridden;
+                delete wrapEl.dataset.nameEdited;
                 const tr = wrapEl.closest('tr');
                 const rowSelect = tr && tr.querySelector('.source-input-wrap[data-role="row-source"] .source-type-select');
                 if (rowSelect && rowSelect.value) {
                     select.value = rowSelect.value;
-                    syncMergedDisplay(wrapEl, city, province, rowSelect.value);
+                    syncMergedDisplay(wrapEl, city, province, rowSelect.value, true);
                 } else {
-                    syncMergedDisplay(wrapEl, city, province, '');
+                    syncMergedDisplay(wrapEl, city, province, '', true);
                 }
                 return;
             }
             wrapEl.dataset.overridden = 'true';
-            syncMergedDisplay(wrapEl, city, province, select.value);
+            syncMergedDisplay(wrapEl, city, province, select.value, true);
         });
     }
 
@@ -136,12 +163,23 @@ window.IndicatorSourceInput = (function () {
         const rowSelect = rowWrap.querySelector('.source-type-select');
         if (!rowSelect) return;
         const code = rowSelect.value;
+        const rowInput = rowWrap.querySelector('.source-merged-input');
+        const rowDisplay = rowInput ? rowInput.value.trim() : '';
         tr.querySelectorAll('.source-input-wrap[data-role="indicator-source"]').forEach(function (wrap) {
             if (wrap.dataset.overridden === 'true') return;
             const indSelect = wrap.querySelector('.source-type-select');
+            const indInput = wrap.querySelector('.source-merged-input');
             if (!indSelect) return;
             indSelect.value = code;
-            syncMergedDisplay(wrap, wrap.dataset.city, wrap.dataset.province, code);
+            if (indInput) {
+                // 行级若已手改名称，同步到未单独覆盖的指标
+                if (rowWrap.dataset.nameEdited === 'true' && rowDisplay) {
+                    indInput.value = rowDisplay;
+                    wrap.dataset.nameEdited = 'true';
+                } else {
+                    syncMergedDisplay(wrap, wrap.dataset.city, wrap.dataset.province, code, true);
+                }
+            }
         });
     }
 
@@ -152,10 +190,17 @@ window.IndicatorSourceInput = (function () {
         if (!select) return;
         const city = rowWrap.dataset.city;
         const province = rowWrap.dataset.province;
+        bindMergedInputEdit(rowWrap);
         select.addEventListener('change', function () {
-            syncMergedDisplay(rowWrap, city, province, select.value);
+            syncMergedDisplay(rowWrap, city, province, select.value, true);
             syncRowSourceToIndicators(tr);
         });
+        const input = rowWrap.querySelector('.source-merged-input');
+        if (input) {
+            input.addEventListener('input', function () {
+                syncRowSourceToIndicators(tr);
+            });
+        }
     }
 
     function bindAllIn(container) {
@@ -180,12 +225,16 @@ window.IndicatorSourceInput = (function () {
         const code = guessCodeFromDisplay(text);
         if (code) {
             if (select) select.value = code;
-            input.value = (text === code)
-                ? composeDisplay(city, province, code)
-                : text;
+            if (text === code) {
+                input.value = composeDisplay(city, province, code);
+            } else {
+                input.value = text;
+                wrapEl.dataset.nameEdited = 'true';
+            }
         } else {
             if (select) select.value = '';
             input.value = text;
+            wrapEl.dataset.nameEdited = 'true';
         }
         if (options && options.markOverridden) {
             wrapEl.dataset.overridden = 'true';
@@ -197,14 +246,51 @@ window.IndicatorSourceInput = (function () {
         return select ? select.value.trim() : '';
     }
 
+    function readDisplayName(sourceTd) {
+        const wrap = sourceTd && sourceTd.querySelector('.source-input-wrap');
+        if (!wrap) return '';
+        const input = wrap.querySelector('.source-merged-input');
+        const select = wrap.querySelector('.source-type-select');
+        const display = input ? input.value.trim() : '';
+        if (display) return display;
+        const code = select ? select.value.trim() : '';
+        if (!code) return '';
+        return composeDisplay(wrap.dataset.city, wrap.dataset.province, code) || code;
+    }
+
     function readSubmitCodeWithFallback(indicatorTd, rowTd) {
         const indicatorCode = readSubmitCode(indicatorTd);
         if (indicatorCode) return indicatorCode;
         return readSubmitCode(rowTd);
     }
 
+    /** 提交用：优先具体名称，其次类别代码（兼容旧逻辑）。 */
     function readSubmitValue(sourceTd) {
-        return readSubmitCode(sourceTd);
+        return readDisplayName(sourceTd) || readSubmitCode(sourceTd);
+    }
+
+    function readSubmitValueWithFallback(indicatorTd, rowTd) {
+        const ind = readDisplayName(indicatorTd);
+        if (ind) return ind;
+        const indCode = readSubmitCode(indicatorTd);
+        if (indCode) {
+            const wrap = indicatorTd && indicatorTd.querySelector('.source-input-wrap');
+            return composeDisplay(
+                wrap && wrap.dataset.city,
+                wrap && wrap.dataset.province,
+                indCode
+            ) || indCode;
+        }
+        const row = readDisplayName(rowTd);
+        if (row) return row;
+        const rowCode = readSubmitCode(rowTd);
+        if (!rowCode) return '';
+        const rowWrap = rowTd && rowTd.querySelector('.source-input-wrap');
+        return composeDisplay(
+            rowWrap && rowWrap.dataset.city,
+            rowWrap && rowWrap.dataset.province,
+            rowCode
+        ) || rowCode;
     }
 
     function refreshProvinceScoped(container, province) {
@@ -212,9 +298,9 @@ window.IndicatorSourceInput = (function () {
         container.querySelectorAll('.source-input-wrap').forEach(function (wrap) {
             const select = wrap.querySelector('.source-type-select');
             if (!select || !select.value) return;
-            const opt = options.find(o => o.code === select.value);
-            if (opt && opt.scope === 'province') {
-                syncMergedDisplay(wrap, wrap.dataset.city, province, select.value);
+            const opt = getOptionMeta(select.value);
+            if (opt && opt.scope === 'province' && wrap.dataset.nameEdited !== 'true') {
+                syncMergedDisplay(wrap, wrap.dataset.city, province, select.value, true);
             }
             wrap.dataset.province = province || '';
         });
@@ -233,6 +319,7 @@ window.IndicatorSourceInput = (function () {
         readSubmitCode,
         readSubmitCodeWithFallback,
         readSubmitValue,
+        readSubmitValueWithFallback,
         refreshProvinceScoped,
         syncRowSourceToIndicators,
         guessCodeFromDisplay,
