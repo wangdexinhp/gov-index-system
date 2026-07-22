@@ -108,6 +108,14 @@ def get_source_display(source: str, city: str = "", province: str = "") -> str:
     return normalized
 
 
+def persist_source_text(source: str, city: str = "", province: str = "") -> str:
+    """
+    入库前统一为可读文字。
+    类别代码 → 拼接后的具体名称；已是文字则原样保留。
+    """
+    return get_source_display(source, city=city, province=province) or ""
+
+
 def get_source_choices() -> List[dict]:
     """返回全部来源，供 API / 前端动态渲染。"""
     return [{"code": c.value, "label": c.label} for c in IndicatorDataSource]

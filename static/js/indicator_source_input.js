@@ -264,9 +264,9 @@ window.IndicatorSourceInput = (function () {
         return readSubmitCode(rowTd);
     }
 
-    /** 提交用：优先具体名称，其次类别代码（兼容旧逻辑）。 */
+    /** 提交用：始终保存具体来源文字，不再落类别 code。 */
     function readSubmitValue(sourceTd) {
-        return readDisplayName(sourceTd) || readSubmitCode(sourceTd);
+        return readDisplayName(sourceTd);
     }
 
     function readSubmitValueWithFallback(indicatorTd, rowTd) {
@@ -279,7 +279,7 @@ window.IndicatorSourceInput = (function () {
                 wrap && wrap.dataset.city,
                 wrap && wrap.dataset.province,
                 indCode
-            ) || indCode;
+            ) || '';
         }
         const row = readDisplayName(rowTd);
         if (row) return row;
@@ -290,7 +290,7 @@ window.IndicatorSourceInput = (function () {
             rowWrap && rowWrap.dataset.city,
             rowWrap && rowWrap.dataset.province,
             rowCode
-        ) || rowCode;
+        ) || '';
     }
 
     function refreshProvinceScoped(container, province) {
