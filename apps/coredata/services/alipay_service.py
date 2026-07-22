@@ -288,7 +288,15 @@ def create_face_to_face_payment(order_no: str, total_amount: Decimal, subject: s
         timeout_express=f"{settings.ORDER_PAY_TIMEOUT_MINUTES}m",
     )
     if result.get("code") != "10000":
-        raise RuntimeError(result.get("sub_msg") or result.get("msg") or "支付宝下单失败")
+        sub_code = result.get("sub_code") or ""
+        sub_msg = result.get("sub_msg") or result.get("msg") or "支付宝下单失败"
+        if sub_code == "ACQ.ACCESS_FORBIDDEN" or sub_msg == "ACCESS_FORBIDDEN":
+            raise RuntimeError(
+                "支付宝返回无权限（ACQ.ACCESS_FORBIDDEN）：请在开放平台为应用签约「当面付」，"
+                "并确认已开通 alipay.trade.precreate（扫码支付）接口权限后再试"
+            )
+        detail = f"{sub_code} {sub_msg}".strip() if sub_code else sub_msg
+        raise RuntimeError(detail)
     return {"qr_code": result.get("qr_code"), "mock": False}
 
 

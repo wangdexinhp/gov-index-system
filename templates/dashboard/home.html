@@ -488,9 +488,39 @@
         border-radius: 2px;
         box-sizing: border-box;
     }
+    .data-table input.has-existing,
+    .data-table .source-input-wrap.has-existing .source-merged-input {
+        background: #eefaf0 !important;
+        border-color: #8ec99a !important;
+    }
+    .existing-hint {
+        margin-left: 12px;
+        font-size: 12px;
+        color: #2f7d3a;
+        display: none;
+    }
+    .existing-hint.visible { display: inline; }
     .source-input-wrap { display: flex; flex-direction: column; gap: 3px; }
     .source-merged-input { background: #fff !important; color: #222; }
     .input-method-cell { color: #666; font-size: 11px; white-space: nowrap; }
+    .drc-confirm-modal { width: min(440px, 92vw); }
+    .drc-confirm-modal .drc-modal-body {
+        display: block;
+        height: auto;
+        padding: 16px 18px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #333;
+    }
+    .drc-confirm-modal .confirm-summary {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f5f8fb;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+        font-size: 12px;
+        color: #555;
+    }
 
     .drc-footer-bar {
         padding: 8px 12px;
@@ -597,6 +627,7 @@
                 <div class="drc-footer-bar">
                     <button id="submit-button" type="submit" class="drc-btn drc-btn-primary">提交数据</button>
                     <button id="reset-button" type="button" class="drc-btn">重置表单</button>
+                    <span class="existing-hint" id="existing-hint">已回填 0 条已录入数据</span>
                     <button id="save-draft-button" type="button" class="drc-btn" style="margin-left:auto">
                         <iconify-icon icon="mdi:content-save"></iconify-icon> 保存草稿
                     </button>
@@ -679,6 +710,24 @@
         <div class="drc-modal-footer">
             <button type="button" class="drc-btn" id="cancel-region-modal">取消</button>
             <button type="button" class="drc-btn drc-btn-primary" id="apply-region-modal">应用筛选</button>
+        </div>
+    </div>
+</div>
+
+<!-- 提交确认弹窗 -->
+<div class="drc-modal-mask hidden" id="submit-confirm-mask">
+    <div class="drc-modal drc-confirm-modal" role="dialog" aria-labelledby="submit-confirm-title">
+        <div class="drc-modal-header">
+            <span id="submit-confirm-title">确认提交</span>
+            <button type="button" class="drc-modal-close" id="close-submit-confirm" aria-label="关闭">&times;</button>
+        </div>
+        <div class="drc-modal-body">
+            <div>确认将当前表格数据提交到后台吗？提交后将覆盖同城市、同年份、同指标的已有数据。</div>
+            <div class="confirm-summary" id="submit-confirm-summary"></div>
+        </div>
+        <div class="drc-modal-footer">
+            <button type="button" class="drc-btn" id="cancel-submit-confirm">取消</button>
+            <button type="button" class="drc-btn drc-btn-primary" id="confirm-submit-btn">确认提交</button>
         </div>
     </div>
 </div>
@@ -878,15 +927,33 @@
         updateProgress();
     }
 
+    function setExistingHint(count) {
+        const hint = document.getElementById('existing-hint');
+        if (!hint) return;
+        if (count > 0) {
+            hint.textContent = `已回填 ${count} 条已录入数据（绿色底）`;
+            hint.classList.add('visible');
+        } else {
+            hint.textContent = '';
+            hint.classList.remove('visible');
+        }
+    }
+
     async function loadExistingFormData() {
         const yearSel = document.getElementById('year-select');
         const year = (yearSel?.value || yearSel?.options[yearSel?.selectedIndex]?.text || '').replace(/[^\d]/g, '');
-        if (!year) return;
+        if (!year) {
+            setExistingHint(0);
+            return;
+        }
 
         const cities = Array.from(globalSelectedCities);
         const headers = Array.from(document.querySelectorAll('#manual-section .data-table thead th[data-indicator]'));
         const indicators = headers.map(h => h.getAttribute('data-indicator')).filter(Boolean);
-        if (!cities.length || !indicators.length) return;
+        if (!cities.length || !indicators.length) {
+            setExistingHint(0);
+            return;
+        }
 
         try {
             const params = new URLSearchParams({
@@ -897,11 +964,15 @@
             });
             const res = await fetch(`/dashboard/api/input-form-data/?${params}`, { credentials: 'same-origin' });
             const json = await res.json();
-            if (!json.success || !json.data) return;
+            if (!json.success || !json.data) {
+                setExistingHint(0);
+                return;
+            }
 
             const tbody = document.querySelector('#manual-section .data-table tbody');
             if (!tbody) return;
 
+            let filledCount = 0;
             tbody.querySelectorAll('tr').forEach(tr => {
                 const city = tr.cells[0]?.textContent?.trim();
                 if (!city || !json.data[city]) return;
@@ -921,13 +992,20 @@
                     const refCell = tr.cells[base + 4];
                     if (valInput && record.value != null && record.value !== '') {
                         valInput.value = record.value;
+                        valInput.classList.add('has-existing');
+                        valInput.title = '已录入数据（可修改后重新提交）';
+                        filledCount += 1;
                     }
-                    if (noteInput && record.note) noteInput.value = record.note;
+                    if (noteInput && record.note) {
+                        noteInput.value = record.note;
+                        noteInput.classList.add('has-existing');
+                    }
                     if (methodCell && record.input_method_display) {
                         methodCell.innerHTML = buildInputMethodCellHtml(record.input_method_display);
                     }
                     if (sourceWrap && record.source && window.IndicatorSourceInput) {
                         IndicatorSourceInput.applyLoadedValue(sourceWrap, record.source, city, getSelectedProvince());
+                        sourceWrap.classList.add('has-existing');
                     }
                     if (!rowSource && record.source) rowSource = record.source;
                     if (refCell && record.reference != null && record.reference !== '') {
@@ -937,6 +1015,7 @@
 
                 if (rowSourceWrap && rowSource && window.IndicatorSourceInput) {
                     IndicatorSourceInput.applyLoadedValue(rowSourceWrap, rowSource, city, getSelectedProvince());
+                    rowSourceWrap.classList.add('has-existing');
                 }
                 const rowCode = window.IndicatorSourceInput
                     ? IndicatorSourceInput.guessCodeFromDisplay(rowSource)
@@ -957,9 +1036,11 @@
                     IndicatorSourceInput.syncRowSourceToIndicators(tr);
                 }
             });
+            setExistingHint(filledCount);
             updateProgress();
         } catch (e) {
             console.warn('加载已录入数据失败', e);
+            setExistingHint(0);
         }
     }
 
@@ -1342,113 +1423,161 @@
 
 function setupFormSubmit() {
     const form = document.getElementById('manual-form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // ========== 收集表格数据构建 rows_json ==========
-            const rows = (function collectRowsData() {
-                const out = [];
-                const tbody = document.querySelector('#manual-section .data-table tbody');
-                if (!tbody) return out;
-                
-                // 获取年份和省份
-                const yearSel = document.getElementById('year-select');
-                let year = '';
-                if (yearSel) {
-                    const ytxt = yearSel.value || yearSel.options[yearSel.selectedIndex]?.text || '';
-                    year = ytxt.replace(/[^\d]/g, '');
-                }
-                const provSel = document.getElementById('province-select');
-                const province = provSel ? provSel.value : '';
-                
-                // 获取所有指标中文名
-                const headerEls = document.querySelectorAll('#manual-section .data-table thead th[data-indicator]');
-                const indicatorNames = Array.from(headerEls).map(h => h.getAttribute('data-indicator'));
-                
-                // 遍历每一行（每个城市）
-                const rowsList = tbody.querySelectorAll('tr');
-                for (let tr of rowsList) {
-                    const cityCell = tr.children[0];
-                    if (!cityCell) continue;
-                    const city = cityCell.textContent.trim();
-                    if (!city || city === '请在上方选择城市') continue;
+    if (!form) return;
 
-                    const sourceTd = tr.children[1];
-                    
-                    let cursor = 2; // 城市列 + 城市统一数据来源列
-                    const groups = [];
-                    
-                    for (let g = 0; g < indicatorNames.length; g++) {
-                        const valTd = tr.children[cursor];
-                        const noteTd = tr.children[cursor + 1];
-                        const indSourceTd = tr.children[cursor + 3];
-                        const refTd = tr.children[cursor + 4];
-                        
-                        const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
-                        const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
-                        const source = window.IndicatorSourceInput
-                            ? IndicatorSourceInput.readSubmitValueWithFallback(indSourceTd, sourceTd)
-                            : '';
-                        const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
-                        const name_zh = indicatorNames[g] || '';
-                        
-                        groups.push({
-                            value: val,
-                            note: note,
-                            source: source,
-                            input_method: 'MANUAL',
-                            reference: reference,
-                            name_zh: name_zh
-                        });
-                        cursor += COLS_PER_INDICATOR;
-                    }
-                    
-                    out.push({
-                        city: city,
-                        province: province,
-                        year: year,
-                        groups: groups
-                    });
-                }
-                return out;
-            })();
-            
-            // 将 rows_json 写入隐藏字段
-            const hiddenInput = document.getElementById('rows-json');
-            if (hiddenInput) {
-                hiddenInput.value = JSON.stringify(rows);
-            }
-            
-            // 提交表单
-            const submitBtn = document.getElementById('submit-button');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = '提交中...';
-            submitBtn.disabled = true;
-            
-            const formData = new FormData(form);
-            
-            fetch(form.action, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ 提交成功！');
-                    setTimeout(() => window.location.reload(), 500);
-                } else {
-                    alert('❌ 提交失败：' + (data.message || '未知错误'));
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('错误:', error);
-                alert('❌ 网络错误');
+    const confirmMask = document.getElementById('submit-confirm-mask');
+    const confirmSummary = document.getElementById('submit-confirm-summary');
+    const confirmBtn = document.getElementById('confirm-submit-btn');
+    const cancelBtn = document.getElementById('cancel-submit-confirm');
+    const closeBtn = document.getElementById('close-submit-confirm');
+    let pendingRows = null;
+
+    function hideConfirm() {
+        if (confirmMask) confirmMask.classList.add('hidden');
+        pendingRows = null;
+    }
+
+    function showConfirm(rows) {
+        pendingRows = rows;
+        const year = rows[0]?.year || '';
+        const cityCount = rows.length;
+        let valueCount = 0;
+        rows.forEach(r => {
+            (r.groups || []).forEach(g => {
+                if ((g.value || '').trim() !== '') valueCount += 1;
+            });
+        });
+        if (confirmSummary) {
+            confirmSummary.innerHTML =
+                `年份：<strong>${year || '未选'}</strong><br>` +
+                `城市数：<strong>${cityCount}</strong><br>` +
+                `有数值的指标格：<strong>${valueCount}</strong>`;
+        }
+        if (confirmMask) confirmMask.classList.remove('hidden');
+    }
+
+    function doSubmit(rows) {
+        const hiddenInput = document.getElementById('rows-json');
+        if (hiddenInput) hiddenInput.value = JSON.stringify(rows);
+
+        const submitBtn = document.getElementById('submit-button');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = '提交中...';
+        submitBtn.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ 提交成功！');
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                alert('❌ 提交失败：' + (data.message || '未知错误'));
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
-            });
+            }
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('❌ 网络错误');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const rows = (function collectRowsData() {
+            const out = [];
+            const tbody = document.querySelector('#manual-section .data-table tbody');
+            if (!tbody) return out;
+
+            const yearSel = document.getElementById('year-select');
+            let year = '';
+            if (yearSel) {
+                const ytxt = yearSel.value || yearSel.options[yearSel.selectedIndex]?.text || '';
+                year = ytxt.replace(/[^\d]/g, '');
+            }
+            const provSel = document.getElementById('province-select');
+            const province = provSel ? provSel.value : '';
+
+            const headerEls = document.querySelectorAll('#manual-section .data-table thead th[data-indicator]');
+            const indicatorNames = Array.from(headerEls).map(h => h.getAttribute('data-indicator'));
+
+            const rowsList = tbody.querySelectorAll('tr');
+            for (let tr of rowsList) {
+                const cityCell = tr.children[0];
+                if (!cityCell) continue;
+                const city = cityCell.textContent.trim();
+                if (!city || city === '请在上方选择城市') continue;
+
+                const sourceTd = tr.children[1];
+                let cursor = 2;
+                const groups = [];
+
+                for (let g = 0; g < indicatorNames.length; g++) {
+                    const valTd = tr.children[cursor];
+                    const noteTd = tr.children[cursor + 1];
+                    const indSourceTd = tr.children[cursor + 3];
+                    const refTd = tr.children[cursor + 4];
+
+                    const val = valTd ? (valTd.querySelector('input') ? valTd.querySelector('input').value.trim() : '') : '';
+                    const note = noteTd ? (noteTd.querySelector('input') ? noteTd.querySelector('input').value.trim() : '') : '';
+                    const source = window.IndicatorSourceInput
+                        ? IndicatorSourceInput.readSubmitValueWithFallback(indSourceTd, sourceTd)
+                        : '';
+                    const reference = refTd ? (refTd.querySelector('input') ? refTd.querySelector('input').value.trim() : (refTd.textContent || '').trim()) : '';
+                    const name_zh = indicatorNames[g] || '';
+
+                    groups.push({
+                        value: val,
+                        note: note,
+                        source: source,
+                        input_method: 'MANUAL',
+                        reference: reference,
+                        name_zh: name_zh
+                    });
+                    cursor += COLS_PER_INDICATOR;
+                }
+
+                out.push({
+                    city: city,
+                    province: province,
+                    year: year,
+                    groups: groups
+                });
+            }
+            return out;
+        })();
+
+        if (!rows.length) {
+            alert('请先选择城市和指标后再提交');
+            return;
+        }
+        if (!rows[0].year) {
+            alert('请先选择年份');
+            return;
+        }
+        showConfirm(rows);
+    });
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (!pendingRows) return;
+            const rows = pendingRows;
+            hideConfirm();
+            doSubmit(rows);
+        });
+    }
+    if (cancelBtn) cancelBtn.addEventListener('click', hideConfirm);
+    if (closeBtn) closeBtn.addEventListener('click', hideConfirm);
+    if (confirmMask) {
+        confirmMask.addEventListener('click', function(e) {
+            if (e.target === confirmMask) hideConfirm();
         });
     }
 }
