@@ -28,6 +28,14 @@ def resolve_name_en(display_name: str, indimap: dict) -> Optional[str]:
     return None
 
 
+def _to_city_id(raw) -> int:
+    """区域映射里的城市代码可能是 str，统一转为 int 以便与 Indicator.city_id 对齐。"""
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _format_value(value) -> Optional[str]:
     if value is None or value == "":
         return None
@@ -70,7 +78,7 @@ def get_city_input_form_data(
     city_ids: Dict[str, int] = {}
     for city in cities:
         key = city.replace("市", "")
-        cid = city_name_to_code.get(key, 0)
+        cid = _to_city_id(city_name_to_code.get(key, 0))
         if cid:
             city_ids[city] = cid
 
@@ -85,10 +93,9 @@ def get_city_input_form_data(
 
     by_city_en: Dict[Tuple[int, str], dict] = {}
     for row in rows:
-        by_city_en[(row["city_id"], row["name_en"])] = row
+        by_city_en[(_to_city_id(row["city_id"]), row["name_en"])] = row
 
     result: Dict[str, Dict[str, dict]] = {}
-    en_to_label = {v: k for k, v in name_en_by_label.items()}
 
     for city, city_id in city_ids.items():
         city_bucket: Dict[str, dict] = {}
@@ -138,7 +145,7 @@ def get_area_input_form_data(
         area = (item.get("area") or "").strip()
         if not city or not area:
             continue
-        city_id = city_name_to_code.get(city.replace("市", ""), 0)
+        city_id = _to_city_id(city_name_to_code.get(city.replace("市", ""), 0))
         if city_id:
             normalized_items.append((city, city_id, area))
 
@@ -157,7 +164,7 @@ def get_area_input_form_data(
 
     by_key: Dict[Tuple[int, str, str], dict] = {}
     for row in rows:
-        by_key[(row["city_id"], row["area"], row["name_en"])] = row
+        by_key[(_to_city_id(row["city_id"]), row["area"], row["name_en"])] = row
 
     result: Dict[str, Dict[str, dict]] = {}
     for city, city_id, area in normalized_items:
