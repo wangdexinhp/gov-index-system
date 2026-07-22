@@ -227,12 +227,17 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'account_login'
 
-# 支付宝当面付 — 公钥证书模式（DCAliPay）
-# 证书文件放到 certs/alipay/，或通过 *_PATH / 内联内容配置
+# 支付宝当面付
+# ALIPAY_SIGN_MODE=key  → 公钥模式（应用私钥 + 支付宝公钥）
+# ALIPAY_SIGN_MODE=cert → 公钥证书模式（应用私钥 + 三份证书）
+# 未配置时：若存在 ALIPAY_PUBLIC_KEY_PATH 文件则自动用 key
 ALIPAY_APP_ID = os.getenv('ALIPAY_APP_ID', 'mock_sandbox_app_id')
+ALIPAY_SIGN_MODE = os.getenv('ALIPAY_SIGN_MODE', '')
 ALIPAY_PRIVATE_KEY = os.getenv('ALIPAY_PRIVATE_KEY', '')
 ALIPAY_PRIVATE_KEY_PATH = os.getenv('ALIPAY_PRIVATE_KEY_PATH', 'certs/alipay/app_private_key.pem')
 ALIPAY_PRIVATE_KEY_PASSWORD = os.getenv('ALIPAY_PRIVATE_KEY_PASSWORD', '')
+ALIPAY_PUBLIC_KEY = os.getenv('ALIPAY_PUBLIC_KEY', '')
+ALIPAY_PUBLIC_KEY_PATH = os.getenv('ALIPAY_PUBLIC_KEY_PATH', 'certs/alipay/alipay_public_key.pem')
 ALIPAY_APP_CERT = os.getenv('ALIPAY_APP_CERT', '')
 ALIPAY_APP_CERT_PATH = os.getenv('ALIPAY_APP_CERT_PATH', 'certs/alipay/appCertPublicKey.crt')
 ALIPAY_PUBLIC_CERT = os.getenv('ALIPAY_PUBLIC_CERT', '')
