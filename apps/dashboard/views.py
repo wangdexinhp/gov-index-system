@@ -19,7 +19,7 @@ from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_
 
 from apps.coredata.excel_color_sources import DEFAULT_EXCEL_SOURCE
 from apps.coredata.indicator_input_methods import IndicatorInputMethod, normalize_data_source
-from apps.coredata.indicator_sources import get_default_form_source_options
+from apps.coredata.indicator_sources import get_default_form_source_options, persist_source_text
 from apps.coredata.services.excel_upload_service import (
     extract_cell_fields,
     excel_column_name_base,
@@ -500,7 +500,11 @@ def save_to_database(rows_data):
                 continue
             name_zh, name_en = matched
 
-            source = normalize_data_source(group.get('source'))
+            source = persist_source_text(
+                normalize_data_source(group.get('source')),
+                city=city_name or '',
+                province=province_name or '',
+            )
             input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             Indicator.objects.update_or_create(
@@ -563,7 +567,11 @@ def save_area_to_database(rows_data):
                 continue
             name_zh, name_en = matched
 
-            source = normalize_data_source(group.get('source'))
+            source = persist_source_text(
+                normalize_data_source(group.get('source')),
+                city=city_name or '',
+                province=province_name or '',
+            )
             input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             IndicatorArea.objects.create(
@@ -985,7 +993,11 @@ def save_df_to_database(rows_data, year):
             if not name_en or name_en not in INDIMAP_UNIT:
                 continue
 
-            source = normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE
+            source = persist_source_text(
+                normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE,
+                city=city_name or '',
+                province=(province_info.get('province_name') if province_info else '') or '',
+            )
             print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             try:
                 Indicator.objects.create(
@@ -1051,7 +1063,11 @@ def save_area_df_to_database(rows_data, year):
             # 仅 AREA_INDIMAP / AREA_INDIMAP_UNIT 中存在的指标入库
             if not name_en or name_en not in AREA_INDIMAP_UNIT:
                 continue
-            source = normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE
+            source = persist_source_text(
+                normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE,
+                city=str(city_name or ''),
+                province=(province_info.get('province_name') if province_info else '') or '',
+            )
             print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             try:
                 IndicatorArea.objects.create(

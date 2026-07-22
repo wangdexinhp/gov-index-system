@@ -29,13 +29,13 @@ class Indicator(models.Model):
         help_text="如：110000（北京市代码）"
     )
 
-    # 数据来源：统计年鉴、发展公报等
+    # 数据来源：具体名称文字（如「沈阳市统计年鉴」），不再存类别 code
     source = models.CharField(
         "数据来源",
-        max_length=50,
+        max_length=200,
         default='',
         blank=True,
-        help_text="指标数据来源类别或具体名称",
+        help_text="指标数据来源具体名称（文字）",
     )
 
     class InputMethod(models.TextChoices):
@@ -159,13 +159,13 @@ class IndicatorArea(models.Model):
     )
 
 
-    # 数据来源：统计年鉴、发展公报等
+    # 数据来源：具体名称文字（如「沈阳市统计年鉴」），不再存类别 code
     source = models.CharField(
         "数据来源",
-        max_length=50,
+        max_length=200,
         default='',
         blank=True,
-        help_text="指标数据来源类别或具体名称",
+        help_text="指标数据来源具体名称（文字）",
     )
 
     class InputMethod(models.TextChoices):
