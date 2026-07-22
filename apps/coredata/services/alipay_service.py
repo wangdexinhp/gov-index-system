@@ -1,5 +1,5 @@
 """
-支付宝当面付（扫码）封装。
+支付宝电脑网站支付封装（alipay.trade.page.pay）。
 支持：
 - 公钥模式（AliPay）—— 应用私钥 + 支付宝公钥
 - 公钥证书模式（DCAliPay）—— 应用私钥 + 三份证书
@@ -270,34 +270,48 @@ def get_alipay_client():
     )
 
 
-def create_face_to_face_payment(order_no: str, total_amount: Decimal, subject: str) -> dict:
+def _alipay_page_gateway() -> str:
+    if getattr(settings, "ALIPAY_SANDBOX", False):
+        return "https://openapi-sandbox.dl.alipaydev.com/gateway.do?"
+    return "https://openapi.alipay.com/gateway.do?"
+
+
+def create_page_payment(order_no: str, total_amount: Decimal, subject: str) -> dict:
+    """
+    电脑网站支付：生成跳转支付宝收银台的 URL。
+    用户支付后异步通知 notify_url，同步回跳 return_url。
+    """
     amount_str = f"{Decimal(total_amount):.2f}"
     if is_alipay_mock_mode():
-        qr = f"https://mock.alipay.dev/qrcode?order={order_no}&amount={amount_str}"
-        logger.info("Alipay MOCK precreate order=%s amount=%s", order_no, amount_str)
-        return {"qr_code": qr, "mock": True}
+        return_base = (getattr(settings, "ALIPAY_RETURN_URL", "") or "/landing/pricing/?pay=return").strip()
+        sep = "&" if "?" in return_base else "?"
+        pay_url = f"{return_base}{sep}out_trade_no={order_no}&mock_pay=1"
+        logger.info("Alipay MOCK page.pay order=%s amount=%s", order_no, amount_str)
+        return {"pay_url": pay_url, "mock": True}
 
     client = get_alipay_client()
     if not client:
         raise RuntimeError("支付宝客户端未配置")
 
-    result = client.api_alipay_trade_precreate(
-        out_trade_no=order_no,
-        total_amount=amount_str,
-        subject=subject[:256],
-        timeout_express=f"{settings.ORDER_PAY_TIMEOUT_MINUTES}m",
-    )
-    if result.get("code") != "10000":
-        sub_code = result.get("sub_code") or ""
-        sub_msg = result.get("sub_msg") or result.get("msg") or "支付宝下单失败"
-        if sub_code == "ACQ.ACCESS_FORBIDDEN" or sub_msg == "ACCESS_FORBIDDEN":
+    try:
+        order_string = client.api_alipay_trade_page_pay(
+            subject=subject[:256],
+            out_trade_no=order_no,
+            total_amount=amount_str,
+            return_url=settings.ALIPAY_RETURN_URL,
+            notify_url=settings.ALIPAY_NOTIFY_URL,
+            timeout_express=f"{settings.ORDER_PAY_TIMEOUT_MINUTES}m",
+        )
+    except Exception as e:
+        msg = str(e)
+        if "ACCESS_FORBIDDEN" in msg:
             raise RuntimeError(
-                "支付宝返回无权限（ACQ.ACCESS_FORBIDDEN）：请在开放平台为应用签约「当面付」，"
-                "并确认已开通 alipay.trade.precreate（扫码支付）接口权限后再试"
-            )
-        detail = f"{sub_code} {sub_msg}".strip() if sub_code else sub_msg
-        raise RuntimeError(detail)
-    return {"qr_code": result.get("qr_code"), "mock": False}
+                "支付宝返回无权限（ACCESS_FORBIDDEN）：请在开放平台为应用签约「电脑网站支付」，"
+                "并确认已开通 alipay.trade.page.pay 接口权限后再试"
+            ) from e
+        raise
+
+    return {"pay_url": _alipay_page_gateway() + order_string, "mock": False}
 
 
 def verify_alipay_notify(data: dict) -> bool:
