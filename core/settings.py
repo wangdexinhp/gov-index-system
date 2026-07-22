@@ -227,7 +227,8 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'account_login'
 
-# 支付宝当面付
+# 支付宝电脑网站支付（alipay.trade.page.pay）
+# 开放平台需签约「电脑网站支付」
 # ALIPAY_SIGN_MODE=key  → 公钥模式（应用私钥 + 支付宝公钥）
 # ALIPAY_SIGN_MODE=cert → 公钥证书模式（应用私钥 + 三份证书）
 # 未配置时：若存在 ALIPAY_PUBLIC_KEY_PATH 文件则自动用 key

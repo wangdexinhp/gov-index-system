@@ -1392,10 +1392,10 @@ def update_duration_multipliers_api(request):
 @login_required_json
 @require_http_methods(["POST"])
 def create_order_api(request):
-    """创建待支付订单（服务端验价 + 支付宝当面付预下单）。"""
+    """创建待支付订单（服务端验价 + 支付宝电脑网站支付跳转）。"""
     try:
         from django.conf import settings as dj_settings
-        from apps.coredata.services.alipay_service import create_face_to_face_payment, is_alipay_mock_mode
+        from apps.coredata.services.alipay_service import create_page_payment, is_alipay_mock_mode
         from apps.coredata.services.order_service import create_membership_order
         from apps.accounts.models import UserProfile
 
@@ -1414,19 +1414,19 @@ def create_order_api(request):
                 }, status=403)
 
         order = create_membership_order(request.user, user_type, duration, permissions)
-        pay = create_face_to_face_payment(
+        pay = create_page_payment(
             order.order_no,
             order.total_amount,
             subject=f"城策智库-指标查看权限-{order.order_no}",
         )
         return JsonResponse({
             "success": True,
-            "message": "订单创建成功，请扫码支付",
+            "message": "订单创建成功，请前往支付宝完成支付",
             "data": {
                 "order_no": order.order_no,
                 "total_amount": float(order.total_amount),
                 "status": order.status,
-                "qr_code": pay.get("qr_code"),
+                "pay_url": pay.get("pay_url"),
                 "expire_at": order.expire_at.isoformat() if order.expire_at else None,
                 "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
                 "alipay_mock": pay.get("mock", False) or is_alipay_mock_mode(),
@@ -1446,7 +1446,7 @@ def confirm_order_payment_api(request):
     """已关闭：支付结果由支付宝异步通知处理，请勿手动确认。"""
     return JsonResponse({
         "success": False,
-        "message": "请使用支付宝扫码完成支付，系统将自动开通权限",
+        "message": "请前往支付宝完成支付，系统将自动开通权限",
     }, status=403)
 
 
