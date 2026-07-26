@@ -1392,10 +1392,11 @@ def update_duration_multipliers_api(request):
 @login_required_json
 @require_http_methods(["POST"])
 def create_order_api(request):
-    """创建待支付订单（服务端验价 + 支付宝电脑网站支付跳转）。"""
+    """创建待支付订单（服务端验价 + 支付宝跳转 / 微信扫码）。"""
     try:
         from django.conf import settings as dj_settings
         from apps.coredata.services.alipay_service import create_page_payment, is_alipay_mock_mode
+        from apps.coredata.services.wechatpay_service import create_native_payment, is_wechat_mock_mode
         from apps.coredata.services.order_service import create_membership_order
         from apps.accounts.models import UserProfile
 
@@ -1403,6 +1404,11 @@ def create_order_api(request):
         user_type = data.get("user_type", "personal")
         duration = data.get("duration", "year")
         permissions = data.get("permissions", [])
+        payment_channel = (data.get("payment_channel") or "alipay").strip().lower()
+        if payment_channel in ("wx", "weixin", "wechat_pay"):
+            payment_channel = "wechat"
+        if payment_channel not in ("alipay", "wechat"):
+            return JsonResponse({"success": False, "message": "不支持的支付方式"}, status=400)
 
         if user_type in ("organization", "org"):
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -1414,24 +1420,35 @@ def create_order_api(request):
                 }, status=403)
 
         order = create_membership_order(request.user, user_type, duration, permissions)
-        pay = create_page_payment(
-            order.order_no,
-            order.total_amount,
-            subject=f"城策智库-指标查看权限-{order.order_no}",
-        )
-        return JsonResponse({
-            "success": True,
-            "message": "订单创建成功，请前往支付宝完成支付",
-            "data": {
-                "order_no": order.order_no,
-                "total_amount": float(order.total_amount),
-                "status": order.status,
+        order.payment_channel = payment_channel
+        order.save(update_fields=["payment_channel", "updated_at"])
+
+        subject = f"城策智库-指标查看权限-{order.order_no}"
+        payload = {
+            "order_no": order.order_no,
+            "total_amount": float(order.total_amount),
+            "status": order.status,
+            "payment_channel": payment_channel,
+            "expire_at": order.expire_at.isoformat() if order.expire_at else None,
+            "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
+        }
+
+        if payment_channel == "wechat":
+            pay = create_native_payment(order.order_no, order.total_amount, subject=subject)
+            payload.update({
+                "code_url": pay.get("code_url"),
+                "wechat_mock": pay.get("mock", False) or is_wechat_mock_mode(),
+            })
+            message = "订单创建成功，请使用微信扫码支付"
+        else:
+            pay = create_page_payment(order.order_no, order.total_amount, subject=subject)
+            payload.update({
                 "pay_url": pay.get("pay_url"),
-                "expire_at": order.expire_at.isoformat() if order.expire_at else None,
-                "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
                 "alipay_mock": pay.get("mock", False) or is_alipay_mock_mode(),
-            },
-        })
+            })
+            message = "订单创建成功，请前往支付宝完成支付"
+
+        return JsonResponse({"success": True, "message": message, "data": payload})
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
     except ValueError as e:

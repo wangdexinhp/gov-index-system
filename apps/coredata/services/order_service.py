@@ -125,6 +125,7 @@ def mark_order_paid(
     order_no: str,
     payment_channel: str = "alipay",
     alipay_trade_no: str = "",
+    trade_no: str = "",
 ) -> MembershipOrder:
     order = MembershipOrder.objects.select_for_update().filter(order_no=order_no).first()
     if not order:
@@ -138,12 +139,19 @@ def mark_order_paid(
         order.save(update_fields=["status", "updated_at"])
         raise ValueError("订单已超时")
 
+    channel_trade_no = (trade_no or alipay_trade_no or "").strip()
     order.status = MembershipOrder.Status.PAID
     order.paid_at = timezone.now()
     order.payment_channel = payment_channel
-    if alipay_trade_no:
-        order.alipay_trade_no = alipay_trade_no
-    order.save(update_fields=["status", "paid_at", "payment_channel", "alipay_trade_no", "updated_at"])
+    update_fields = ["status", "paid_at", "payment_channel", "updated_at"]
+    if channel_trade_no:
+        if payment_channel in ("wechat", "mock_wechat"):
+            order.wechat_transaction_id = channel_trade_no
+            update_fields.append("wechat_transaction_id")
+        else:
+            order.alipay_trade_no = channel_trade_no
+            update_fields.append("alipay_trade_no")
+    order.save(update_fields=update_fields)
     return order
 
 
@@ -171,7 +179,12 @@ def build_membership_payload_from_order(order: MembershipOrder) -> Dict:
     }
 
 
-def fulfill_paid_order(order_no: str, payment_channel: str = "alipay", alipay_trade_no: str = "") -> dict:
+def fulfill_paid_order(
+    order_no: str,
+    payment_channel: str = "alipay",
+    alipay_trade_no: str = "",
+    trade_no: str = "",
+) -> dict:
     """支付成功后标记订单并开通会员（幂等）。
 
     机构订单在开通权限前二次校验 is_org_verified：
@@ -188,7 +201,12 @@ def fulfill_paid_order(order_no: str, payment_channel: str = "alipay", alipay_tr
         if order.status == MembershipOrder.Status.PAID:
             return {"already_fulfilled": True, "order_no": order_no}
 
-        order = mark_order_paid(order_no, payment_channel=payment_channel, alipay_trade_no=alipay_trade_no)
+        order = mark_order_paid(
+            order_no,
+            payment_channel=payment_channel,
+            alipay_trade_no=alipay_trade_no,
+            trade_no=trade_no,
+        )
 
         if order.user_type in ("organization", "org"):
             profile, _ = UserProfile.objects.select_for_update().get_or_create(user=order.user)

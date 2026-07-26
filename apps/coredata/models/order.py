@@ -31,6 +31,7 @@ class MembershipOrder(models.Model):
     paid_at = models.DateTimeField("支付时间", null=True, blank=True)
     expire_at = models.DateTimeField("支付截止时间", null=True, blank=True, db_index=True)
     alipay_trade_no = models.CharField("支付宝交易号", max_length=64, blank=True, default="")
+    wechat_transaction_id = models.CharField("微信交易号", max_length=64, blank=True, default="")
     payment_channel = models.CharField("支付渠道", max_length=32, blank=True, default="")
     remark = models.TextField("备注", blank=True, default="")
     created_at = models.DateTimeField("创建时间", auto_now_add=True)

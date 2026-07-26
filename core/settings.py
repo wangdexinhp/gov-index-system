@@ -257,6 +257,21 @@ ALIPAY_RETURN_URL = os.getenv(
 )
 ORDER_PAY_TIMEOUT_MINUTES = int(os.getenv('ORDER_PAY_TIMEOUT_MINUTES', '30'))
 
+# 微信支付 Native（扫码）
+# 商户平台 https://pay.weixin.qq.com 开通「Native支付」
+WECHAT_APP_ID = os.getenv('WECHAT_APP_ID', '')
+WECHAT_MCH_ID = os.getenv('WECHAT_MCH_ID', '')
+WECHAT_API_V3_KEY = os.getenv('WECHAT_API_V3_KEY', '')
+WECHAT_CERT_SERIAL_NO = os.getenv('WECHAT_CERT_SERIAL_NO', '')
+WECHAT_PRIVATE_KEY = os.getenv('WECHAT_PRIVATE_KEY', '')
+WECHAT_PRIVATE_KEY_PATH = os.getenv('WECHAT_PRIVATE_KEY_PATH', 'certs/wechat/apiclient_key.pem')
+WECHAT_CERT_DIR = os.getenv('WECHAT_CERT_DIR', 'certs/wechat')
+WECHAT_MOCK = os.getenv('WECHAT_MOCK', 'true').lower() == 'true'
+WECHAT_NOTIFY_URL = os.getenv(
+    'WECHAT_NOTIFY_URL',
+    'https://city-index.cn/dashboard/api/wechat/notify/',
+)
+
 # 企查查企业二要素核验（ApiCode 855）
 # 开放平台 https://openapi.qcc.com/dataApi/855
 QICHACHA_APP_KEY = os.getenv('QICHACHA_APP_KEY', '')

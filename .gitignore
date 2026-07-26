@@ -12,4 +12,7 @@ __pycache__/
 # 支付宝证书与私钥（勿提交）
 certs/alipay/*
 !certs/alipay/.gitkeep
+# 微信支付证书与私钥（勿提交）
+certs/wechat/*
+!certs/wechat/.gitkeep
 .env
