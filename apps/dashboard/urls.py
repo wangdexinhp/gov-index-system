@@ -3,6 +3,7 @@ from . import views
 from . import coverage_views
 from . import indicator_audit_views
 from . import alipay_views
+from . import wechatpay_views
 from . import input_form_views
 
 app_name = 'dashboard'
@@ -74,6 +75,8 @@ urlpatterns = [
     path('api/order-status/', alipay_views.order_status_api, name='order_status'),
     path('api/alipay/notify/', alipay_views.alipay_notify_api, name='alipay_notify'),
     path('api/alipay/mock-notify/', alipay_views.alipay_mock_notify_api, name='alipay_mock_notify'),
+    path('api/wechat/notify/', wechatpay_views.wechat_notify_api, name='wechat_notify'),
+    path('api/wechat/mock-notify/', wechatpay_views.wechat_mock_notify_api, name='wechat_mock_notify'),
     path('api/activate-membership/', views.activate_membership, name='activate_membership'),
 
 

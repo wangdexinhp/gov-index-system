@@ -219,6 +219,37 @@
             color: white;
         }
 
+        .pay-channel-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .pay-channel-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #334155;
+            transition: all 0.2s;
+        }
+
+        .pay-channel-btn.active {
+            border-color: #2c7da0;
+            background: #eff8ff;
+            color: #0c4a6e;
+        }
+
+        .pay-channel-btn.active.wechat {
+            border-color: #07c160;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
         /* 右侧订单栏 */
         .order-sidebar {
             flex: 1.2;
@@ -579,15 +610,22 @@
                     <div style="font-size: 13px; color: #6c868e;">预估总价</div>
                     <div class="total-price" id="totalPrice">¥0.00</div>
                 </div>
+                <div style="margin-top: 8px;">
+                    <div style="font-size: 13px; color: #6c868e; margin-bottom: 4px;">支付方式</div>
+                    <div class="pay-channel-group">
+                        <button type="button" class="pay-channel-btn active" data-channel="alipay" id="payAlipayBtn">支付宝</button>
+                        <button type="button" class="pay-channel-btn" data-channel="wechat" id="payWechatBtn">微信支付</button>
+                    </div>
+                </div>
                 <button class="buy-btn" id="buyBtn">💳 立即购买</button>
-                <div class="info-note">✓ 支持多权限组合，支付宝安全支付</div>
+                <div class="info-note">✓ 支持支付宝 / 微信支付</div>
             </div>
         </div>
         <footer>
             <div id="rolePriceFooter">📊 各角色年卡价格加载中...</div>
             <div style="margin-top: 8px;">
                 🔍 个人用户可查看：基础指标、行业趋势、区域概况；机构用户可查看：全部指标（含深度分析、原始数据、预测模型等）<br>
-                💳 支付流程：点击购买 → 跳转支付宝收银台 → 完成支付 → 自动开通权限
+                💳 支付宝：跳转收银台；微信：扫码支付 → 自动开通权限
             </div>
         </footer>
     </div>
@@ -604,6 +642,7 @@
         let currentItemPrice = 0;
         let currentItemId = '';
         let currentDuration = 'year';
+        let currentPaymentChannel = 'alipay';
         let organizationIndicators = [];
         let personalIndicators = [];
         
@@ -1028,7 +1067,7 @@
             totalSpan.textContent = `¥${totalFinal.toFixed(2)}`;
             container.innerHTML = itemsHtml;
         }
-        
+
         function setDuration(duration) {
             currentDuration = duration;
             document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -1039,6 +1078,121 @@
                 }
             });
             updateOrderSummary();
+        }
+        
+        function setPaymentChannel(channel) {
+            currentPaymentChannel = channel === 'wechat' ? 'wechat' : 'alipay';
+            document.querySelectorAll('.pay-channel-btn').forEach(btn => {
+                const isActive = btn.getAttribute('data-channel') === currentPaymentChannel;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('wechat', isActive && currentPaymentChannel === 'wechat');
+            });
+        }
+
+        function renderQrCode(container, qrCodeUrl) {
+            container.innerHTML = '';
+            const img = document.createElement('img');
+            img.alt = '微信支付二维码';
+            img.width = 200;
+            img.height = 200;
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrCodeUrl);
+            img.style.borderRadius = '8px';
+            container.appendChild(img);
+        }
+
+        function showWechatPayModal(orderInfo) {
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'modal-overlay';
+            const mockHint = orderInfo.wechatMock
+                ? '<p style="font-size:12px;color:#b45309;margin-top:8px;">Mock 模式：可点击下方按钮模拟支付成功</p>'
+                : '<p style="font-size:13px;color:#64748b;margin-top:8px;">请使用微信扫一扫完成支付</p>';
+            const mockBtn = orderInfo.wechatMock
+                ? '<button class="buy-btn" id="mockWechatPay" style="margin-top:12px;width:100%;">模拟支付成功</button>'
+                : '';
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content" style="text-align:center;">
+                    <div class="modal-header">
+                        <h2>微信支付</h2>
+                        <p>订单号 ${orderInfo.orderId}</p>
+                    </div>
+                    <div class="qrcode-container">
+                        <div class="qrcode-canvas" id="qrcodeCanvas"></div>
+                        <div class="payment-amount">¥${Number(orderInfo.total || 0).toFixed(2)}</div>
+                        <div class="countdown" id="countdownTimer">剩余支付时间: --:--</div>
+                        <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:8px;">等待支付中...</p>
+                        ${mockHint}
+                        ${mockBtn}
+                    </div>
+                    <div class="modal-buttons" style="margin-top:16px;">
+                        <button class="btn-cancel" id="cancelPayment">关闭</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalOverlay);
+            renderQrCode(document.getElementById('qrcodeCanvas'), orderInfo.codeUrl);
+
+            let timeLeft = (orderInfo.payTimeoutMinutes || 30) * 60;
+            const timerElement = document.getElementById('countdownTimer');
+
+            function cleanup() {
+                clearInterval(timerInterval);
+                clearInterval(pollInterval);
+            }
+
+            const timerInterval = setInterval(() => {
+                timeLeft -= 1;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `剩余支付时间: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    cleanup();
+                    modalOverlay.remove();
+                    alert('支付超时，订单已关闭');
+                }
+            }, 1000);
+
+            const pollInterval = setInterval(() => {
+                pollOrderStatus(orderInfo.orderId, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    clearPendingOrder();
+                    showPaymentSuccess(orderInfo);
+                }, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    clearPendingOrder();
+                    alert('订单已过期或已取消，请重新下单');
+                });
+            }, 2500);
+
+            const mockPayBtn = document.getElementById('mockWechatPay');
+            if (mockPayBtn) {
+                mockPayBtn.addEventListener('click', async () => {
+                    mockPayBtn.disabled = true;
+                    mockPayBtn.textContent = '处理中...';
+                    try {
+                        await fetch('/dashboard/api/wechat/mock-notify/', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            body: JSON.stringify({ order_no: orderInfo.orderId }),
+                        });
+                    } catch (e) {
+                        console.warn('Mock 微信支付失败', e);
+                        mockPayBtn.disabled = false;
+                        mockPayBtn.textContent = '模拟支付成功';
+                    }
+                });
+            }
+
+            document.getElementById('cancelPayment').addEventListener('click', () => {
+                cleanup();
+                modalOverlay.remove();
+            });
         }
         
         async function loadOrgVerifyStatus() {
@@ -1260,6 +1414,7 @@
                     body: JSON.stringify({
                         user_type: currentUserType,
                         duration: currentDuration,
+                        payment_channel: currentPaymentChannel,
                         permissions: selectedPermissions.map(p => ({
                             level: p.level,
                             typeName: p.typeName,
@@ -1294,7 +1449,20 @@
                     orderId: result.data.order_no,
                     payTimeoutMinutes: result.data.pay_timeout_minutes || 30,
                     alipayMock: !!result.data.alipay_mock,
+                    wechatMock: !!result.data.wechat_mock,
+                    codeUrl: result.data.code_url || '',
                 };
+
+                if (currentPaymentChannel === 'wechat') {
+                    if (!orderInfo.codeUrl) {
+                        alert('获取微信支付二维码失败，请稍后重试');
+                        return;
+                    }
+                    savePendingOrder(orderInfo);
+                    showWechatPayModal(orderInfo);
+                    return;
+                }
+
                 const payUrl = result.data.pay_url;
                 if (!payUrl) {
                     alert('获取支付链接失败，请稍后重试');
@@ -1333,6 +1501,11 @@
             document.querySelectorAll('.duration-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     setDuration(btn.getAttribute('data-dur'));
+                });
+            });
+            document.querySelectorAll('.pay-channel-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setPaymentChannel(btn.getAttribute('data-channel'));
                 });
             });
             
