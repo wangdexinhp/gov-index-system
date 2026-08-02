@@ -1,4 +1,4 @@
-"""特殊指标查询页面与 API。"""
+"""关键指标查询页面与 API。"""
 from __future__ import annotations
 
 import json
@@ -30,7 +30,7 @@ def special_indicator_query_city(request):
         return denied
     return render(request, 'dashboard/special_indicator_query.html', {
         'scope': 'city',
-        'page_title': '特殊指标查询（地市）',
+        'page_title': '关键指标查询（地市）',
         'back_input_url': '/dashboard/',
         'back_input_label': '地市录入',
     })
@@ -44,7 +44,7 @@ def special_indicator_query_area(request):
         return denied
     return render(request, 'dashboard/special_indicator_query.html', {
         'scope': 'area',
-        'page_title': '特殊指标查询（区县）',
+        'page_title': '关键指标查询（区县）',
         'back_input_url': '/dashboard/area_input',
         'back_input_label': '区县录入',
     })
@@ -69,7 +69,7 @@ def special_indicator_tree_api(request):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def special_indicator_query_api(request):
-    """查询特殊指标数值。"""
+    """查询关键指标数值。"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body.decode('utf-8') or '{}')
