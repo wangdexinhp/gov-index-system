@@ -1,5 +1,4 @@
 # apps/accounts/models.py
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
@@ -8,6 +7,16 @@ from django.dispatch import receiver
 
 class UserProfile(models.Model):
     """用户扩展资料"""
+
+    ORG_VERIFY_PENDING = 'pending'
+    ORG_VERIFY_VERIFIED = 'verified'
+    ORG_VERIFY_FAILED = 'failed'
+    ORG_VERIFY_STATUS_CHOICES = [
+        (ORG_VERIFY_PENDING, '未认证'),
+        (ORG_VERIFY_VERIFIED, '已认证'),
+        (ORG_VERIFY_FAILED, '认证失败'),
+    ]
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -35,6 +44,18 @@ class UserProfile(models.Model):
     membership_scope_city=models.TextField('查看城市权限',default='[]', blank=True) # 默认存储空JSON数组字符串
     membership_scope_item=models.TextField('查看指标权限',default='[]', blank=True) # 默认存储空JSON数组字符串
 
+    # 机构认证（企查查企业二要素）
+    org_name = models.CharField('单位名称', max_length=200, blank=True, default='')
+    org_credit_code = models.CharField('统一社会信用代码', max_length=32, blank=True, default='')
+    org_verify_status = models.CharField(
+        '机构认证状态',
+        max_length=20,
+        choices=ORG_VERIFY_STATUS_CHOICES,
+        default=ORG_VERIFY_PENDING,
+    )
+    org_verified_at = models.DateTimeField('机构认证通过时间', blank=True, null=True)
+    org_verify_message = models.CharField('机构认证说明', max_length=255, blank=True, default='')
+
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
@@ -52,6 +73,11 @@ class UserProfile(models.Model):
             return False
         from django.utils import timezone
         return self.membership_expires_at > timezone.now()
+
+    @property
+    def is_org_verified(self):
+        """是否已通过机构认证"""
+        return self.org_verify_status == self.ORG_VERIFY_VERIFIED
 
 
 # 信号：创建用户时自动创建资料

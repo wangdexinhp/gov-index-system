@@ -11,3 +11,5 @@ stripe
 captcha
 mysqlclient
 python-alipay-sdk
+wechatpayv3
+openpyxl

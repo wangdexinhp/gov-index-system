@@ -227,10 +227,24 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'account_login'
 
-# 支付宝当面付（沙箱联调，替换 .env 中 mock 值为真实密钥）
+# 支付宝电脑网站支付（alipay.trade.page.pay）
+# 开放平台需签约「电脑网站支付」
+# ALIPAY_SIGN_MODE=key  → 公钥模式（应用私钥 + 支付宝公钥）
+# ALIPAY_SIGN_MODE=cert → 公钥证书模式（应用私钥 + 三份证书）
+# 未配置时：若存在 ALIPAY_PUBLIC_KEY_PATH 文件则自动用 key
 ALIPAY_APP_ID = os.getenv('ALIPAY_APP_ID', 'mock_sandbox_app_id')
+ALIPAY_SIGN_MODE = os.getenv('ALIPAY_SIGN_MODE', '')
 ALIPAY_PRIVATE_KEY = os.getenv('ALIPAY_PRIVATE_KEY', '')
+ALIPAY_PRIVATE_KEY_PATH = os.getenv('ALIPAY_PRIVATE_KEY_PATH', 'certs/alipay/app_private_key.pem')
+ALIPAY_PRIVATE_KEY_PASSWORD = os.getenv('ALIPAY_PRIVATE_KEY_PASSWORD', '')
 ALIPAY_PUBLIC_KEY = os.getenv('ALIPAY_PUBLIC_KEY', '')
+ALIPAY_PUBLIC_KEY_PATH = os.getenv('ALIPAY_PUBLIC_KEY_PATH', 'certs/alipay/alipay_public_key.pem')
+ALIPAY_APP_CERT = os.getenv('ALIPAY_APP_CERT', '')
+ALIPAY_APP_CERT_PATH = os.getenv('ALIPAY_APP_CERT_PATH', 'certs/alipay/appCertPublicKey.crt')
+ALIPAY_PUBLIC_CERT = os.getenv('ALIPAY_PUBLIC_CERT', '')
+ALIPAY_PUBLIC_CERT_PATH = os.getenv('ALIPAY_PUBLIC_CERT_PATH', 'certs/alipay/alipayCertPublicKey_RSA2.crt')
+ALIPAY_ROOT_CERT = os.getenv('ALIPAY_ROOT_CERT', '')
+ALIPAY_ROOT_CERT_PATH = os.getenv('ALIPAY_ROOT_CERT_PATH', 'certs/alipay/alipayRootCert.crt')
 ALIPAY_SANDBOX = os.getenv('ALIPAY_SANDBOX', 'true').lower() == 'true'
 ALIPAY_MOCK = os.getenv('ALIPAY_MOCK', 'true').lower() == 'true'
 ALIPAY_NOTIFY_URL = os.getenv(
@@ -243,18 +257,38 @@ ALIPAY_RETURN_URL = os.getenv(
 )
 ORDER_PAY_TIMEOUT_MINUTES = int(os.getenv('ORDER_PAY_TIMEOUT_MINUTES', '30'))
 
+# 微信支付 Native（扫码）
+# 商户平台 https://pay.weixin.qq.com 开通「Native支付」
+WECHAT_APP_ID = os.getenv('WECHAT_APP_ID', '')
+WECHAT_MCH_ID = os.getenv('WECHAT_MCH_ID', '')
+WECHAT_API_V3_KEY = os.getenv('WECHAT_API_V3_KEY', '')
+WECHAT_CERT_SERIAL_NO = os.getenv('WECHAT_CERT_SERIAL_NO', '')
+WECHAT_PRIVATE_KEY = os.getenv('WECHAT_PRIVATE_KEY', '')
+WECHAT_PRIVATE_KEY_PATH = os.getenv('WECHAT_PRIVATE_KEY_PATH', 'certs/wechat/apiclient_key.pem')
+WECHAT_CERT_DIR = os.getenv('WECHAT_CERT_DIR', 'certs/wechat')
+WECHAT_MOCK = os.getenv('WECHAT_MOCK', 'true').lower() == 'true'
+WECHAT_NOTIFY_URL = os.getenv(
+    'WECHAT_NOTIFY_URL',
+    'https://city-index.cn/dashboard/api/wechat/notify/',
+)
+
+# 企查查企业二要素核验（ApiCode 855）
+# 开放平台 https://openapi.qcc.com/dataApi/855
+QICHACHA_APP_KEY = os.getenv('QICHACHA_APP_KEY', '')
+QICHACHA_SECRET_KEY = os.getenv('QICHACHA_SECRET_KEY', '')
+# true=未配置密钥时使用 Mock（信用代码以 MOCK 开头视为通过）
+QICHACHA_MOCK = os.getenv('QICHACHA_MOCK', 'true').lower() == 'true'
+
 # Stripe settings
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 
-# 日志部分
-BASE_DIR = "/var/log/gov"
-# 创建日志目录
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
+# 日志目录（勿覆盖上方项目 BASE_DIR，否则相对路径如证书会解析错）
+LOG_DIR = os.getenv('LOG_DIR', '/var/log/gov/logs')
 if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+    os.makedirs(LOG_DIR, exist_ok=True)
 
 LOGGING = {
     'version': 1,

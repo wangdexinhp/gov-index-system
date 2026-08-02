@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import timedelta
 from decimal import Decimal
@@ -10,6 +11,8 @@ from django.utils import timezone
 from apps.coredata.models.order import MembershipOrder, MembershipOrderItem
 from apps.coredata.services.pricing_config_service import get_duration_multipliers
 from apps.coredata.services.scope_service import expand_order_items_to_cities
+
+logger = logging.getLogger(__name__)
 
 
 LEVEL_NAME_TO_CODE = {
@@ -122,6 +125,7 @@ def mark_order_paid(
     order_no: str,
     payment_channel: str = "alipay",
     alipay_trade_no: str = "",
+    trade_no: str = "",
 ) -> MembershipOrder:
     order = MembershipOrder.objects.select_for_update().filter(order_no=order_no).first()
     if not order:
@@ -135,12 +139,19 @@ def mark_order_paid(
         order.save(update_fields=["status", "updated_at"])
         raise ValueError("订单已超时")
 
+    channel_trade_no = (trade_no or alipay_trade_no or "").strip()
     order.status = MembershipOrder.Status.PAID
     order.paid_at = timezone.now()
     order.payment_channel = payment_channel
-    if alipay_trade_no:
-        order.alipay_trade_no = alipay_trade_no
-    order.save(update_fields=["status", "paid_at", "payment_channel", "alipay_trade_no", "updated_at"])
+    update_fields = ["status", "paid_at", "payment_channel", "updated_at"]
+    if channel_trade_no:
+        if payment_channel in ("wechat", "mock_wechat"):
+            order.wechat_transaction_id = channel_trade_no
+            update_fields.append("wechat_transaction_id")
+        else:
+            order.alipay_trade_no = channel_trade_no
+            update_fields.append("alipay_trade_no")
+    order.save(update_fields=update_fields)
     return order
 
 
@@ -168,8 +179,19 @@ def build_membership_payload_from_order(order: MembershipOrder) -> Dict:
     }
 
 
-def fulfill_paid_order(order_no: str, payment_channel: str = "alipay", alipay_trade_no: str = "") -> dict:
-    """支付成功后标记订单并开通会员（幂等）。"""
+def fulfill_paid_order(
+    order_no: str,
+    payment_channel: str = "alipay",
+    alipay_trade_no: str = "",
+    trade_no: str = "",
+) -> dict:
+    """支付成功后标记订单并开通会员（幂等）。
+
+    机构订单在开通权限前二次校验 is_org_verified：
+    - 已付款一律先记为 paid（钱已到账）
+    - 若认证已失效/未通过，则不开通权限并抛出 ValueError，便于日志与人工处理
+    """
+    from apps.accounts.models import UserProfile
     from apps.coredata.services.membership_service import apply_membership
 
     with transaction.atomic():
@@ -178,7 +200,27 @@ def fulfill_paid_order(order_no: str, payment_channel: str = "alipay", alipay_tr
             raise ValueError("订单不存在")
         if order.status == MembershipOrder.Status.PAID:
             return {"already_fulfilled": True, "order_no": order_no}
-        order = mark_order_paid(order_no, payment_channel=payment_channel, alipay_trade_no=alipay_trade_no)
+
+        order = mark_order_paid(
+            order_no,
+            payment_channel=payment_channel,
+            alipay_trade_no=alipay_trade_no,
+            trade_no=trade_no,
+        )
+
+        if order.user_type in ("organization", "org"):
+            profile, _ = UserProfile.objects.select_for_update().get_or_create(user=order.user)
+            if not profile.is_org_verified:
+                logger.error(
+                    "Org order paid but not verified, skip membership order=%s user_id=%s status=%s",
+                    order_no,
+                    order.user_id,
+                    profile.org_verify_status,
+                )
+                raise ValueError(
+                    "机构认证已失效或未通过，订单已支付但未开通权限，请联系客服处理"
+                )
+
         payload = build_membership_payload_from_order(order)
         result = apply_membership(order.user, **payload)
     return result

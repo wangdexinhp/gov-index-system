@@ -3,6 +3,8 @@ from . import views
 from . import coverage_views
 from . import indicator_audit_views
 from . import alipay_views
+from . import wechatpay_views
+from . import input_form_views
 
 app_name = 'dashboard'
 
@@ -44,9 +46,11 @@ urlpatterns = [
 
     # 指标校验 API
     path('api/check-data/', indicator_audit_views.check_data_api, name='check_data_api'),
+    path('api/indicator-catalog/', indicator_audit_views.indicator_catalog_api, name='indicator_catalog'),
     path('api/indicator-audit-years/', indicator_audit_views.indicator_audit_years_api, name='indicator_audit_years'),
     path('api/indicator-audit-groups/', indicator_audit_views.indicator_audit_groups_api, name='indicator_audit_groups'),
     path('api/indicator-sources/', indicator_audit_views.indicator_sources_api, name='indicator_sources'),
+    path('api/input-form-data/', input_form_views.input_form_data_api, name='input_form_data'),
 
     # 数据覆盖查询 API
     path('api/coverage-years/', coverage_views.coverage_years_api, name='coverage_years'),
@@ -71,6 +75,8 @@ urlpatterns = [
     path('api/order-status/', alipay_views.order_status_api, name='order_status'),
     path('api/alipay/notify/', alipay_views.alipay_notify_api, name='alipay_notify'),
     path('api/alipay/mock-notify/', alipay_views.alipay_mock_notify_api, name='alipay_mock_notify'),
+    path('api/wechat/notify/', wechatpay_views.wechat_notify_api, name='wechat_notify'),
+    path('api/wechat/mock-notify/', wechatpay_views.wechat_mock_notify_api, name='wechat_mock_notify'),
     path('api/activate-membership/', views.activate_membership, name='activate_membership'),
 
 

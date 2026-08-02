@@ -17,8 +17,21 @@ from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
 from apps.coredata.management.commands.indicator_zh_en import INDIMAP,INDIMAP_UNIT,AREA_INDIMAP,AREA_INDIMAP_UNIT
 from apps.coredata.utils.mapper import get_city_name_to_code, get_province_name_to_code,get_city_code_to_province
 
-import pandas as pd
-from datetime import datetime
+from apps.coredata.excel_color_sources import DEFAULT_EXCEL_SOURCE
+from apps.coredata.indicator_input_methods import IndicatorInputMethod, normalize_data_source
+from apps.coredata.indicator_sources import get_default_form_source_options, persist_source_text
+from apps.coredata.services.excel_upload_service import (
+    extract_cell_fields,
+    excel_column_name_base,
+    has_excel_cell_value,
+    match_area_indicator_name,
+    match_city_indicator_name,
+    parse_area_indicator_excel,
+    parse_city_indicator_excel,
+    resolve_area_excel_indicator,
+    resolve_city_excel_indicator,
+)
+from apps.coredata.services.input_form_service import strip_unit_suffix
 
 import secrets
 from functools import wraps
@@ -126,13 +139,17 @@ def check_membership(view_func):
     return _wrapped_view
 
 
+def _form_source_page_context():
+    return {"form_source_options": get_default_form_source_options()}
+
+
 @login_required
 @require_http_methods(['GET'])
 def dashboard_home(request):
     print(f"用户 {request.user.profile.membership_level} 访问了仪表盘首页")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
-    return render(request, 'dashboard/home.html')
+    return render(request, 'dashboard/home.html', _form_source_page_context())
 
 @login_required
 @require_http_methods(['GET'])
@@ -140,7 +157,7 @@ def area_input(request):
     print(f"用户 {request.user.profile.membership_level} 访问了区域输入页面")
     if request.user.profile.membership_level != 'admin':
         return redirect('/') 
-    return render(request, 'dashboard/input_area.html')
+    return render(request, 'dashboard/input_area.html', _form_source_page_context())
 
 @login_required
 @login_required
@@ -152,7 +169,7 @@ def indicator_check(request):
 @login_required
 @require_http_methods(['GET'])
 def indicator_check_2(request):
-    return render(request, 'dashboard/indic_data_check_cover.html')
+    return render(request, 'dashboard/indic_data_check_cover.html', _form_source_page_context())
 
 
 
@@ -220,15 +237,50 @@ def get_area_map(request):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def profile(request):
+    from apps.accounts.models import UserProfile
+
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
-        # Handle profile update
+        action = request.POST.get('action', 'profile')
+        if action == 'org_verify':
+            from apps.accounts.services.qichacha_service import verify_company_two_elements
+            import re as _re
+
+            org_name = (request.POST.get('org_name') or '').strip()
+            org_credit_code = (request.POST.get('org_credit_code') or '').strip().upper()
+            credit_re = _re.compile(r'^[0-9A-Z]{17}[0-9A-ZX]$')
+
+            if not org_name or not org_credit_code:
+                messages.error(request, '请填写单位名称和统一社会信用代码')
+            elif not (credit_re.match(org_credit_code) or org_credit_code.startswith('MOCK')):
+                messages.error(request, '统一社会信用代码格式不正确')
+            else:
+                result = verify_company_two_elements(org_credit_code, org_name)
+                profile_obj.org_name = org_name
+                profile_obj.org_credit_code = org_credit_code
+                profile_obj.org_verify_message = result.message
+                if result.success:
+                    profile_obj.org_verify_status = UserProfile.ORG_VERIFY_VERIFIED
+                    profile_obj.org_verified_at = timezone.now()
+                    messages.success(request, result.message)
+                else:
+                    profile_obj.org_verify_status = UserProfile.ORG_VERIFY_FAILED
+                    profile_obj.org_verified_at = None
+                    messages.error(request, result.message)
+                profile_obj.save()
+            return redirect('dashboard:profile')
+
         user = request.user
         user.first_name = request.POST.get('first_name', '')
         user.last_name = request.POST.get('last_name', '')
         user.save()
-        messages.success(request, 'Profile updated successfully.')
+        messages.success(request, '资料已更新')
         return redirect('dashboard:profile')
-    return render(request, 'dashboard/profile.html')
+
+    return render(request, 'dashboard/profile.html', {
+        'profile': profile_obj,
+    })
 
 @login_required
 @require_http_methods(['GET', 'POST'])
@@ -441,11 +493,19 @@ def save_to_database(rows_data):
         province_id = province_name_to_code.get(prov_key, 0)
         for group in groups:
             value = group.get('value')
-            source = group.get('source')
             note = group.get('note')
-            name_zh = group.get('name_zh')
-            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
-            name_en = group.get('name_en') or INDIMAP.get(name_zh)
+            label = group.get('name_zh') or ''
+            matched = match_city_indicator_name(strip_unit_suffix(label))
+            if not matched:
+                continue
+            name_zh, name_en = matched
+
+            source = persist_source_text(
+                normalize_data_source(group.get('source')),
+                city=city_name or '',
+                province=province_name or '',
+            )
+            input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             Indicator.objects.update_or_create(
                 year=year,
@@ -454,6 +514,7 @@ def save_to_database(rows_data):
                 defaults={
                     'province_id': province_id,
                     'source': source or '',
+                    'input_method': input_method,
                     'value': value or 0,
                     'note': note or '',
                     'name_zh': name_zh or '',
@@ -499,11 +560,19 @@ def save_area_to_database(rows_data):
         province_id = province_name_to_code.get(prov_key, 0)
         for group in groups:
             value = group.get('value')
-            source = group.get('source')
             note = group.get('note')
-            name_zh = group.get('name_zh')
-            name_zh = re.sub(r'\([^)]*\)$', '', name_zh)
-            name_en = INDIMAP.get(name_zh)
+            label = group.get('name_zh') or ''
+            matched = match_area_indicator_name(strip_unit_suffix(label))
+            if not matched:
+                continue
+            name_zh, name_en = matched
+
+            source = persist_source_text(
+                normalize_data_source(group.get('source')),
+                city=city_name or '',
+                province=province_name or '',
+            )
+            input_method = group.get('input_method') or IndicatorInputMethod.MANUAL
 
             IndicatorArea.objects.create(
                 year=year,
@@ -511,10 +580,11 @@ def save_area_to_database(rows_data):
                 city_id=city_id,
                 area=area,
                 source=source or '',
+                input_method=input_method,
                 value=value or 0,
                 name_en=name_en or '',
                 note=note or '',
-                name_zh= name_zh or '',  
+                name_zh=name_zh or '',
                 input_form=IndicatorArea.InputForm.INPUT,
                 indicator_type=IndicatorArea.IndicatorType.OTHER,
             )
@@ -639,7 +709,7 @@ def single_indicator_query(request):
 @require_http_methods(['GET'])
 def single_indicator_area_query(request):
     indicator_zh = request.GET.get('name_zh')
-    indicator_en = AREA_INDIMAP.get(indicator_zh) or INDIMAP.get(indicator_zh)
+    indicator_en = AREA_INDIMAP.get(indicator_zh)
     start_year = request.GET.get('start_year')
     end_year = request.GET.get('end_year')
     city_name = request.GET.get('city')
@@ -647,8 +717,6 @@ def single_indicator_area_query(request):
     area = (request.GET.get('area') or '').strip()
 
     unit = AREA_INDIMAP_UNIT.get(indicator_en, {}).get('unit', '') if indicator_en else ''
-    if not unit:
-        unit = INDIMAP_UNIT.get(indicator_en, {}).get('unit', '') if indicator_en else ''
     if unit is None:
         unit = ""
 
@@ -792,8 +860,7 @@ def get_city_name_by_code(city_code):
 @login_required
 @require_http_methods(['POST'])
 def upload_excel(request):
-    """处理Excel文件上传"""
-    
+    """处理Excel文件上传，按单元格底色识别数据来源。"""
     year = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -801,61 +868,31 @@ def upload_excel(request):
             'success': False,
             'message': '未上传文件'
         }, status=400)
-    # 这里可以使用 pandas 或 openpyxl 等库来处理 Excel 文件
-    # 创建Excel写入器
-    # tmp_excel_file = f'/mnt/excel/temp_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx'
-    # with pd.ExcelWriter(tmp_excel_file, engine='openpyxl') as writer:
-    raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
-    print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
-    print(f"数据条数: {len(raw_data)}")
 
-
-    headers = []
-    for col_idx in range(raw_data.shape[1]):
-        col_headers = []
-        
-        # 第1行
-        level1 = raw_data.iloc[0, col_idx]
-        if pd.notna(level1):
-            col_headers.append(str(level1).strip())
-        
-        # 第2行
-        level2 = raw_data.iloc[1, col_idx]
-        if pd.notna(level2) and str(level2).strip():
-            col_headers.append(str(level2).strip())
-        
-        # 创建列名
-        if col_headers:
-            col_name = '_'.join(col_headers)
-        else:
-            col_name = f'Column_{col_idx+1}'
-        
-        headers.append(col_name)
-    
-    data_df = raw_data.iloc[3:, :].reset_index(drop=True)
-    data_df.columns = headers
-    save_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
-
-        # 保存到新文件
-        # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-    return JsonResponse({
-        'success': True,
-        'message': "成功处理Excel文件"
-    })
-
-    # except Exception as e:
-    #     print(f"处理Excel文件时出错: {str(e)}")
-    #     return JsonResponse({
-    #         'success': False,
-    #         'message': f'处理Excel文件时出错: {str(e)}'
-    #     }, status=500)
+    try:
+        rows_data = parse_city_indicator_excel(excel_file)
+        if not rows_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效数据行'
+            }, status=400)
+        save_df_to_database(rows_data=rows_data, year=year)
+        return JsonResponse({
+            'success': True,
+            'message': '成功处理Excel文件（已按底色识别来源）'
+        })
+    except Exception as e:
+        print(f"处理Excel文件时出错: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'处理Excel文件时出错: {str(e)}'
+        }, status=500)
 
 # 区县上传文件接口
 @login_required
 @require_http_methods(['POST'])
 def upload_excel_area(request):
-    """区县处理Excel文件上传"""
-    
+    """区县处理Excel文件上传，按单元格底色识别数据来源。"""
     year = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -864,92 +901,67 @@ def upload_excel_area(request):
             'message': '未上传文件'
         }, status=400)
 
-    raw_data = pd.read_excel(excel_file, sheet_name="Sheet1", header=None)
-    print(f"=== 接收到的Excel数据 ===\n{raw_data.head()}")
-    print(f"数据条数: {len(raw_data)}")
+    try:
+        rows_data = parse_area_indicator_excel(excel_file)
+        if not rows_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效数据行'
+            }, status=400)
 
-    if raw_data.empty:
-        return JsonResponse({
-            'success': False,
-            'message': 'Excel为空'
-        }, status=400)
+        city_col = next((c for c in rows_data[0] if c in ['城市', '城市名称', '地市']), None)
+        if not city_col:
+            city_col = next((c for c in rows_data[0] if '城市' in str(c)), None)
 
-    def _is_data_row(row_series):
-        values = []
-        for val in row_series.tolist():
-            if pd.isna(val):
+        area_col = next((c for c in rows_data[0] if c in [
+            '所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称'
+        ]), None)
+        if not area_col:
+            area_col = next((c for c in rows_data[0] if ('区县' in str(c) or '区域' in str(c))), None)
+
+        if not city_col or not area_col:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
+            }, status=400)
+
+        normalized_rows = []
+        last_city = ''
+        for row in rows_data:
+            city_val, _, _ = extract_cell_fields(row.get(city_col))
+            city_name = str(city_val).strip() if city_val is not None else ''
+            if city_name:
+                last_city = city_name
+            else:
+                city_name = last_city
+
+            area_val, _, _ = extract_cell_fields(row.get(area_col))
+            area_name = str(area_val).strip() if area_val is not None else ''
+            if not city_name or not area_name or city_name in ('nan', 'None') or area_name in ('nan', 'None'):
                 continue
-            text = str(val).strip()
-            if text:
-                values.append(text)
-        if not values:
-            return False
-        numeric_count = sum(pd.to_numeric(v, errors='coerce') == pd.to_numeric(v, errors='coerce') for v in values)
-        return numeric_count >= max(2, len(values) // 3)
 
-    header_rows = 1
-    if raw_data.shape[0] > 1 and not _is_data_row(raw_data.iloc[1]):
-        header_rows = 2
+            normalized = dict(row)
+            normalized['城市'] = city_name
+            normalized['area'] = area_name
+            normalized_rows.append(normalized)
 
-    headers = []
-    for col_idx in range(raw_data.shape[1]):
-        level1 = raw_data.iloc[0, col_idx] if raw_data.shape[0] > 0 else ''
-        level2 = raw_data.iloc[1, col_idx] if header_rows == 2 and raw_data.shape[0] > 1 else ''
-        level1 = '' if pd.isna(level1) else str(level1).strip()
-        level2 = '' if pd.isna(level2) else str(level2).strip()
+        if not normalized_rows:
+            return JsonResponse({
+                'success': False,
+                'message': 'Excel 无有效城市/区县数据行'
+            }, status=400)
 
-        if header_rows == 2 and level1 and level2 and level1 != level2:
-            col_name = f"{level1}_{level2}"
-        else:
-            col_name = level1 or level2 or f'Column_{col_idx+1}'
-
-        col_name = col_name.replace('\n', '').replace('\r', '').strip()
-        headers.append(col_name)
-
-    seen_header_count = {}
-    unique_headers = []
-    for col_name in headers:
-        seen_header_count[col_name] = seen_header_count.get(col_name, 0) + 1
-        if seen_header_count[col_name] == 1:
-            unique_headers.append(col_name)
-        else:
-            unique_headers.append(f"{col_name}__dup{seen_header_count[col_name]}")
-
-    data_df = raw_data.iloc[header_rows:, :].reset_index(drop=True)
-    data_df.columns = unique_headers
-    data_df = data_df.dropna(how='all')
-
-    city_col = next((c for c in data_df.columns if c in ['城市', '城市名称', '地市']), None)
-    if not city_col:
-        city_col = next((c for c in data_df.columns if '城市' in str(c)), None)
-
-    area_col = next((c for c in data_df.columns if c in ['所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称']), None)
-    if not area_col:
-        area_col = next((c for c in data_df.columns if ('区县' in str(c) or '区域' in str(c))), None)
-
-    if not city_col or not area_col:
+        save_area_df_to_database(rows_data=normalized_rows, year=year)
+        return JsonResponse({
+            'success': True,
+            'message': '成功处理Excel文件（已按底色识别来源）'
+        })
+    except Exception as e:
+        print(f"处理区县Excel文件时出错: {str(e)}")
         return JsonResponse({
             'success': False,
-            'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
-        }, status=400)
-
-    data_df = data_df.rename(columns={city_col: '城市', area_col: 'area'})
-    data_df['城市'] = data_df['城市'].replace(r'^\s*$', pd.NA, regex=True).ffill()
-    data_df['城市'] = data_df['城市'].astype(str).str.strip()
-    data_df['城市'] = data_df['城市'].replace({'nan': '', 'None': ''})
-
-    data_df['area'] = data_df['area'].astype(str).str.strip()
-    data_df['area'] = data_df['area'].replace({'nan': '', 'None': ''})
-    data_df = data_df[(data_df['城市'] != '') & (data_df['area'] != '')]
-
-    save_area_df_to_database(rows_data=data_df.to_dict(orient='records'), year=year)
-
-        # 保存到新文件
-        # data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-    return JsonResponse({
-        'success': True,
-        'message': "成功处理Excel文件"
-    })
+            'message': f'处理Excel文件时出错: {str(e)}'
+        }, status=500)
 
 
 
@@ -965,25 +977,39 @@ def save_df_to_database(rows_data, year):
         city_code_to_province = get_city_code_to_province()
         province_info = city_code_to_province.get(city_id)
         province_id = province_info['province_code'] if province_info else 0
-        for col_name, value in row.items():
-            if col_name in ['城市', 'A']:
-                continue  
-            name_zh = col_name
-            print(f"处理指标: {name_zh}，值: {value}")
-            name_en = INDIMAP.get(name_zh)
-            if not name_en:
-                print(f"未找到指标英文名映射，跳过: {name_zh}")
+        last_metric_raw = None
+        for col_name, raw_value in row.items():
+            if col_name in ['城市', 'A'] or str(col_name).startswith('Column_'):
                 continue
+
+            raw_name = str(col_name).split('__dup', 1)[0].strip()
+            name_zh, name_en = resolve_city_excel_indicator(col_name, last_metric_raw)
+            if excel_column_name_base(raw_name) != '增长率':
+                last_metric_raw = raw_name
+
+            value, source, note = extract_cell_fields(raw_value)
+            if not has_excel_cell_value(value):
+                continue
+            if not name_en or name_en not in INDIMAP_UNIT:
+                continue
+
+            source = persist_source_text(
+                normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE,
+                city=city_name or '',
+                province=(province_info.get('province_name') if province_info else '') or '',
+            )
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             try:
                 Indicator.objects.create(
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source='INPUT',
-                    value=value or 0,
+                    source=source,
+                    input_method=Indicator.InputMethod.EXCEL,
+                    value=value,
                     name_en=name_en or '',
-                    note= '',
-                    name_zh= name_zh or '',  # 备注直接写入 name_zh
+                    note=note or '',
+                    name_zh=name_zh or '',
                     input_form=Indicator.InputForm.INPUT,
                     indicator_type=Indicator.IndicatorType.OTHER,
                 )
@@ -1004,20 +1030,6 @@ def save_area_df_to_database(rows_data, year):
     print(f"=== 准备保存的数据 ===\n{rows_data[:2]}")  # 打印前两行数据预览
     # 构建城市名到代码、以及省份名到代码的映射
     # rows_data =  [{'A': '京', '城市': '北京', '所辖市区县个数_市': 0, '区': 14, '县': 2, '城镇户籍人口': 1089.8, '农业人口': 243.6, '年末实有企业数_个体工商户': 653319, '内资企业': 39533, '外资企业': 1657, '私营企业': 838099, '高新技术企业_产值': 'A', '增加值': 'A', '采矿（掘)业就业人员人数': 6.2, '制造业就业人员人数': 129.9, '采矿（掘)业在岗职工人数': 6.09, '制造业在岗职工人数': 97.43, '财政总支出': 4524.67, '一般预算支出_一般公共服务支出': 272.23, '公共安全支出': 'A', '文化体育传媒支出': 163.9, '环保支出': 213.36, '园林绿地面积': 77129, '专利授权量': 74661, '城镇单位职工工资总额': 72933000.0, '社会从业\n人员': 1156.7, '机关单位_工资总额': 'A', '就业人数': 'A', '公共管理和社会组织工资总额': 3434882, '公共管理和社会组织在岗职工人数': 424414, '取缔无照经营个数': 91, '查处取缔无照经营个数': 2037, '参保人数_城镇养老保险参保人数': 1392.6, '城镇医疗保险参保人数': 1604.25, '农村养老保险参保人数': 173.4, '户数统计_总户数': 522.6, '有线电视用户数': 551.57, '互联网用户数': 553, '刑事案件立案件数': 153334, '刑事案件破案件数': 91.7826608669567, '二氧化硫排放总量_2012年': 40347, 'R&D经费数': 1268.8, 'R&D经费与GDP之比': 5.95, '自来水受益村数': 'A', '村委会个数': 3937, '受理信访举报案件数': 1424, '文化馆': 19, '博物馆': 171, '群众艺术馆': 1, '文化艺术团体': 'A', '体育馆': 70, '城镇最低生活保障人数': 89135, '农村最低生活保障人数': 51324, '贪污贿赂人数': 429, '渎职侵权人数': 78, '财政总收入': 7214.5, '财政总收入增长率': 29.6, '固定资产投资总额增长率': 7.5, '全社会消费品零售总额增长率': 8.6, '进出口总额增长率': -3.4, '实际利用外资金额增长率': 6.07, '规模以上工业企业增加值': 3612, '规模以上工业企业产值增加值增长率': 6.2, '国有资产保值增值率': 105.52, '万元GDP综合能源消耗': 0.36, '万元GDP综合能源消耗降低率': 5.29, '城镇化率': 86.4, '城镇家庭居民人均可支配收入增长率': 7.2, '农村家庭居民人均纯收入增长率': 8.6, '居民消费价格指数CPI': 101.6, '工业品出厂价格指数PPI': 99.1, '亿元GDP生产安全事故死亡率': 0.051, '十万人工矿商贸从业人员事故死亡率': 0.94, '食品质量抽样检测合格率': 97.46, '药品安全抽样合格率': 99.88, '工业产品质量抽样合格率': 'A', '查处农资违法案件的数量': 25, '查办各类经济违法案件的数量': 'A', '查办违法广告的件数': 860, '查办商标侵权案件的件数': 472, '消费者维权案件办理率': 100, '出生人口性别比': 'A', '人口出生率': 9.75, '符合政策生育率': 'A', '年末实有社会组织登记数量': 9083, '万人刑事案件发案件数': 114.994750262487, '调处各类矛盾纠纷件数': 194100, '成功调处各类矛盾纠纷数': 188600, '受理各类法律援助案件的数量': 18273, '火灾死亡人数': 51, '接待群众来信来访人次': 39149, '城镇新增就业人数': 42.65, '农村养老保险覆盖率': 71.1822660098522, '新建各类保障性住房面积': 509.5, '农村自来水覆盖率（农村安全饮水覆盖率）': 99.55, '人均拥有道路面积': 7.93, '每万人拥有公交汽车数量': 18.76, '有线电视入户率': 106.85, '高中阶段毛入学率': 'A', '新农合参合率': 'A', '森林覆盖率': 35.84, '水土流失治理面积': 40000, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 87.67, '生活垃圾无害化处理率': 99.6, '城镇生活污水处理率': 86.1, '城市空气质量指数': 46.027397260274, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 'A', '行政复议案件办结率': 'A', '行政复议案件申请量': 1840, '受理行政诉讼的案件数量': 1840, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 181600, '2012年': 225800, '主动公开政府信息增长率': 24.3392070484581, '依申请公开政府信息件数_2013年': 16888, '2014年': 34766, '依申请公开政府信息增长率': 105.862150639507, '因公开问题申请行政复议的数量': 1840}, {'A': '津', '城市': '天津', '所辖市区县个数_市': 0, '区': 13, '县': 3, '城镇户籍人口': 645.05, '农业人口': 371.61, '年末实有企业数_个体工商户': 366, '内资企业': 264994, '外资企业': 11498, '私营企业': 552700, '高新技术企业_产值': 8467.12, '增加值': 331.1, '采矿（掘)业就业人员人数': 6.64, '制造业就业人员人数': 118.99, '采矿（掘)业在岗职工人数': 0.46, '制造业在岗职工人数': 6.52, '财政总支出': 2884.7, '一般预算支出_一般公共服务支出': 158.08, '公共安全支出': 139.31, '文化体育传媒支出': 47.87, '环保支出': 57.93, '园林绿地面积': 25307, '专利授权量': 26351, '城镇单位职工工资总额': 20631400.0, '社会从业\n人员': 877.21, '机关单位_工资总额': 1189400, '就业人数': 139800, '公共管理和社会组织工资总额': 1301800, '公共管理和社会组织在岗职工人数': 144000, '取缔无照经营个数': 6007, '查处取缔无照经营个数': 2126, '参保人数_城镇养老保险参保人数': 657.28, '城镇医疗保险参保人数': 1023.62, '农村养老保险参保人数': 100.5, '户数统计_总户数': 362.63, '有线电视用户数': 313, '互联网用户数': 1014, '刑事案件立案件数': 'A', '刑事案件破案件数': 35.0205575118525, '二氧化硫排放总量_2012年': 195395, 'R&D经费数': 464.69, 'R&D经费与GDP之比': 3, '自来水受益村数': 'A', '村委会个数': 3698, '受理信访举报案件数': 7231, '文化馆': 19, '博物馆': 22, '群众艺术馆': 19, '文化艺术团体': 51, '体育馆': 'A', '城镇最低生活保障人数': 135760, '农村最低生活保障人数': 101447, '贪污贿赂人数': 341, '渎职侵权人数': 56, '财政总收入': 2390.02, '财政总收入增长率': 15.0, '固定资产投资总额增长率': 15.1, '全社会消费品零售总额增长率': 6.0, '进出口总额增长率': 4.2, '实际利用外资金额增长率': 12.1, '规模以上工业企业增加值': 1520.52, '规模以上工业企业产值增加值增长率': 10.1, '国有资产保值增值率': 101.6, '万元GDP综合能源消耗': 0.54, '万元GDP综合能源消耗降低率': 6.0, '城镇化率': 82.3, '城镇家庭居民人均可支配收入增长率': 8.7, '农村家庭居民人均纯收入增长率': 10.8, '居民消费价格指数CPI': 101.9, '工业品出厂价格指数PPI': 96.3, '亿元GDP生产安全事故死亡率': 0.0232721834458473, '十万人工矿商贸从业人员事故死亡率': 'A', '食品质量抽样检测合格率': 98.38, '药品安全抽样合格率': 'A', '工业产品质量抽样合格率': 97.85, '查处农资违法案件的数量': 'A', '查办各类经济违法案件的数量': 250, '查办违法广告的件数': 351, '查办商标侵权案件的件数': 396, '消费者维权案件办理率': 99.64, '出生人口性别比': 'A', '人口出生率': 8.19, '符合政策生育率': 98.45, '年末实有社会组织登记数量': 4729, '万人刑事案件发案件数': nan, '调处各类矛盾纠纷件数': 90028, '成功调处各类矛盾纠纷数': 88230, '受理各类法律援助案件的数量': 4114, '火灾死亡人数': 'A', '接待群众来信来访人次': 13195, '城镇新增就业人数': 48.8, '农村养老保险覆盖率': 27.0444821183499, '新建各类保障性住房面积': '6.1万套', '农村自来水覆盖率（农村安全饮水覆盖率）': 98.98, '人均拥有道路面积': 15.78, '每万人拥有公交汽车数量': 13.41, '有线电视入户率': 88.95, '高中阶段毛入学率': 100, '新农合参合率': 'A', '森林覆盖率': 9.87, '水土流失治理面积': 6400, '工业废水排放达标率': 'A', '工业固体废弃物综合利用率': 98.91, '生活垃圾无害化处理率': 96.23, '城镇生活污水处理率': 100, '城市空气质量指数': 47.9, '城市区域环境噪音指数（市区区域环境噪音平均等效声级值）': 53.6, '违法违纪发案件数': 670, '行政复议案件办结率': 'A', '行政复议案件申请量': 194, '受理行政诉讼的案件数量': 194, '被依法追究责任的领导干部个数': 'A', '主动公开政府信息件数_2011年': 123888, '2012年': 214499, '主动公开政府信息增长率': 73.1394485341599, '依申请公开政府信息件数_2013年': 5146, '2014年': 11399, '依申请公开政府信息增长率': 121.511853867081, '因公开问题申请行政复议的数量': 1074}]
-    alias_map = {
-        '常住人口': '常住人口数',
-        '户籍人口': '户籍人口数',
-        '一般预算收入': '一般公共预算收入',
-        '城镇居民家庭人均可支配收入': '城镇居民人均可支配收入',
-        '农村居民家庭人均纯收入': '农民居民人均可纯收入',
-    }
-
-    growth_name_map = {
-        'GDP': 'GDP增长率',
-        '一般预算收入': '财政总收入增长率',
-        '一般公共预算收入': '财政总收入增长率',
-    }
-
     for row in rows_data:
         city_name = row.get('城市') or row.get('城市名称')
         city_name_to_code = get_city_name_to_code()
@@ -1031,36 +1043,43 @@ def save_area_df_to_database(rows_data, year):
         if not city_id or not area:
             continue
 
-        last_metric_name = None
-        for col_name, value in row.items():
-            if col_name in ['城市', '城市名称', 'area', '所辖区县名称', '区县', '区县名称', '区县名', 'A']:
-                continue  
+        skip_cols = {
+            '省份名称', '城市', '城市名称', 'area', '所辖区县名称', '所辖区域名称',
+            '区县', '区县名称', '区县名', 'A',
+        }
+        last_metric_raw = None
+        for col_name, raw_value in row.items():
+            if col_name in skip_cols or str(col_name).startswith('Column_'):
+                continue
 
             raw_name = str(col_name).split('__dup', 1)[0].strip()
-            if raw_name in ['所辖区域名称', '区域名称']:
-                continue
+            name_zh, name_en = resolve_area_excel_indicator(col_name, last_metric_raw)
+            if excel_column_name_base(raw_name) != '增长率':
+                last_metric_raw = raw_name
 
-            if raw_name == '增长率':
-                name_zh = growth_name_map.get(last_metric_name, '增长率')
-            else:
-                name_zh = alias_map.get(raw_name, raw_name)
-                last_metric_name = raw_name
-
-            print(f"处理指标: {name_zh}，值: {value}")
-            name_en = AREA_INDIMAP.get(name_zh)
-            if not name_en:
-                print(f"未找到指标英文名映射，跳过: {name_zh}")
+            value, source, note = extract_cell_fields(raw_value)
+            if not has_excel_cell_value(value):
                 continue
+            # 仅 AREA_INDIMAP / AREA_INDIMAP_UNIT 中存在的指标入库
+            if not name_en or name_en not in AREA_INDIMAP_UNIT:
+                continue
+            source = persist_source_text(
+                normalize_data_source(source) or source or DEFAULT_EXCEL_SOURCE,
+                city=str(city_name or ''),
+                province=(province_info.get('province_name') if province_info else '') or '',
+            )
+            print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             try:
                 IndicatorArea.objects.create(
                     year=year,
                     province_id=province_id,
                     city_id=city_id,
-                    source='INPUT',
-                    value=0 if pd.isna(value) else (value or 0),
+                    source=source,
+                    input_method=IndicatorArea.InputMethod.EXCEL,
+                    value=value,
                     name_en=name_en or '',
-                    note= '',
-                    name_zh= name_zh or '',  # 备注直接写入 name_zh
+                    note=note or '',
+                    name_zh=name_zh or '',
                     area=area,
                     input_form=IndicatorArea.InputForm.INPUT,
                     indicator_type=IndicatorArea.IndicatorType.OTHER,
@@ -1373,35 +1392,63 @@ def update_duration_multipliers_api(request):
 @login_required_json
 @require_http_methods(["POST"])
 def create_order_api(request):
-    """创建待支付订单（服务端验价 + 支付宝当面付预下单）。"""
+    """创建待支付订单（服务端验价 + 支付宝跳转 / 微信扫码）。"""
     try:
         from django.conf import settings as dj_settings
-        from apps.coredata.services.alipay_service import create_face_to_face_payment, is_alipay_mock_mode
+        from apps.coredata.services.alipay_service import create_page_payment, is_alipay_mock_mode
+        from apps.coredata.services.wechatpay_service import create_native_payment, is_wechat_mock_mode
         from apps.coredata.services.order_service import create_membership_order
+        from apps.accounts.models import UserProfile
 
         data = json.loads(request.body)
         user_type = data.get("user_type", "personal")
         duration = data.get("duration", "year")
         permissions = data.get("permissions", [])
+        payment_channel = (data.get("payment_channel") or "alipay").strip().lower()
+        if payment_channel in ("wx", "weixin", "wechat_pay"):
+            payment_channel = "wechat"
+        if payment_channel not in ("alipay", "wechat"):
+            return JsonResponse({"success": False, "message": "不支持的支付方式"}, status=400)
+
+        if user_type in ("organization", "org"):
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            if not profile.is_org_verified:
+                return JsonResponse({
+                    "success": False,
+                    "message": "购买机构用户前请先完成机构认证",
+                    "code": "ORG_VERIFY_REQUIRED",
+                }, status=403)
+
         order = create_membership_order(request.user, user_type, duration, permissions)
-        pay = create_face_to_face_payment(
-            order.order_no,
-            order.total_amount,
-            subject=f"城策智库-指标查看权限-{order.order_no}",
-        )
-        return JsonResponse({
-            "success": True,
-            "message": "订单创建成功，请扫码支付",
-            "data": {
-                "order_no": order.order_no,
-                "total_amount": float(order.total_amount),
-                "status": order.status,
-                "qr_code": pay.get("qr_code"),
-                "expire_at": order.expire_at.isoformat() if order.expire_at else None,
-                "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
+        order.payment_channel = payment_channel
+        order.save(update_fields=["payment_channel", "updated_at"])
+
+        subject = f"城策智库-指标查看权限-{order.order_no}"
+        payload = {
+            "order_no": order.order_no,
+            "total_amount": float(order.total_amount),
+            "status": order.status,
+            "payment_channel": payment_channel,
+            "expire_at": order.expire_at.isoformat() if order.expire_at else None,
+            "pay_timeout_minutes": int(getattr(dj_settings, "ORDER_PAY_TIMEOUT_MINUTES", 30)),
+        }
+
+        if payment_channel == "wechat":
+            pay = create_native_payment(order.order_no, order.total_amount, subject=subject)
+            payload.update({
+                "code_url": pay.get("code_url"),
+                "wechat_mock": pay.get("mock", False) or is_wechat_mock_mode(),
+            })
+            message = "订单创建成功，请使用微信扫码支付"
+        else:
+            pay = create_page_payment(order.order_no, order.total_amount, subject=subject)
+            payload.update({
+                "pay_url": pay.get("pay_url"),
                 "alipay_mock": pay.get("mock", False) or is_alipay_mock_mode(),
-            },
-        })
+            })
+            message = "订单创建成功，请前往支付宝完成支付"
+
+        return JsonResponse({"success": True, "message": message, "data": payload})
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
     except ValueError as e:
@@ -1416,34 +1463,17 @@ def confirm_order_payment_api(request):
     """已关闭：支付结果由支付宝异步通知处理，请勿手动确认。"""
     return JsonResponse({
         "success": False,
-        "message": "请使用支付宝扫码完成支付，系统将自动开通权限",
+        "message": "请前往支付宝完成支付，系统将自动开通权限",
     }, status=403)
 
 
-# ==================== 会员激活接口（保留兼容，建议使用 confirm-order-payment） ====================
+# ==================== 会员激活接口（已关闭，禁止绕过支付） ====================
 @login_required
 @require_http_methods(["POST"])
 def activate_membership(request):
-    """直接激活会员（旧接口，仅兼容）。"""
-    try:
-        from apps.coredata.services.membership_service import apply_membership
-
-        data = json.loads(request.body)
-        result = apply_membership(
-            request.user,
-            duration=data.get("duration", "month"),
-            cities=data.get("cities", []),
-            indicators=data.get("indicators", []),
-        )
-        return JsonResponse({
-            "success": True,
-            "message": f"会员已激活，有效期至 {result['expires_at']}",
-            "data": result,
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "message": "请求数据格式错误"}, status=400)
-    except ValueError as e:
-        return JsonResponse({"success": False, "message": str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({"success": False, "message": f"激活会员失败: {str(e)}"}, status=500)
+    """已关闭：请通过下单 + 支付宝支付开通权限，禁止直接激活。"""
+    return JsonResponse({
+        "success": False,
+        "message": "该接口已关闭，请通过购买流程完成支付后自动开通权限",
+    }, status=403)
 

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>指标查看权限购买 | 数据指标管理系统</title>
     <script src="/static/js/tailwindcss.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/iconify/3.1.1/iconify.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="/static/js/iconify.min.js"></script>
+    <script src="/static/js/iconify-icon.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -49,14 +49,14 @@
             opacity: 0.9;
         }
 
-        /* 用户类型切换区域 */
+        /* 账户类型展示区域（只读，按角色自动定价） */
         .user-type-bar {
             background: #f8fafc;
             padding: 16px 40px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
-            gap: 24px;
+            gap: 16px;
             flex-wrap: wrap;
         }
 
@@ -65,35 +65,22 @@
             color: #2c5568;
         }
 
-        .user-type-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .user-type-btn {
-            padding: 8px 24px;
-            border: 2px solid #cbd5e1;
-            background: white;
+        .user-type-badge {
+            display: inline-block;
+            padding: 6px 18px;
             border-radius: 40px;
-            cursor: pointer;
             font-weight: 600;
-            transition: all 0.2s;
+            font-size: 14px;
         }
 
-        .user-type-btn.active {
-            background: #2c7da0;
-            border-color: #2c7da0;
-            color: white;
+        .user-type-badge.personal {
+            background: #dbeafe;
+            color: #1d4ed8;
         }
 
-        .user-type-btn.personal.active {
-            background: #3b82f6;
-            border-color: #3b82f6;
-        }
-
-        .user-type-btn.organization.active {
-            background: #8b5cf6;
-            border-color: #8b5cf6;
+        .user-type-badge.organization {
+            background: #ede9fe;
+            color: #6d28d9;
         }
 
         /* 主内容区域 */
@@ -230,6 +217,37 @@
             background: #2c7da0;
             border-color: #2c7da0;
             color: white;
+        }
+
+        .pay-channel-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .pay-channel-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #334155;
+            transition: all 0.2s;
+        }
+
+        .pay-channel-btn.active {
+            border-color: #2c7da0;
+            background: #eff8ff;
+            color: #0c4a6e;
+        }
+
+        .pay-channel-btn.active.wechat {
+            border-color: #07c160;
+            background: #f0fdf4;
+            color: #166534;
         }
 
         /* 右侧订单栏 */
@@ -513,18 +531,19 @@
     <div class="purchase-system">
         <div class="header">
             <h1>📊 指标查看权限购买中心</h1>
-            <div class="sub">个人用户可查看部分指标 | 机构用户可查看全部指标 | 支付宝扫码支付</div>
+            <div class="sub">个人用户可查看部分指标 | 机构用户可查看全部指标 | 支付宝电脑网站支付</div>
         </div>
 
-        <!-- 用户类型切换 -->
+        <!-- 账户类型（只读，按角色自动定价） -->
         <div class="user-type-bar">
             <span class="user-type-label">👤 账户类型：</span>
-            <div class="user-type-buttons">
-                <button class="user-type-btn personal active" data-type="personal">个人用户</button>
-                <button class="user-type-btn organization" data-type="organization">机构用户</button>
-            </div>
+            <span class="user-type-badge personal" id="userTypeBadge">个人用户</span>
             <div style="font-size: 12px; color: #6c868e;" id="indicatorHint">
                 💡 加载中...
+            </div>
+            <div id="orgVerifyHint" style="display:none; font-size: 12px; color: #6c868e; margin-left: 4px;">
+                完成机构认证后将按机构用户价格购买
+                <a href="/dashboard/profile/" style="color: #1f6392; text-decoration: underline; margin-left: 4px;">去认证</a>
             </div>
         </div>
 
@@ -591,14 +610,23 @@
                     <div style="font-size: 13px; color: #6c868e;">预估总价</div>
                     <div class="total-price" id="totalPrice">¥0.00</div>
                 </div>
+                <div style="margin-top: 8px;">
+                    <div style="font-size: 13px; color: #6c868e; margin-bottom: 4px;">支付方式</div>
+                    <div class="pay-channel-group">
+                        <button type="button" class="pay-channel-btn active" data-channel="alipay" id="payAlipayBtn">支付宝</button>
+                        <button type="button" class="pay-channel-btn" data-channel="wechat" id="payWechatBtn">微信支付</button>
+                    </div>
+                </div>
                 <button class="buy-btn" id="buyBtn">💳 立即购买</button>
-                <div class="info-note">✓ 支持多权限组合，支付宝扫码支付</div>
+                <div class="info-note">✓ 支持支付宝 / 微信支付</div>
             </div>
         </div>
         <footer>
-            📊 定价规则：全国 ¥5000/年 | 地区 ¥1200/年 | 省份 ¥300/年 | 直辖市 ¥300/年 | 城市 ¥80/年<br>
-            🔍 个人用户可查看：基础指标、行业趋势、区域概况；机构用户可查看：全部指标（含深度分析、原始数据、预测模型等）<br>
-            💳 支付流程：点击购买 → 支付宝扫码 → 确认支付 → 开通权限
+            <div id="rolePriceFooter">📊 各角色年卡价格加载中...</div>
+            <div style="margin-top: 8px;">
+                🔍 个人用户可查看：基础指标、行业趋势、区域概况；机构用户可查看：全部指标（含深度分析、原始数据、预测模型等）<br>
+                💳 支付宝：跳转收银台；微信：扫码支付 → 自动开通权限
+            </div>
         </footer>
     </div>
 </main>
@@ -607,12 +635,14 @@
         // ==================== 全局变量 ====================
         let priceList = [];              // 从接口获取的价格配置
         let currentUserType = 'personal';
+        let isOrgVerified = false;
         let selectedPermissions = [];
         let currentLevel = '全国';
         let currentItemName = '';
         let currentItemPrice = 0;
         let currentItemId = '';
         let currentDuration = 'year';
+        let currentPaymentChannel = 'alipay';
         let organizationIndicators = [];
         let personalIndicators = [];
         
@@ -708,6 +738,7 @@
                         };
                     });
                     console.log('价格配置加载成功，共', priceList.length, '条');
+                    updateRolePriceFooter();
                     updateDynamicSelect();
                 } else {
                     console.warn('接口返回数据为空，使用默认价格');
@@ -743,7 +774,26 @@
                 { level: "市", userType: "个人用户", duration: "month", price: 79, days: 30 },
                 { level: "市", userType: "机构用户", duration: "month", price: 99, days: 30 }
             ];
+            updateRolePriceFooter();
             updateDynamicSelect();
+        }
+
+        // 底部展示各角色年卡价格（仅参考，不可选择）
+        function updateRolePriceFooter() {
+            const footer = document.getElementById('rolePriceFooter');
+            if (!footer) return;
+            const levels = ['全国', '地区', '省', '直辖市', '市'];
+            const personalParts = levels.map(level => {
+                const price = getPrice(level, '个人用户', 'year');
+                return `${level} ¥${price || 0}`;
+            });
+            const orgParts = levels.map(level => {
+                const price = getPrice(level, '机构用户', 'year');
+                return `${level} ¥${price || 0}`;
+            });
+            footer.innerHTML =
+                `📊 个人用户年卡：${personalParts.join(' | ')}<br>` +
+                `🏢 机构用户年卡：${orgParts.join(' | ')}`;
         }
         
         // ==================== 从接口加载指标配置 ====================
@@ -1017,7 +1067,7 @@
             totalSpan.textContent = `¥${totalFinal.toFixed(2)}`;
             container.innerHTML = itemsHtml;
         }
-        
+
         function setDuration(duration) {
             currentDuration = duration;
             document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -1030,29 +1080,19 @@
             updateOrderSummary();
         }
         
-        function setUserType(type) {
-            currentUserType = type;
-            document.querySelectorAll('.user-type-btn').forEach(btn => {
-                if (btn.getAttribute('data-type') === type) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
+        function setPaymentChannel(channel) {
+            currentPaymentChannel = channel === 'wechat' ? 'wechat' : 'alipay';
+            document.querySelectorAll('.pay-channel-btn').forEach(btn => {
+                const isActive = btn.getAttribute('data-channel') === currentPaymentChannel;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('wechat', isActive && currentPaymentChannel === 'wechat');
             });
-            
-            updateIndicatorHint();
-            
-            // 清空购物车并刷新价格显示
-            selectedPermissions = [];
-            updateTagsDisplay();
-            updateOrderSummary();
-            updateDynamicSelect();
         }
-        
+
         function renderQrCode(container, qrCodeUrl) {
             container.innerHTML = '';
             const img = document.createElement('img');
-            img.alt = '支付宝付款码';
+            img.alt = '微信支付二维码';
             img.width = 200;
             img.height = 200;
             img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrCodeUrl);
@@ -1060,6 +1100,139 @@
             container.appendChild(img);
         }
 
+        function showWechatPayModal(orderInfo) {
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'modal-overlay';
+            const mockHint = orderInfo.wechatMock
+                ? '<p style="font-size:12px;color:#b45309;margin-top:8px;">Mock 模式：可点击下方按钮模拟支付成功</p>'
+                : '<p style="font-size:13px;color:#64748b;margin-top:8px;">请使用微信扫一扫完成支付</p>';
+            const mockBtn = orderInfo.wechatMock
+                ? '<button class="buy-btn" id="mockWechatPay" style="margin-top:12px;width:100%;">模拟支付成功</button>'
+                : '';
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content" style="text-align:center;">
+                    <div class="modal-header">
+                        <h2>微信支付</h2>
+                        <p>订单号 ${orderInfo.orderId}</p>
+                    </div>
+                    <div class="qrcode-container">
+                        <div class="qrcode-canvas" id="qrcodeCanvas"></div>
+                        <div class="payment-amount">¥${Number(orderInfo.total || 0).toFixed(2)}</div>
+                        <div class="countdown" id="countdownTimer">剩余支付时间: --:--</div>
+                        <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:8px;">等待支付中...</p>
+                        ${mockHint}
+                        ${mockBtn}
+                    </div>
+                    <div class="modal-buttons" style="margin-top:16px;">
+                        <button class="btn-cancel" id="cancelPayment">关闭</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalOverlay);
+            renderQrCode(document.getElementById('qrcodeCanvas'), orderInfo.codeUrl);
+
+            let timeLeft = (orderInfo.payTimeoutMinutes || 30) * 60;
+            const timerElement = document.getElementById('countdownTimer');
+
+            function cleanup() {
+                clearInterval(timerInterval);
+                clearInterval(pollInterval);
+            }
+
+            const timerInterval = setInterval(() => {
+                timeLeft -= 1;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `剩余支付时间: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    cleanup();
+                    modalOverlay.remove();
+                    alert('支付超时，订单已关闭');
+                }
+            }, 1000);
+
+            const pollInterval = setInterval(() => {
+                pollOrderStatus(orderInfo.orderId, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    clearPendingOrder();
+                    showPaymentSuccess(orderInfo);
+                }, () => {
+                    cleanup();
+                    modalOverlay.remove();
+                    clearPendingOrder();
+                    alert('订单已过期或已取消，请重新下单');
+                });
+            }, 2500);
+
+            const mockPayBtn = document.getElementById('mockWechatPay');
+            if (mockPayBtn) {
+                mockPayBtn.addEventListener('click', async () => {
+                    mockPayBtn.disabled = true;
+                    mockPayBtn.textContent = '处理中...';
+                    try {
+                        await fetch('/dashboard/api/wechat/mock-notify/', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            body: JSON.stringify({ order_no: orderInfo.orderId }),
+                        });
+                    } catch (e) {
+                        console.warn('Mock 微信支付失败', e);
+                        mockPayBtn.disabled = false;
+                        mockPayBtn.textContent = '模拟支付成功';
+                    }
+                });
+            }
+
+            document.getElementById('cancelPayment').addEventListener('click', () => {
+                cleanup();
+                modalOverlay.remove();
+            });
+        }
+        
+        async function loadOrgVerifyStatus() {
+            try {
+                const res = await fetch('/api/org-verify/status/', { credentials: 'same-origin' });
+                if (res.status === 401 || res.status === 403) {
+                    isOrgVerified = false;
+                    applyUserTypeFromRole();
+                    return;
+                }
+                const json = await res.json();
+                isOrgVerified = !!(json.success && json.data && json.data.is_org_verified);
+                applyUserTypeFromRole();
+            } catch (e) {
+                isOrgVerified = false;
+                applyUserTypeFromRole();
+            }
+        }
+
+        // 根据机构认证状态自动确定账户类型与价格，不可手动切换
+        function applyUserTypeFromRole() {
+            currentUserType = isOrgVerified ? 'organization' : 'personal';
+            const badge = document.getElementById('userTypeBadge');
+            if (badge) {
+                badge.textContent = isOrgVerified ? '机构用户' : '个人用户';
+                badge.className = 'user-type-badge ' + currentUserType;
+            }
+            updateIndicatorHint();
+            updateOrgVerifyHint();
+            updateDynamicSelect();
+            updateOrderSummary();
+        }
+
+        function updateOrgVerifyHint() {
+            const hint = document.getElementById('orgVerifyHint');
+            if (!hint) return;
+            // 未认证时提示可去个人中心认证，已认证则隐藏
+            hint.style.display = isOrgVerified ? 'none' : 'inline';
+        }
+        
         async function pollOrderStatus(orderNo, onPaid, onExpired) {
             try {
                 const res = await fetch('/dashboard/api/order-status/?order_no=' + encodeURIComponent(orderNo), {
@@ -1076,73 +1249,114 @@
                 console.warn('轮询订单状态失败', e);
             }
         }
-        
-        function showAlipayModal(orderInfo) {
+
+        function savePendingOrder(orderInfo) {
+            try {
+                sessionStorage.setItem('pending_alipay_order', JSON.stringify(orderInfo));
+            } catch (e) {}
+        }
+
+        function loadPendingOrder(orderNo) {
+            try {
+                const raw = sessionStorage.getItem('pending_alipay_order');
+                if (!raw) return null;
+                const info = JSON.parse(raw);
+                if (orderNo && info.orderId && info.orderId !== orderNo) return null;
+                return info;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearPendingOrder() {
+            try { sessionStorage.removeItem('pending_alipay_order'); } catch (e) {}
+        }
+
+        function showWaitingPaymentModal(orderInfo) {
             const modalOverlay = document.createElement('div');
             modalOverlay.className = 'modal-overlay';
-            const mockHint = orderInfo.alipayMock
-                ? '<p style="font-size:12px;color:#b45309;margin-top:8px;">Mock 模式：可用 POST /dashboard/api/alipay/mock-notify/ 模拟支付成功</p>'
-                : '';
-            
             modalOverlay.innerHTML = `
-                <div class="modal-content">
+                <div class="modal-content" style="text-align:center;">
                     <div class="modal-header">
-                        <h2>💰 支付宝扫码支付</h2>
-                        <p>请使用支付宝扫一扫，支付完成后将自动开通权限</p>
+                        <h2>正在确认支付结果</h2>
+                        <p>支付成功后将自动开通权限，请稍候…</p>
                     </div>
-                    <div class="qrcode-container">
-                        <div class="qrcode-canvas" id="qrcodeCanvas"></div>
-                        <div class="payment-amount">¥${orderInfo.total.toFixed(2)}</div>
-                        <div class="countdown" id="countdownTimer">⏱️ 剩余支付时间: --:--</div>
-                        <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:8px;">等待支付中...</p>
-                        ${mockHint}
-                    </div>
-                    <div class="modal-buttons">
+                    <div class="payment-amount">¥${Number(orderInfo.total || 0).toFixed(2)}</div>
+                    <p id="paymentStatus" style="font-size:13px;color:#64748b;margin-top:12px;">查询订单状态中...</p>
+                    <div class="modal-buttons" style="margin-top:20px;">
                         <button class="btn-cancel" id="cancelPayment">关闭</button>
                     </div>
                 </div>
             `;
-            
             document.body.appendChild(modalOverlay);
-            renderQrCode(document.getElementById('qrcodeCanvas'), orderInfo.qrCode);
-            
-            let timeLeft = (orderInfo.payTimeoutMinutes || 30) * 60;
-            const timerElement = document.getElementById('countdownTimer');
             const statusElement = document.getElementById('paymentStatus');
-            
+            let attempts = 0;
+            const maxAttempts = 40;
+
             function cleanup() {
-                clearInterval(timerInterval);
                 clearInterval(pollInterval);
             }
-            
-            const timerInterval = setInterval(() => {
-                timeLeft--;
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                timerElement.innerHTML = `⏱️ 剩余支付时间: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                if (timeLeft <= 0) {
-                    cleanup();
-                    modalOverlay.remove();
-                    alert('⏰ 支付超时，订单已关闭');
-                }
-            }, 1000);
-            
+
             const pollInterval = setInterval(() => {
+                attempts += 1;
                 pollOrderStatus(orderInfo.orderId, () => {
                     cleanup();
                     modalOverlay.remove();
+                    clearPendingOrder();
                     showPaymentSuccess(orderInfo);
                 }, () => {
                     cleanup();
                     modalOverlay.remove();
-                    alert('⏰ 订单已过期，请重新下单');
+                    clearPendingOrder();
+                    alert('订单已过期或已取消，请重新下单');
                 });
-            }, 3000);
-            
+                if (attempts >= maxAttempts) {
+                    cleanup();
+                    statusElement.textContent = '暂未收到支付结果，若已付款请稍后刷新页面或联系客服';
+                }
+            }, 2000);
+
             document.getElementById('cancelPayment').addEventListener('click', () => {
                 cleanup();
                 modalOverlay.remove();
             });
+        }
+
+        async function handlePayReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const isReturn = params.get('pay') === 'return' || params.has('out_trade_no');
+            if (!isReturn) return;
+
+            const orderNo = params.get('out_trade_no') || '';
+            const mockPay = params.get('mock_pay') === '1';
+            history.replaceState({}, '', window.location.pathname);
+
+            if (mockPay && orderNo) {
+                try {
+                    await fetch('/dashboard/api/alipay/mock-notify/', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        body: JSON.stringify({ order_no: orderNo }),
+                    });
+                } catch (e) {
+                    console.warn('Mock 支付通知失败', e);
+                }
+            }
+
+            const pending = loadPendingOrder(orderNo) || {
+                orderId: orderNo,
+                total: 0,
+                permissions: '-',
+                duration: '-',
+                userType: currentUserType,
+            };
+            if (!pending.orderId && orderNo) pending.orderId = orderNo;
+            if (!pending.orderId) return;
+            showWaitingPaymentModal(pending);
         }
         
         function getCsrfToken() {
@@ -1200,6 +1414,7 @@
                     body: JSON.stringify({
                         user_type: currentUserType,
                         duration: currentDuration,
+                        payment_channel: currentPaymentChannel,
                         permissions: selectedPermissions.map(p => ({
                             level: p.level,
                             typeName: p.typeName,
@@ -1216,6 +1431,11 @@
                     return;
                 }
                 if (!result.success) {
+                    if (result.code === 'ORG_VERIFY_REQUIRED') {
+                        alert('购买机构用户价格需先完成机构认证，请前往个人中心认证');
+                        window.location.href = '/dashboard/profile/';
+                        return;
+                    }
                     alert('创建订单失败：' + (result.message || '未知错误'));
                     return;
                 }
@@ -1227,15 +1447,31 @@
                     duration: durationName[currentDuration],
                     userType: currentUserType,
                     orderId: result.data.order_no,
-                    qrCode: result.data.qr_code,
                     payTimeoutMinutes: result.data.pay_timeout_minutes || 30,
                     alipayMock: !!result.data.alipay_mock,
+                    wechatMock: !!result.data.wechat_mock,
+                    codeUrl: result.data.code_url || '',
                 };
-                if (!orderInfo.qrCode) {
-                    alert('获取支付二维码失败，请稍后重试');
+
+                if (currentPaymentChannel === 'wechat') {
+                    if (!orderInfo.codeUrl) {
+                        alert('获取微信支付二维码失败，请稍后重试');
+                        return;
+                    }
+                    savePendingOrder(orderInfo);
+                    showWechatPayModal(orderInfo);
                     return;
                 }
-                showAlipayModal(orderInfo);
+
+                const payUrl = result.data.pay_url;
+                if (!payUrl) {
+                    alert('获取支付链接失败，请稍后重试');
+                    return;
+                }
+                savePendingOrder(orderInfo);
+                buyBtn.textContent = '正在跳转支付宝...';
+                window.location.href = payUrl;
+                return;
             } catch (error) {
                 console.error('创建订单失败:', error);
                 alert('网络错误，请稍后重试');
@@ -1251,12 +1487,8 @@
             await loadDurationMultipliers();
             await loadPriceConfig();
             await loadIndicators();
-            
-            document.querySelectorAll('.user-type-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    setUserType(btn.getAttribute('data-type'));
-                });
-            });
+            await loadOrgVerifyStatus();
+            await handlePayReturn();
             
             const levelSelect = document.getElementById('levelSelect');
             levelSelect.addEventListener('change', function(e) {
@@ -1269,6 +1501,11 @@
             document.querySelectorAll('.duration-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     setDuration(btn.getAttribute('data-dur'));
+                });
+            });
+            document.querySelectorAll('.pay-channel-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setPaymentChannel(btn.getAttribute('data-channel'));
                 });
             });
             

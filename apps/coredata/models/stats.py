@@ -32,7 +32,7 @@ class IndicatorCoverageStats(models.Model):
     """指标在全国地市的覆盖率统计（按年缓存）"""
 
     indicator_name = models.CharField("指标名称", max_length=100)
-    indicator_name_en = models.CharField("指标英文代码", max_length=50)
+    indicator_name_en = models.CharField("指标英文代码", max_length=128)
     indicator_group = models.CharField("指标组", max_length=50, blank=True, default="")
     year = models.IntegerField("年份", db_index=True)
     total_cities = models.IntegerField("应录入城市总数")

@@ -17,12 +17,18 @@ class UserProfileInline(admin.StackedInline):
         'mobile',
         'membership_level',
         'membership_expires_at',
+        'org_name',
+        'org_credit_code',
+        'org_verify_status',
+        'org_verified_at',
+        'org_verify_message',
         'formatted_membership_scope_city',
         'formatted_membership_scope_item',
         'created_at',
         'updated_at',
     )
     readonly_fields = (
+        'org_verified_at',
         'formatted_membership_scope_city',
         'formatted_membership_scope_item',
         'created_at',
@@ -142,6 +148,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         'user',
         'mobile',
+        'org_name',
+        'org_verify_status',
         'membership_level_display',
         'membership_expires_at_display',
         'is_membership_active_display',
@@ -149,16 +157,20 @@ class UserProfileAdmin(admin.ModelAdmin):
     )
     list_filter = (
         'membership_level',
+        'org_verify_status',
         'created_at',
     )
     search_fields = (
         'user__username',
         'user__email',
         'mobile',
+        'org_name',
+        'org_credit_code',
     )
     readonly_fields = (
         'created_at',
         'updated_at',
+        'org_verified_at',
         'formatted_membership_scope_city',
         'formatted_membership_scope_item',
     )
@@ -168,6 +180,15 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
         ('基本信息', {
             'fields': ('mobile',)
+        }),
+        ('机构认证', {
+            'fields': (
+                'org_name',
+                'org_credit_code',
+                'org_verify_status',
+                'org_verified_at',
+                'org_verify_message',
+            )
         }),
         ('会员信息', {
             'fields': ('membership_level', 'membership_expires_at')

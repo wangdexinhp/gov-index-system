@@ -29,12 +29,26 @@ class Indicator(models.Model):
         help_text="如：110000（北京市代码）"
     )
 
-    # 数据来源： 数据来源名称或机构
+    # 数据来源：具体名称文字（如「沈阳市统计年鉴」），不再存类别 code
     source = models.CharField(
         "数据来源",
-        max_length=50,
-        default='未知来源',  
-        help_text="指标数据来源名称或机构",
+        max_length=200,
+        default='',
+        blank=True,
+        help_text="指标数据来源具体名称（文字）",
+    )
+
+    class InputMethod(models.TextChoices):
+        MANUAL = "MANUAL", "手工"
+        EXCEL = "EXCEL", "excel"
+
+    input_method = models.CharField(
+        "录入方式",
+        max_length=16,
+        choices=InputMethod.choices,
+        default=InputMethod.MANUAL,
+        blank=True,
+        help_text="手工录入或 Excel 批量导入",
     )
 
     # 数值： 指标的数值
@@ -145,12 +159,26 @@ class IndicatorArea(models.Model):
     )
 
 
-    # 数据来源： 数据来源名称或机构
+    # 数据来源：具体名称文字（如「沈阳市统计年鉴」），不再存类别 code
     source = models.CharField(
         "数据来源",
-        max_length=50,
-        default='未知来源',  
-        help_text="指标数据来源名称或机构",
+        max_length=200,
+        default='',
+        blank=True,
+        help_text="指标数据来源具体名称（文字）",
+    )
+
+    class InputMethod(models.TextChoices):
+        MANUAL = "MANUAL", "手工"
+        EXCEL = "EXCEL", "excel"
+
+    input_method = models.CharField(
+        "录入方式",
+        max_length=16,
+        choices=InputMethod.choices,
+        default=InputMethod.MANUAL,
+        blank=True,
+        help_text="手工录入或 Excel 批量导入",
     )
 
     # 数值： 指标的数值
