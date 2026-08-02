@@ -5,6 +5,7 @@ from . import indicator_audit_views
 from . import alipay_views
 from . import wechatpay_views
 from . import input_form_views
+from . import special_indicator_views
 
 app_name = 'dashboard'
 
@@ -12,8 +13,11 @@ urlpatterns = [
     path('', views.dashboard_home, name='home'),
     path('area_input', views.area_input, name='area_input'),
     path('indicator-check', views.indicator_check, name='indicator_check'),  
-    path('indicator-check-2', views.indicator_check_2, name='indicator_check_2'),  
-
+    path('indicator-coverage', views.indicator_coverage, name='indicator_coverage'),
+    path('special-indicator-query/', special_indicator_views.special_indicator_query_city, name='special_indicator_query'),
+    path('special-indicator-query-area/', special_indicator_views.special_indicator_query_area, name='special_indicator_query_area'),
+    path('api/special-indicator-tree/', special_indicator_views.special_indicator_tree_api, name='special_indicator_tree'),
+    path('api/special-indicator-query/', special_indicator_views.special_indicator_query_api, name='special_indicator_query_api'),
 
     # 城市数据查询路径
     path('get-city-map/', views.get_city_map, name='city_map_query'),

@@ -63,12 +63,12 @@
     </form>
 </div>
 
-<!-- 数据录入区域 -->
+<!-- 数据管理区域 -->
 <div id="data-entry-section" class="hidden">
     <div class="bg-white border border-light-gray rounded-lg p-6 mb-4">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-medium text-black">
-                <i class="fa-solid fa-edit mr-2"></i>指标数据录入
+                <i class="fa-solid fa-edit mr-2"></i>指标数据管理
                 <span class="text-sm font-normal text-gray ml-2" id="selected-info"></span>
             </h2>
             <div class="text-sm text-gray">
@@ -212,7 +212,7 @@ async function loadData() {
         // 加载并显示指标表格
         await renderIndicatorsTable(year, selectedCities);
 
-        // 显示数据录入区域
+        // 显示数据管理区域
         document.getElementById('data-entry-section').classList.remove('hidden');
         document.getElementById('empty-state').style.display = 'none';
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>城策智库 · 统计数据录入平台</title>
+<title>城策智库 · 统计数据管理平台</title>
 <script src="/static/js/tailwindcss.js"></script>
 <script src="/static/js/indicator_source_input.js"></script>
 <script src="/static/js/indicator_catalog.js"></script>
@@ -91,6 +91,8 @@
         font-size: 12px;
         cursor: pointer;
         border-radius: 2px;
+        text-decoration: none;
+        display: inline-block;
     }
     .drc-tab.active {
         background: var(--drc-blue);
@@ -566,7 +568,7 @@
 <header class="drc-header">
     <div class="logo-title">
         <iconify-icon icon="mdi:chart-timeline-variant" style="font-size:20px"></iconify-icon>
-        城策智库 · 统计数据录入平台
+        城策智库 · 统计数据管理平台
     </div>
     <nav class="nav-links">
         <a href="/dashboard/" class="active">指标录入</a>
@@ -583,7 +585,7 @@
         <a href="/dashboard/" class="drc-tab-link active">地市录入</a>
         <a href="/dashboard/area_input" class="drc-tab-link">区县录入</a>
         <a href="/dashboard/indicator-check" class="drc-tab-link">指标校验</a>
-        <a href="/dashboard/indicator-check-2" class="drc-tab-link">指标覆盖查询</a>
+        <a href="/dashboard/indicator-coverage" class="drc-tab-link">指标覆盖查询</a>
         <div class="drc-progress">
             <span id="progress-text">进度：已完成0/0指标</span>
             <div class="drc-progress-bar"><div id="progress-bar" style="width:0%"></div></div>
@@ -592,6 +594,7 @@
     <div class="drc-toolbar-row">
         <button type="button" class="drc-tab active" id="manual-tab">手工</button>
         <button type="button" class="drc-tab" id="excel-tab">excel</button>
+        <a href="/dashboard/special-indicator-query/" class="drc-tab" id="special-tab">特殊指标</a>
     </div>
 </div>
 

@@ -132,4 +132,4 @@ def init_indicators():
 if __name__ == '__main__':
     init_provinces_and_cities()
     init_indicators()
-    print("数据录入系统初始化完成！")
+    print("数据管理系统初始化完成！")
