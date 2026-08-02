@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>城策智库 · {{ page_title }}</title>
+<script src="/static/js/iconify.min.js"></script>
+<script src="/static/js/iconify-icon.min.js"></script>
+<style>
+    :root {
+        --drc-blue: #1a5fb4;
+        --drc-blue-dark: #144a8c;
+        --drc-blue-light: #e8f1fb;
+        --drc-border: #c5d0dc;
+        --drc-bg: #eef2f6;
+        --drc-toolbar: #f7f9fc;
+        --drc-text: #333;
+        --drc-muted: #666;
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: var(--drc-bg);
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        font-size: 12px;
+        color: var(--drc-text);
+        margin: 0;
+    }
+    .drc-header {
+        background: linear-gradient(180deg, #1f6fc2 0%, var(--drc-blue) 100%);
+        color: #fff;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.15);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .drc-header .logo-title {
+        font-size: 15px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .drc-header .nav-links {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .drc-header .nav-links a {
+        color: rgba(255,255,255,.9);
+        text-decoration: none;
+        padding: 4px 10px;
+        border-radius: 2px;
+    }
+    .drc-header .nav-links a:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .drc-toolbar {
+        background: var(--drc-toolbar);
+        border-bottom: 1px solid var(--drc-border);
+        padding: 6px 12px;
+    }
+    .drc-toolbar-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .drc-toolbar-row + .drc-toolbar-row { margin-top: 6px; }
+    .drc-tab {
+        padding: 5px 14px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .drc-tab.active {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-tab-link {
+        padding: 5px 12px;
+        border: 1px solid transparent;
+        color: var(--drc-muted);
+        text-decoration: none;
+        border-radius: 2px;
+    }
+    .drc-tab-link.active {
+        background: #fff;
+        border-color: var(--drc-border);
+        color: var(--drc-blue);
+        font-weight: 600;
+    }
+    .drc-btn {
+        padding: 5px 14px;
+        border: 1px solid var(--drc-border);
+        background: #fff;
+        color: var(--drc-text);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .drc-btn-primary {
+        background: var(--drc-blue);
+        border-color: var(--drc-blue);
+        color: #fff;
+    }
+    .drc-btn-primary:hover { background: var(--drc-blue-dark); }
+    .page {
+        padding: 12px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .panel {
+        background: #fff;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+    }
+    .panel-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--drc-blue);
+        margin: 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+    .field label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--drc-muted);
+        font-size: 12px;
+    }
+    .field select, .field input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+        font-size: 12px;
+        background: #fff;
+    }
+    .field select:focus, .field input:focus {
+        outline: none;
+        border-color: var(--drc-blue);
+    }
+    .multi-box {
+        border: 1px solid var(--drc-border);
+        border-radius: 2px;
+        background: #fff;
+        max-height: 180px;
+        overflow: auto;
+        padding: 6px 8px;
+        min-height: 80px;
+    }
+    .multi-box label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+        color: var(--drc-text);
+        cursor: pointer;
+        margin: 0;
+    }
+    .multi-box label:hover { background: var(--drc-blue-light); }
+    .multi-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 11px;
+    }
+    .multi-actions button {
+        border: none;
+        background: none;
+        color: var(--drc-blue);
+        cursor: pointer;
+        padding: 0;
+    }
+    .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        align-items: center;
+    }
+    .hint { color: var(--drc-muted); }
+    .result-meta {
+        margin-bottom: 8px;
+        color: var(--drc-muted);
+    }
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+    }
+    table.data-table th, table.data-table td {
+        border: 1px solid var(--drc-border);
+        padding: 6px 8px;
+        text-align: left;
+        white-space: nowrap;
+    }
+    table.data-table th {
+        background: var(--drc-blue-light);
+        color: var(--drc-blue-dark);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+    }
+    table.data-table tr:nth-child(even) { background: #fafbfd; }
+    .table-wrap {
+        overflow: auto;
+        max-height: calc(100vh - 320px);
+        border: 1px solid var(--drc-border);
+    }
+    .empty {
+        padding: 40px;
+        text-align: center;
+        color: var(--drc-muted);
+    }
+    .span-2 { grid-column: span 2; }
+    @media (max-width: 800px) {
+        .span-2 { grid-column: span 1; }
+        .filters { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<header class="drc-header">
+    <div class="logo-title">
+        <iconify-icon icon="mdi:chart-timeline-variant" style="font-size:20px"></iconify-icon>
+        城策智库 · 统计数据管理平台
+    </div>
+    <nav class="nav-links">
+        <a href="/dashboard/">指标录入</a>
+        <a href="/dashboard/order-price/">订单价格</a>
+        <a href="/dashboard/single-indicator-year-query/">单指标历年</a>
+        <a href="/dashboard/single-indicator-city-query/">单指标多城市</a>
+        <a href="/dashboard/many-indicator-query/">多城市多指标</a>
+        <a href="{% url 'landing:home' %}">返回首页</a>
+    </nav>
+</header>
+
+<div class="drc-toolbar">
+    <div class="drc-toolbar-row">
+        <a href="/dashboard/" class="drc-tab-link {% if scope == 'city' %}active{% endif %}">地市录入</a>
+        <a href="/dashboard/area_input" class="drc-tab-link {% if scope == 'area' %}active{% endif %}">区县录入</a>
+        <a href="/dashboard/indicator-check" class="drc-tab-link">指标校验</a>
+        <a href="/dashboard/indicator-coverage" class="drc-tab-link">指标覆盖查询</a>
+    </div>
+    <div class="drc-toolbar-row">
+        <a href="{{ back_input_url }}" class="drc-tab">手工</a>
+        <a href="{{ back_input_url }}" class="drc-tab">excel</a>
+        <a href="{% if scope == 'area' %}/dashboard/special-indicator-query-area/{% else %}/dashboard/special-indicator-query/{% endif %}" class="drc-tab active">特殊指标</a>
+    </div>
+</div>
+
+<div class="page">
+    <div class="panel">
+        <h2 class="panel-title">
+            <iconify-icon icon="mdi:file-search-outline"></iconify-icon>
+            {{ page_title }}
+        </h2>
+        <div class="filters">
+            <div class="field">
+                <label>年份</label>
+                <select id="year-select"><option value="">选择年份</option></select>
+            </div>
+            <div class="field">
+                <label>省份</label>
+                <select id="province-select"><option value="">选择省份</option></select>
+            </div>
+            <div class="field span-2">
+                <label>城市（可多选）</label>
+                <div class="multi-actions">
+                    <button type="button" id="city-select-all">全选</button>
+                    <button type="button" id="city-clear-all">清空</button>
+                </div>
+                <div class="multi-box" id="city-box"><span class="hint">请先选择省份</span></div>
+            </div>
+            {% if scope == 'area' %}
+            <div class="field span-2">
+                <label>区县（可多选，不选则查该市全部区县）</label>
+                <div class="multi-actions">
+                    <button type="button" id="area-select-all">全选</button>
+                    <button type="button" id="area-clear-all">清空</button>
+                </div>
+                <div class="multi-box" id="area-box"><span class="hint">请先选择城市</span></div>
+            </div>
+            {% endif %}
+            <div class="field">
+                <label>一级指标</label>
+                <select id="level1-select"><option value="">全部一级指标</option></select>
+            </div>
+            <div class="field">
+                <label>二级指标</label>
+                <select id="level2-select"><option value="">全部二级指标</option></select>
+            </div>
+            <div class="field span-2">
+                <label>三级指标（可多选，不选则查当前一/二级下全部）</label>
+                <div class="multi-actions">
+                    <button type="button" id="ind-select-all">全选</button>
+                    <button type="button" id="ind-clear-all">清空</button>
+                </div>
+                <div class="multi-box" id="indicator-box"><span class="hint">加载中…</span></div>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="button" class="drc-btn drc-btn-primary" id="query-btn">查询</button>
+            <button type="button" class="drc-btn" id="reset-btn">重置</button>
+            <span class="hint" id="status-hint">选择年份、地区与指标后点击查询</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="result-meta" id="result-meta">尚未查询</div>
+        <div class="table-wrap">
+            <table class="data-table" id="result-table">
+                <thead>
+                    <tr>
+                        <th>年份</th>
+                        <th>城市</th>
+                        {% if scope == 'area' %}<th>区县</th>{% endif %}
+                        <th>指标</th>
+                        <th>数值</th>
+                        <th>单位</th>
+                        <th>数据来源</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody id="result-body">
+                    <tr><td colspan="{% if scope == 'area' %}8{% else %}7{% endif %}" class="empty">暂无数据</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const SCOPE = '{{ scope }}';
+    let tree = {};
+    let provinceCityMap = {};
+
+    function initYears() {
+        const select = document.getElementById('year-select');
+        const currentYear = new Date().getFullYear();
+        for (let i = 0; i <= 20; i++) {
+            const y = currentYear - i;
+            select.add(new Option(y + '年', String(y)));
+        }
+    }
+
+    function checkedValues(boxId) {
+        return Array.from(document.querySelectorAll('#' + boxId + ' input[type=checkbox]:checked'))
+            .map(el => el.value);
+    }
+
+    function setAllChecked(boxId, checked) {
+        document.querySelectorAll('#' + boxId + ' input[type=checkbox]').forEach(el => {
+            el.checked = checked;
+        });
+    }
+
+    function renderCheckList(boxId, items, emptyText) {
+        const box = document.getElementById(boxId);
+        if (!items || !items.length) {
+            box.innerHTML = '<span class="hint">' + (emptyText || '无选项') + '</span>';
+            return;
+        }
+        box.innerHTML = items.map((name, idx) =>
+            '<label><input type="checkbox" value="' + name.replace(/"/g, '&quot;') + '" id="' + boxId + '-' + idx + '"> ' + name + '</label>'
+        ).join('');
+    }
+
+    function fillLevel1() {
+        const sel = document.getElementById('level1-select');
+        sel.innerHTML = '<option value="">全部一级指标</option>';
+        Object.keys(tree).forEach(k => sel.add(new Option(k, k)));
+    }
+
+    function fillLevel2() {
+        const level1 = document.getElementById('level1-select').value;
+        const sel = document.getElementById('level2-select');
+        sel.innerHTML = '<option value="">全部二级指标</option>';
+        let options = [];
+        if (level1) {
+            options = Object.keys(tree[level1] || {});
+        } else {
+            Object.values(tree).forEach(subs => {
+                Object.keys(subs).forEach(k => {
+                    if (!options.includes(k)) options.push(k);
+                });
+            });
+        }
+        options.forEach(k => sel.add(new Option(k, k)));
+        fillLevel3();
+    }
+
+    function fillLevel3() {
+        const level1 = document.getElementById('level1-select').value;
+        const level2 = document.getElementById('level2-select').value;
+        let items = [];
+        if (level1 && level2) {
+            items = (tree[level1] && tree[level1][level2]) || [];
+        } else if (level1) {
+            Object.values(tree[level1] || {}).forEach(arr => { items = items.concat(arr); });
+        } else if (level2) {
+            Object.values(tree).forEach(subs => {
+                if (subs[level2]) items = items.concat(subs[level2]);
+            });
+        } else {
+            Object.values(tree).forEach(subs => {
+                Object.values(subs).forEach(arr => { items = items.concat(arr); });
+            });
+        }
+        renderCheckList('indicator-box', items, '无三级指标');
+    }
+
+    async function loadTree() {
+        const res = await fetch('/dashboard/api/special-indicator-tree/', { credentials: 'same-origin' });
+        const data = await res.json();
+        tree = data.tree || {};
+        fillLevel1();
+        fillLevel2();
+    }
+
+    async function loadProvinces() {
+        const res = await fetch('/dashboard/get-city-map/', { credentials: 'same-origin' });
+        provinceCityMap = await res.json() || {};
+        const sel = document.getElementById('province-select');
+        Object.keys(provinceCityMap).forEach(p => sel.add(new Option(p, p)));
+    }
+
+    function renderCities() {
+        const prov = document.getElementById('province-select').value;
+        const cities = provinceCityMap[prov] || [];
+        renderCheckList('city-box', cities, prov ? '该省无城市' : '请先选择省份');
+        if (SCOPE === 'area') {
+            renderCheckList('area-box', [], '请先选择城市');
+        }
+    }
+
+    async function renderAreas() {
+        if (SCOPE !== 'area') return;
+        const cities = checkedValues('city-box');
+        if (!cities.length) {
+            renderCheckList('area-box', [], '请先选择城市');
+            return;
+        }
+        const allAreas = [];
+        for (const city of cities) {
+            const res = await fetch('/dashboard/get-area-map/?city=' + encodeURIComponent(city), {
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            const areas = Array.isArray(data) ? data : (data.areas || data[city] || []);
+            areas.forEach(a => {
+                const label = cities.length > 1 ? (city + ' / ' + a) : a;
+                if (!allAreas.find(x => x.value === a && x.city === city)) {
+                    allAreas.push({ city, area: a, label });
+                }
+            });
+        }
+        const box = document.getElementById('area-box');
+        if (!allAreas.length) {
+            box.innerHTML = '<span class="hint">无区县数据</span>';
+            return;
+        }
+        box.innerHTML = allAreas.map((item, idx) =>
+            '<label><input type="checkbox" value="' + item.area.replace(/"/g, '&quot;') +
+            '" data-city="' + item.city.replace(/"/g, '&quot;') +
+            '" id="area-box-' + idx + '"> ' + item.label + '</label>'
+        ).join('');
+    }
+
+    function renderRows(rows) {
+        const tbody = document.getElementById('result-body');
+        const colSpan = SCOPE === 'area' ? 8 : 7;
+        if (!rows || !rows.length) {
+            tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="empty">未查到匹配数据</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(r => {
+            let html = '<tr>';
+            html += '<td>' + (r.year || '') + '</td>';
+            html += '<td>' + (r.city || '') + '</td>';
+            if (SCOPE === 'area') html += '<td>' + (r.area || '') + '</td>';
+            html += '<td>' + (r.indicator || '') + '</td>';
+            html += '<td>' + (r.value || '') + '</td>';
+            html += '<td>' + (r.unit || '') + '</td>';
+            html += '<td>' + (r.source || '') + '</td>';
+            html += '<td>' + (r.note || '') + '</td>';
+            html += '</tr>';
+            return html;
+        }).join('');
+    }
+
+    async function doQuery() {
+        const year = document.getElementById('year-select').value;
+        if (!year) {
+            document.getElementById('status-hint').textContent = '请先选择年份';
+            return;
+        }
+        const payload = {
+            scope: SCOPE,
+            year: year,
+            province: document.getElementById('province-select').value,
+            cities: checkedValues('city-box'),
+            level1: document.getElementById('level1-select').value,
+            level2: document.getElementById('level2-select').value,
+            indicators: checkedValues('indicator-box'),
+        };
+        if (SCOPE === 'area') {
+            payload.areas = checkedValues('area-box');
+        }
+        const hint = document.getElementById('status-hint');
+        const meta = document.getElementById('result-meta');
+        hint.textContent = '查询中…';
+        try {
+            const params = new URLSearchParams();
+            params.set('scope', payload.scope);
+            params.set('year', payload.year);
+            if (payload.province) params.set('province', payload.province);
+            if (payload.cities.length) params.set('cities', payload.cities.join(','));
+            if (payload.level1) params.set('level1', payload.level1);
+            if (payload.level2) params.set('level2', payload.level2);
+            if (payload.indicators.length) params.set('indicators', payload.indicators.join(','));
+            if (SCOPE === 'area' && payload.areas && payload.areas.length) {
+                params.set('areas', payload.areas.join(','));
+            }
+            const res = await fetch('/dashboard/api/special-indicator-query/?' + params.toString(), {
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            if (!data.success) {
+                hint.textContent = data.message || '查询失败';
+                return;
+            }
+            renderRows(data.rows || []);
+            meta.textContent = '共 ' + (data.count || 0) + ' 条记录 · 指标 ' + (data.indicators || []).length + ' 项';
+            hint.textContent = '查询完成';
+        } catch (e) {
+            console.error(e);
+            hint.textContent = '查询出错';
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('year-select').selectedIndex = 0;
+        document.getElementById('province-select').selectedIndex = 0;
+        document.getElementById('level1-select').selectedIndex = 0;
+        fillLevel2();
+        renderCities();
+        document.getElementById('result-meta').textContent = '尚未查询';
+        renderRows([]);
+        document.getElementById('status-hint').textContent = '选择年份、地区与指标后点击查询';
+    }
+
+    document.getElementById('level1-select').addEventListener('change', fillLevel2);
+    document.getElementById('level2-select').addEventListener('change', fillLevel3);
+    document.getElementById('province-select').addEventListener('change', renderCities);
+    document.getElementById('city-select-all').addEventListener('click', () => {
+        setAllChecked('city-box', true);
+        if (SCOPE === 'area') renderAreas();
+    });
+    document.getElementById('city-clear-all').addEventListener('click', () => {
+        setAllChecked('city-box', false);
+        if (SCOPE === 'area') renderAreas();
+    });
+    document.getElementById('city-box').addEventListener('change', (e) => {
+        if (SCOPE === 'area' && e.target.matches('input[type=checkbox]')) renderAreas();
+    });
+    if (SCOPE === 'area') {
+        document.getElementById('area-select-all').addEventListener('click', () => setAllChecked('area-box', true));
+        document.getElementById('area-clear-all').addEventListener('click', () => setAllChecked('area-box', false));
+    }
+    document.getElementById('ind-select-all').addEventListener('click', () => setAllChecked('indicator-box', true));
+    document.getElementById('ind-clear-all').addEventListener('click', () => setAllChecked('indicator-box', false));
+    document.getElementById('query-btn').addEventListener('click', doQuery);
+    document.getElementById('reset-btn').addEventListener('click', resetForm);
+
+    initYears();
+    Promise.all([loadTree(), loadProvinces()]).then(() => {
+        document.getElementById('status-hint').textContent = '选择年份、地区与指标后点击查询';
+    });
+})();
+</script>
+</body>
+</html>

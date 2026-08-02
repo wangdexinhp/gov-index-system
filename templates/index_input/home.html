@@ -1,7 +1,7 @@
 <!-- index_input/templates/index_input/home.html -->
 {% extends "base.html" %}
 
-{% block title %}城策智库 | 指标数据录入系统{% endblock %}
+{% block title %}城策智库 | 指标数据管理系统{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
@@ -9,10 +9,10 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="text-4xl lg:text-5xl font-medium tracking-tight text-black mb-6">
-                <span class="block">指标数据录入系统</span>
+                <span class="block">指标数据管理系统</span>
             </h1>
             <p class="text-xl text-gray max-w-3xl mx-auto mb-10">
-                高效、准确、便捷的城市指标数据录入平台，支持手工录入和批量导入
+                高效、准确、便捷的城市指标数据管理平台，支持手工录入和批量导入
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{% url 'index_input:manual_input' %}"
@@ -34,10 +34,10 @@
         <div class="lg:text-center">
             <h2 class="text-sm font-medium uppercase tracking-wider text-black">核心功能</h2>
             <p class="mt-4 text-3xl font-medium tracking-tight text-black">
-                专业的数据录入解决方案
+                专业的数据管理解决方案
             </p>
             <p class="mt-6 max-w-2xl text-xl text-gray lg:mx-auto">
-                提供两种数据录入方式，满足不同场景需求
+                提供两种数据管理方式，满足不同场景需求
             </p>
         </div>
 
@@ -54,7 +54,7 @@
                         <div class="mt-4">
                             <h3 class="text-lg font-medium text-black">手工录入</h3>
                             <p class="mt-4 text-base text-gray">
-                                支持单个或多个城市的指标数据录入。每项指标包含指标值、备注输入框，并显示上一年数据作为参考。提供提交和重置功能。
+                                支持单个或多个城市的指标数据管理。每项指标包含指标值、备注输入框，并显示上一年数据作为参考。提供提交和重置功能。
                             </p>
                             <ul class="mt-6 space-y-2">
                                 <li class="flex items-center">
@@ -143,7 +143,7 @@
             <div class="text-center">
                 <div class="text-4xl font-medium text-black mb-2">2</div>
                 <div class="text-gray">种录入方式</div>
-                <p class="mt-2 text-sm text-gray">满足不同场景的数据录入需求</p>
+                <p class="mt-2 text-sm text-gray">满足不同场景的数据管理需求</p>
             </div>
             <div class="text-center">
                 <div class="text-4xl font-medium text-black mb-2">100%</div>
@@ -228,7 +228,7 @@
 <script>
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('数据录入系统首页加载完成');
+    console.log('数据管理系统首页加载完成');
 });
 </script>
 {% endblock %}
