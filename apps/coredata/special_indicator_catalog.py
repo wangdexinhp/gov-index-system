@@ -21,6 +21,10 @@ from apps.coredata.management.commands.indicator_zh_en import (
 )
 from apps.coredata.models.indicator import Indicator, IndicatorArea
 from apps.coredata.management.commands.import_china_regions import CHINA_REGIONS
+from apps.coredata.utils.mapper import (
+    get_city_code_by_name,
+    get_province_code_by_name,
+)
 
 _TREE_PATH = Path(__file__).with_name('special_indicator_tree.json')
 
@@ -113,15 +117,6 @@ def resolve_indicator_keys(name_zh: str, scope: str = 'city') -> Tuple[List[str]
     return list(zh_names), en_names
 
 
-def _city_name_to_code() -> Dict[str, int]:
-    mapping = {}
-    for prov in CHINA_REGIONS:
-        for city in prov.get('cities', []):
-            mapping[city['name']] = int(city['code'])
-            mapping[city['name'].replace('市', '')] = int(city['code'])
-    return mapping
-
-
 def _city_code_to_name() -> Dict[int, str]:
     mapping = {}
     for prov in CHINA_REGIONS:
@@ -130,8 +125,15 @@ def _city_code_to_name() -> Dict[int, str]:
     return mapping
 
 
-def _province_name_to_code() -> Dict[str, int]:
-    return {prov['name']: int(prov['code']) for prov in CHINA_REGIONS}
+def _province_city_ids(province: str) -> List[int]:
+    code = get_province_code_by_name(province)
+    if not code:
+        return []
+    code_str = str(code)
+    for prov in CHINA_REGIONS:
+        if str(prov.get('province_code')) == code_str:
+            return [int(c['code']) for c in prov.get('cities', [])]
+    return []
 
 
 def query_special_indicators(
@@ -155,22 +157,16 @@ def query_special_indicators(
     if not selected:
         return {'success': True, 'rows': [], 'indicators': [], 'message': '未选择指标'}
 
-    city_map = _city_name_to_code()
     city_ids = []
     for name in cities or []:
-        code = city_map.get(name) or city_map.get(name.replace('市', ''))
+        code = get_city_code_by_name(name)
         if code:
-            city_ids.append(code)
+            city_ids.append(int(code))
 
     if province and not city_ids:
-        prov_code = _province_name_to_code().get(province)
-        if prov_code:
-            for prov in CHINA_REGIONS:
-                if int(prov['code']) == prov_code:
-                    city_ids = [int(c['code']) for c in prov.get('cities', [])]
-                    break
+        city_ids = _province_city_ids(province)
 
-    # 每个特殊指标 → 查询条件
+    # 每个关键指标 → 查询条件
     query_q = Q()
     display_to_keys = {}
     for zh in selected:
@@ -200,10 +196,10 @@ def query_special_indicators(
         qs = Indicator.objects.filter(**filters).filter(query_q)
         if city_ids:
             qs = qs.filter(city_id__in=city_ids)
-        if province:
-            prov_code = _province_name_to_code().get(province)
+        elif province:
+            prov_code = get_province_code_by_name(province)
             if prov_code:
-                qs = qs.filter(province_id=prov_code)
+                qs = qs.filter(province_id=int(prov_code))
         qs = qs.order_by('year', 'city_id', 'name_zh')
 
     def match_display_name(ind) -> str:
