@@ -39,7 +39,7 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-white font-sans text-black">
+<body class="bg-white font-sans text-black min-h-screen flex flex-col">
     <!-- Navigation -->
     <nav class="border-b border-light-gray sticky top-0 z-50 bg-white" x-data="{ isOpen: false }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -176,69 +176,12 @@
     {% endif %}
 
     <!-- Main content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-light-gray mt-16">
-        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="col-span-1">
-                    <div class="flex items-center">
-                        <span class="text-xl font-medium uppercase tracking-wide">NAME</span>
-                    </div>
-                    <p class="mt-4 text-gray text-sm">
-                        A brief description of your application or website. Keep it simple and direct.
-                    </p>
-                    <div class="mt-6 flex space-x-6">
-                        <a href="#" class="text-gray hover:text-black">
-                            <i class="fa-brands fa-twitter"></i>
-                        </a>
-                        <a href="#" class="text-gray hover:text-black">
-                            <i class="fa-brands fa-github"></i>
-                        </a>
-                        <a href="#" class="text-gray hover:text-black">
-                            <i class="fa-brands fa-linkedin"></i>
-                        </a>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-sm font-medium uppercase tracking-wider">Links</h3>
-                    <ul class="mt-4 space-y-4">
-                        <li>
-                            <a href="#" class="text-base text-gray hover:text-black">
-                                <i class="fa-solid fa-chevron-right text-xs mr-2"></i>Features
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-base text-gray hover:text-black">
-                                <i class="fa-solid fa-chevron-right text-xs mr-2"></i>Pricing
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="text-sm font-medium uppercase tracking-wider">Legal</h3>
-                    <ul class="mt-4 space-y-4">
-                        <li>
-                            <a href="#" class="text-base text-gray hover:text-black">
-                                <i class="fa-solid fa-chevron-right text-xs mr-2"></i>Terms
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-base text-gray hover:text-black">
-                                <i class="fa-solid fa-chevron-right text-xs mr-2"></i>Privacy
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 border-t border-light-gray pt-8">
-                <p class="text-base text-gray">&copy; 2024 {{ site_name|default:'Your Company' }}. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    {% include "includes/site_beian_footer.html" %}
 
     {% block extra_js %}{% endblock %}
 </body>
