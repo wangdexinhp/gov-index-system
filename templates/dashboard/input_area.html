@@ -171,25 +171,58 @@
     /* 工作区 */
     .drc-workspace {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         height: calc(100vh - 120px);
         min-height: 500px;
     }
-    .drc-filter-bar-top {
-        padding: 8px 12px;
+    .drc-sidebar {
+        width: 200px;
+        flex-shrink: 0;
         background: #fafbfc;
-        border-bottom: 1px solid var(--drc-border);
+        border-right: 1px solid var(--drc-border);
+        padding: 12px 10px;
         display: flex;
-        align-items: center;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 10px;
+        overflow-y: auto;
     }
-    .drc-filter-bar-top .drc-field select {
-        border: 1px solid var(--drc-border);
-        padding: 4px 8px;
+    .drc-sidebar-title {
         font-size: 12px;
-        border-radius: 2px;
-        min-width: 110px;
+        font-weight: 600;
+        color: var(--drc-blue-dark);
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--drc-border);
+        margin-bottom: 2px;
+    }
+    .drc-sidebar .drc-field {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .drc-sidebar .drc-field label {
+        color: var(--drc-muted);
+        font-size: 12px;
+    }
+    .drc-sidebar .drc-field select {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 5px 8px;
+    }
+    .drc-sidebar .drc-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 6px 10px;
+        box-sizing: border-box;
+    }
+    .drc-sidebar .drc-filter-summary {
+        margin-left: 0;
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px solid var(--drc-border);
+        line-height: 1.7;
+        font-size: 11px;
     }
     .drc-modal-pane-body .drc-tree {
         border: none;
@@ -569,21 +602,21 @@
 </div>
 
 <div class="drc-workspace">
-    <div class="drc-main">
-        <div class="drc-filter-bar-top">
-            <div class="drc-field">
-                <label>年份</label>
-                <select id="year-select"><option>选择年份</option></select>
-            </div>
-            <button type="button" class="drc-btn" id="open-region-modal-btn">
-                <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
-            </button>
-            <button type="button" class="drc-btn" id="open-indicator-modal-btn">
-                <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
-            </button>
-            <span class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</span>
+    <aside class="drc-sidebar">
+        <div class="drc-sidebar-title">筛选条件</div>
+        <div class="drc-field">
+            <label for="year-select">年份</label>
+            <select id="year-select"><option>选择年份</option></select>
         </div>
-
+        <button type="button" class="drc-btn" id="open-region-modal-btn">
+            <iconify-icon icon="mdi:map-marker-multiple"></iconify-icon> 地区筛选
+        </button>
+        <button type="button" class="drc-btn" id="open-indicator-modal-btn">
+            <iconify-icon icon="mdi:filter-variant"></iconify-icon> 指标筛选
+        </button>
+        <div class="drc-filter-summary" id="filter-summary">请先选择年份、地区和指标</div>
+    </aside>
+    <div class="drc-main">
         <form id="manual-form" method="post" action="/dashboard/submit-area/" style="display:flex;flex-direction:column;flex:1;min-height:0">
             {% csrf_token %}
             <div id="manual-section" class="drc-table-area">
