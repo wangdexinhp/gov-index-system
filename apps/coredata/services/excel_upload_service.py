@@ -199,6 +199,64 @@ def _row_has_data(ws, row_idx: int, max_col: int) -> bool:
     return False
 
 
+_AREA_CITY_HEADER_KEYS = ("城市名称", "城市", "地市")
+_AREA_DISTRICT_HEADER_KEYS = (
+    "所辖区县名称", "所辖区域名称", "区县", "区县名称", "区县名", "区域名称",
+)
+
+
+def _header_row_texts(ws, max_cols: int = 30) -> List[str]:
+    texts = []
+    for col_idx in range(1, min((ws.max_column or 0), max_cols) + 1):
+        texts.append(_cell_text(ws.cell(row=1, column=col_idx).value))
+    return texts
+
+
+def _sheet_area_header_score(ws) -> int:
+    """工作表是否像区县录入表：同时含城市列与区县列得分更高。"""
+    headers = _header_row_texts(ws)
+    if not headers:
+        return -1
+    has_city = any(h in _AREA_CITY_HEADER_KEYS or ("城市" in h) for h in headers if h)
+    has_area = any(
+        h in _AREA_DISTRICT_HEADER_KEYS or ("区县" in h) or ("区域" in h and "名称" in h)
+        for h in headers if h
+    )
+    if has_city and has_area:
+        return 10 + min(ws.max_column or 0, 50)
+    if has_area:
+        return 3
+    if has_city:
+        return 1
+    return 0
+
+
+def _pick_area_worksheet(wb):
+    """优先选择含「城市名称 + 所辖区域名称」的工作表（如「区域表格汇总表」）。"""
+    preferred = ("区域表格汇总表", "区县表", "区县数据", "区域汇总")
+    for name in preferred:
+        if name in wb.sheetnames:
+            ws = wb[name]
+            if _sheet_area_header_score(ws) >= 10:
+                return ws
+
+    best = None
+    best_score = -1
+    for name in wb.sheetnames:
+        ws = wb[name]
+        score = _sheet_area_header_score(ws)
+        # 名称含区域/区县时略加分
+        if any(k in name for k in ("区域", "区县", "汇总")):
+            score += 2
+        if score > best_score:
+            best_score = score
+            best = ws
+
+    if best is not None and best_score > 0:
+        return best
+    return wb["Sheet1"] if "Sheet1" in wb.sheetnames else wb.active
+
+
 def parse_city_indicator_excel(file_obj) -> List[Dict[str, Any]]:
     """
     地市指标录入表：第 1-2 行为表头，第 4 行起为数据（与现有 upload_excel 一致）。
@@ -229,15 +287,19 @@ def parse_city_indicator_excel(file_obj) -> List[Dict[str, Any]]:
 
 
 def parse_area_indicator_excel(file_obj) -> List[Dict[str, Any]]:
-    """区县指标录入表：自动识别表头行数，数据行带底色来源。"""
+    """区县指标录入表：自动选择数据工作表，识别表头行数，数据行带底色来源。"""
     content = file_obj.read()
     wb = load_workbook(filename=BytesIO(content), data_only=True)
-    ws = wb["Sheet1"] if "Sheet1" in wb.sheetnames else wb.active
+    ws = _pick_area_worksheet(wb)
 
     headers, header_rows = _build_flexible_headers(ws)
     data_start_row = header_rows + 1
     max_col = len(headers)
     rows: List[Dict[str, Any]] = []
+
+    meta_cols = set(_AREA_CITY_HEADER_KEYS + _AREA_DISTRICT_HEADER_KEYS + (
+        "area", "省份名称", "A",
+    ))
 
     for row_idx in range(data_start_row, (ws.max_row or 0) + 1):
         if not _row_has_data(ws, row_idx, max_col):
@@ -245,10 +307,7 @@ def parse_area_indicator_excel(file_obj) -> List[Dict[str, Any]]:
         row_data: Dict[str, Any] = {}
         for col_idx, col_name in enumerate(headers, start=1):
             cell = ws.cell(row=row_idx, column=col_idx)
-            skip_meta = col_name in (
-                "城市", "城市名称", "地市", "area", "所辖区县名称",
-                "所辖区域名称", "区县", "区县名称", "区县名", "区域名称", "A",
-            ) or col_name.startswith("Column_")
+            skip_meta = col_name in meta_cols or col_name.startswith("Column_")
             if skip_meta:
                 row_data[col_name] = cell.value
             else:
