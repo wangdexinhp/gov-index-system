@@ -308,15 +308,11 @@
 
 <div class="drc-toolbar">
     <div class="drc-toolbar-row">
-        <a href="/dashboard/" class="drc-tab-link {% if scope == 'city' %}active{% endif %}">地市录入</a>
-        <a href="/dashboard/area_input" class="drc-tab-link {% if scope == 'area' %}active{% endif %}">区县录入</a>
+        <a href="/dashboard/" class="drc-tab-link">地市录入</a>
+        <a href="/dashboard/area_input" class="drc-tab-link">区县录入</a>
         <a href="/dashboard/indicator-check" class="drc-tab-link">指标校验</a>
         <a href="/dashboard/indicator-coverage" class="drc-tab-link">指标覆盖查询</a>
-    </div>
-    <div class="drc-toolbar-row">
-        <a href="{{ back_input_url }}" class="drc-tab">手工</a>
-        <a href="{{ back_input_url }}" class="drc-tab">excel</a>
-        <a href="{% if scope == 'area' %}/dashboard/special-indicator-query-area/{% else %}/dashboard/special-indicator-query/{% endif %}" class="drc-tab active">关键指标查询</a>
+        <a href="{% if scope == 'area' %}/dashboard/special-indicator-query-area/{% else %}/dashboard/special-indicator-query/{% endif %}" class="drc-tab-link active">关键指标查询</a>
     </div>
 </div>
 
