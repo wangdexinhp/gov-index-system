@@ -168,7 +168,7 @@ def indicator_check(request):
 
 @login_required
 @require_http_methods(['GET'])
-def indicator_check_2(request):
+def indicator_coverage(request):
     return render(request, 'dashboard/indic_data_check_cover.html', _form_source_page_context())
 
 

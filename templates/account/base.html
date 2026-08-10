@@ -100,7 +100,10 @@
     }
   </style>
 </head>
-<body>
+<body style="min-height:100vh;display:flex;flex-direction:column;">
+  <div style="flex:1;">
   {% block content %}{% endblock %}
+  </div>
+  {% include "includes/site_beian_footer.html" %}
 </body>
 </html>
