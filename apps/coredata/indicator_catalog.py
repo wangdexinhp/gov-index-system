@@ -11,6 +11,7 @@ from apps.coredata.management.commands.indicator_zh_en import (
     INDIMAP,
     INDIMAP_UNIT,
 )
+from apps.coredata.calc_indicators import CALC_INDICATORS, get_calc_name_zh_set
 
 
 class IndicatorGroup(TypedDict):
@@ -296,7 +297,29 @@ INDICATOR_CATALOG_GROUPS: List[IndicatorGroup] = [
             "医疗机构病床数",
         ],
     },
+    {
+        "code": "calculated",
+        "name": "计算指标数据",
+        "indicators": [],  # 运行时由 calc_indicators 填充
+    },
 ]
+
+
+def _fill_calculated_catalog_group() -> None:
+    """将计算指标中文名填入「计算指标数据」分组，供查询页勾选。"""
+    calc_names = sorted(get_calc_name_zh_set())
+    for group in INDICATOR_CATALOG_GROUPS:
+        if group["code"] == "calculated":
+            group["indicators"] = calc_names
+            break
+
+
+def _auto_calc_name_zh_set() -> set:
+    """有公式、录入后自动计算的指标（录入表单不展示）。"""
+    return {item["name_zh"] for item in CALC_INDICATORS if item.get("expr")}
+
+
+_fill_calculated_catalog_group()
 
 # 区县录入/查询用指标子集
 AREA_INDICATOR_CATALOG_GROUPS: List[IndicatorGroup] = [
@@ -381,14 +404,17 @@ def get_area_indicator_catalog_dict() -> Dict[str, List[str]]:
 
 
 def get_form_indicator_categories(scope: str = "city") -> Dict[str, List[str]]:
-    """{分组 code: [#指标名(单位), ...]}，供录入页弹窗使用（不含备注项）。"""
+    """{分组 code: [#指标名(单位), ...]}，供录入页弹窗使用（不含备注项、不含自动计算指标）。"""
     groups = INDICATOR_CATALOG_GROUPS if scope == "city" else AREA_INDICATOR_CATALOG_GROUPS
+    auto_calc_zh = _auto_calc_name_zh_set() if scope == "city" else set()
     result: Dict[str, List[str]] = {}
     for group in groups:
+        if group["code"] == "calculated":
+            continue
         result[group["code"]] = [
             build_form_label(name, scope)
             for name in group["indicators"]
-            if not _is_remark_name(name)
+            if not _is_remark_name(name) and name not in auto_calc_zh
         ]
     return result
 
