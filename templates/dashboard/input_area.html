@@ -1655,7 +1655,16 @@
         
         const excelForm=document.getElementById('excel-upload-form');
         if(excelForm) excelForm.addEventListener('submit',function(e){ 
-            e.preventDefault(); 
+            e.preventDefault();
+            const yearSel = document.getElementById('year-select');
+            const excelYear = document.getElementById('excel-upload-year');
+            if (yearSel && excelYear) {
+                excelYear.value = String(yearSel.value || '').replace(/[^\d]/g, '');
+            }
+            if (!excelYear || !excelYear.value) {
+                showAutoCloseMessage('请先在左侧选择年份后再上传', 'error');
+                return;
+            }
             const fd=new FormData(excelForm); 
             const btn=excelForm.querySelector('button[type="submit"]'); 
             const orig=btn?.textContent; 

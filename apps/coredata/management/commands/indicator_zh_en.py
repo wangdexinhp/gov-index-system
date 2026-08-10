@@ -192,7 +192,7 @@ INDIMAP = {
     "年末个体工商户数量": "individual_company_year_end",
     "年末内资企业数": "domestic_company_year_end",
     "年末外资企业数": "foreign_company_year_end",
-    "年末私营企业数": "farmer_cooperative_num_year_end",
+    "年末私营企业数": "private_company_year_end",
     "技术合同成交额（交易额）": "value_tech_contract",
     "技术合同成交额（交易额）增长率": "incre_rate_tech_contract",
     "有效发明专利量（发明专利有效量）": "patent_num",
@@ -414,3 +414,29 @@ AREA_INDIMAP_UNIT = {
     "city_avg_income": {"unit": "元", "name_zh": "城镇居民人均可支配收入"},
     "country_avg_income": {"unit": "元", "name_zh": "农村居民人均可支配收入"},
 }
+
+# 合并计算型指标（去备注）到地市映射，供查询可选与自动计算入库
+def _merge_calc_indicator_maps() -> None:
+    try:
+        from apps.coredata.calc_indicators import (
+            get_calc_indimap_entries,
+            get_calc_indimap_unit_entries,
+        )
+    except Exception:
+        return
+    for zh, en in get_calc_indimap_entries().items():
+        INDIMAP.setdefault(zh, en)
+    for en, meta in get_calc_indimap_unit_entries().items():
+        INDIMAP_UNIT.setdefault(en, dict(meta))
+    # 录入依赖补充
+    INDIMAP.setdefault("受理信访举报案件数", "complaint_case_num")
+    INDIMAP.setdefault("年末私营企业数", "private_company_year_end")
+    INDIMAP_UNIT.setdefault(
+        "complaint_case_num", {"unit": "件", "name_zh": "受理信访举报案件数"}
+    )
+    INDIMAP_UNIT.setdefault(
+        "private_company_year_end", {"unit": "户（个）", "name_zh": "年末私营企业数"}
+    )
+
+
+_merge_calc_indicator_maps()
