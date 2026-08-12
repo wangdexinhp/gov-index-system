@@ -322,7 +322,7 @@ CALC_INDICATORS: list[CalcIndicator] = [
         "expr": "green_area / long_term_pop",
     },
     {
-        "name_en": "country_income_incre_rate_in_city_income_incre_rate",
+        "name_en": "rural_urban_income_incre_rate_ratio",
         "name_zh": "农村家庭居民人均纯收入增长率与城镇家庭居民人均可支配性收入增长率之比",
         "unit": "比值",
         "deps": ["incre_rate_country_avg_income", "incre_rate_city_avg_income"],

@@ -1672,8 +1672,12 @@
             fetch(excelForm.action,{method:'POST',body:fd})
                 .then(res=>res.json())
                 .then(data=>{ 
-                    showAutoCloseMessage(data.success?'✅ Excel上传成功！':'❌ 上传失败：'+ (data.message||'未知错误'), data.success?'success':'error'); 
-                    if(data.success) renderTableRows();
+                    showAutoCloseMessage(
+                        data.success
+                            ? ('✅ ' + (data.message || '文件已接收，正在后台导入，请稍后刷新查看'))
+                            : ('❌ 上传失败：'+ (data.message||'未知错误')),
+                        data.success?'success':'error'
+                    ); 
                     if(btn){ btn.textContent=orig; btn.disabled=false; } 
                 })
                 .catch(()=>{ 

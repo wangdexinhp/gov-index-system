@@ -1666,8 +1666,7 @@ function setupFormSubmit() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('✅ Excel上传成功！');
-                        renderTableRows();
+                        alert('✅ ' + (data.message || '文件已接收，正在后台导入，请稍后刷新查看'));
                     } else {
                         alert('❌ 上传失败：' + (data.message || '未知错误'));
                     }
