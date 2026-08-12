@@ -26,12 +26,14 @@ from apps.coredata.services.excel_upload_service import (
     has_excel_cell_value,
     match_area_indicator_name,
     match_city_indicator_name,
-    parse_area_indicator_excel,
-    parse_city_indicator_excel,
     resolve_area_excel_indicator,
     resolve_city_excel_indicator,
 )
 from apps.coredata.services.input_form_service import strip_unit_suffix
+from apps.coredata.services.excel_import_job import (
+    save_upload_to_disk,
+    schedule_excel_import,
+)
 from apps.coredata.services.formula_engine import (
     recompute_for_city_years,
     schedule_recompute_for_city_years,
@@ -539,7 +541,7 @@ def save_to_database(rows_data):
                 },
             )
     if recompute_pairs:
-        recompute_for_city_years(recompute_pairs)
+        schedule_recompute_for_city_years(recompute_pairs)
 
 def save_area_to_database(rows_data):
     """
@@ -878,7 +880,7 @@ def get_city_name_by_code(city_code):
 @login_required
 @require_http_methods(['POST'])
 def upload_excel(request):
-    """处理Excel文件上传，按单元格底色识别数据来源。"""
+    """接收 Excel 后立即返回，解析/写库/计算指标在后台执行。"""
     year_raw = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -896,16 +898,13 @@ def upload_excel(request):
         }, status=400)
 
     try:
-        rows_data = parse_city_indicator_excel(excel_file)
-        if not rows_data:
-            return JsonResponse({
-                'success': False,
-                'message': 'Excel 无有效数据行'
-            }, status=400)
-        save_df_to_database(rows_data=rows_data, year=year)
+        file_path = save_upload_to_disk(excel_file, getattr(excel_file, 'name', ''))
+        job_id = schedule_excel_import(kind='city', file_path=file_path, year=year)
         return JsonResponse({
             'success': True,
-            'message': '成功处理Excel文件（已按底色识别来源）；计算指标已在后台自动计算'
+            'async': True,
+            'job_id': job_id,
+            'message': '文件已接收，正在后台导入并计算，请稍后刷新查看数据',
         })
     except Exception as e:
         print(f"处理Excel文件时出错: {str(e)}")
@@ -918,7 +917,7 @@ def upload_excel(request):
 @login_required
 @require_http_methods(['POST'])
 def upload_excel_area(request):
-    """区县处理Excel文件上传，按单元格底色识别数据来源。"""
+    """接收区县 Excel 后立即返回，解析/写库在后台执行。"""
     year_raw = request.POST.get('year')
     excel_file = request.FILES.get('excel_file')
     if not excel_file:
@@ -936,59 +935,13 @@ def upload_excel_area(request):
         }, status=400)
 
     try:
-        rows_data = parse_area_indicator_excel(excel_file)
-        if not rows_data:
-            return JsonResponse({
-                'success': False,
-                'message': 'Excel 无有效数据行'
-            }, status=400)
-
-        city_col = next((c for c in rows_data[0] if c in ['城市', '城市名称', '地市']), None)
-        if not city_col:
-            city_col = next((c for c in rows_data[0] if '城市' in str(c)), None)
-
-        area_col = next((c for c in rows_data[0] if c in [
-            '所辖区县名称', '所辖区域名称', '区县', '区县名称', '区县名', '区域名称'
-        ]), None)
-        if not area_col:
-            area_col = next((c for c in rows_data[0] if ('区县' in str(c) or '区域' in str(c))), None)
-
-        if not city_col or not area_col:
-            return JsonResponse({
-                'success': False,
-                'message': 'Excel缺少“城市/城市名称”或“所辖区域名称/所辖区县名称/区县”列'
-            }, status=400)
-
-        normalized_rows = []
-        last_city = ''
-        for row in rows_data:
-            city_val, _, _ = extract_cell_fields(row.get(city_col))
-            city_name = str(city_val).strip() if city_val is not None else ''
-            if city_name:
-                last_city = city_name
-            else:
-                city_name = last_city
-
-            area_val, _, _ = extract_cell_fields(row.get(area_col))
-            area_name = str(area_val).strip() if area_val is not None else ''
-            if not city_name or not area_name or city_name in ('nan', 'None') or area_name in ('nan', 'None'):
-                continue
-
-            normalized = dict(row)
-            normalized['城市'] = city_name
-            normalized['area'] = area_name
-            normalized_rows.append(normalized)
-
-        if not normalized_rows:
-            return JsonResponse({
-                'success': False,
-                'message': 'Excel 无有效城市/区县数据行'
-            }, status=400)
-
-        save_area_df_to_database(rows_data=normalized_rows, year=year)
+        file_path = save_upload_to_disk(excel_file, getattr(excel_file, 'name', ''))
+        job_id = schedule_excel_import(kind='area', file_path=file_path, year=year)
         return JsonResponse({
             'success': True,
-            'message': '成功处理Excel文件（已按底色识别来源）'
+            'async': True,
+            'job_id': job_id,
+            'message': '文件已接收，正在后台导入，请稍后刷新查看数据',
         })
     except Exception as e:
         print(f"处理区县Excel文件时出错: {str(e)}")
@@ -999,8 +952,9 @@ def upload_excel_area(request):
 
 
 
+
 # === 数据保存函数 ===
-def save_df_to_database(rows_data, year):
+def save_df_to_database(rows_data, year, *, background_calc=True):
     print(f"=== 准备保存的数据 ===\n{rows_data[:2]}")  # 打印前两行数据预览
     year = int(year)
     recompute_pairs = []
@@ -1068,8 +1022,12 @@ def save_df_to_database(rows_data, year):
                 continue
 
     if recompute_pairs:
-        n = schedule_recompute_for_city_years(recompute_pairs)
-        print(f"已后台调度自动计算，涉及 {n} 个城市×年份")
+        if background_calc:
+            n = schedule_recompute_for_city_years(recompute_pairs)
+            print(f"已后台调度自动计算，涉及 {n} 个城市×年份")
+        else:
+            n = recompute_for_city_years(recompute_pairs)
+            print(f"自动计算指标完成，写入 {n} 条")
 
 # === 数据保存函数 ===
 def save_area_df_to_database(rows_data, year):
