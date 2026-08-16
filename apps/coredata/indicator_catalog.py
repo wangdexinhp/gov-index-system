@@ -2,6 +2,7 @@
 指标分组目录（查询/录入/校验页共用）
 
 与 INDIMAP / AREA_INDIMAP 中文名对齐；分组名称与录入页左侧树一致。
+计算型指标分散到所用基础指标对应的业务分类，不再单独成组。
 """
 from typing import Dict, List, TypedDict
 
@@ -11,7 +12,7 @@ from apps.coredata.management.commands.indicator_zh_en import (
     INDIMAP,
     INDIMAP_UNIT,
 )
-from apps.coredata.calc_indicators import CALC_INDICATORS, get_calc_name_zh_set
+from apps.coredata.calc_indicators import CALC_INDICATORS
 
 
 class IndicatorGroup(TypedDict):
@@ -297,21 +298,84 @@ INDICATOR_CATALOG_GROUPS: List[IndicatorGroup] = [
             "医疗机构病床数",
         ],
     },
-    {
-        "code": "calculated",
-        "name": "计算指标数据",
-        "indicators": [],  # 运行时由 calc_indicators 填充
-    },
 ]
 
 
-def _fill_calculated_catalog_group() -> None:
-    """将计算指标中文名填入「计算指标数据」分组，供查询页勾选。"""
-    calc_names = sorted(get_calc_name_zh_set())
-    for group in INDICATOR_CATALOG_GROUPS:
-        if group["code"] == "calculated":
-            group["indicators"] = calc_names
-            break
+# 计算指标 → 业务分组 code（按所用基础指标所属分类；并列时按已定口径）
+CALC_INDICATOR_TO_GROUP: Dict[str, str] = {
+    "人均财政收入": "finance",
+    "人均固定资产投资": "economic_growth",
+    "人均消费品零售总额": "economic_growth",
+    "十万人拥有企业数": "economy_structure",
+    "高新技术企业经济贡献率": "economy_structure",
+    "全社会劳动生产率": "economic_growth",
+    "恩格尔系数": "economic_performance",
+    "取缔无照经营个数/登记企业个数（无照经营取缔查处率）": "administrative_integrity",
+    "每万人年末实有社会组织登记数量": "social_security",
+    "万人刑事案件发案件数": "public_safety",
+    "万人刑事案件破案件数": "public_safety",
+    "十万人调处各类矛盾纠纷件数": "public_safety",
+    "每万人受理各类法律援助案件的数量": "public_safety",
+    "每万人接待群众来信来访人次": "public_safety",
+    "社会保障和就业支出占地方财政一般预算支出的比重": "finance",
+    "城镇社会保险覆盖率": "social_security",
+    "城镇最低生活保障覆盖率": "social_security",
+    "城镇新增就业人数占比（城镇新增就业人数/城镇就业人数）": "employment",
+    "农村自来水覆盖率（农村安全饮水覆盖率）": "infrastructure",
+    "有线电视入户率": "infrastructure",
+    "每百人互联网用户数": "infrastructure",
+    "每万人拥有公共（电）汽车数量": "infrastructure",
+    "教育支出占地方财政一般预算支出比重": "finance",
+    "普通中学小学在校学生每万人拥有的专任教师数": "education_tech",
+    "R&D经费与GDP之比": "education_tech",
+    "万人卫生机构卫生技术人员数量": "healthcare",
+    "万人卫生机构卫生技术人员增长率": "healthcare",
+    "万人医疗机构病床数": "healthcare",
+    "万人医疗机构病床增长率": "healthcare",
+    "十万人专利授权量": "education_tech",
+    "文化体育传媒经费占地方财政一般预算支出比重": "finance",
+    "十万人拥有文化场馆数量": "culture_sports",
+    "十万人拥有艺术表演团体数量": "culture_sports",
+    "十万人拥有体育场馆": "culture_sports",
+    "环保资金支出占地方财政一般预算支出的比重": "finance",
+    "万元GDP二氧化硫排放量": "ecology",
+    "万元GDP二氧化硫排放量降低率": "ecology",
+    "人均园林绿地面积": "ecology",
+    "农村家庭居民人均纯收入增长率与城镇家庭居民人均可支配性收入增长率之比": "economic_performance",
+    "农村家庭居民人均纯收入绝对值与城镇家庭居民人均可支配收入绝对值之比": "economic_performance",
+    "农村家庭人均生活消费支出与城镇家庭人均消费支出之比": "economic_performance",
+    "区域间人均GDP极值差距指数": "economic_growth",
+    "区域间人均一般预算收入极值差距指数": "finance",
+    "区域间城乡收入极值差距指数": "economic_performance",
+    "公务员对GDP的人均贡献率": "economic_growth",
+    "单位公务员服务的人口数": "employment",
+    "单位财政支出对GDP的贡献率": "economic_growth",
+    "十万人信访举报率": "administrative_integrity",
+    "国家公务员职务犯罪率": "administrative_integrity",
+    "行政管理支出占财政支出的比重": "finance",
+    "行政管理支出相对于GDP的弹性系数": "finance",
+    "行政管理支出相对于财政支出的弹性系数": "finance",
+    "机关单位就业人员占全体就业人员的比重": "employment",
+    "主动公开政府信息增长率": "government_affairs_openness",
+    "依申请公开政府信息增长率": "government_affairs_openness",
+}
+
+
+def _distribute_calc_indicators() -> None:
+    """将计算指标并入对应业务分组（已存在则跳过，避免重复）。"""
+    by_code = {group["code"]: group for group in INDICATOR_CATALOG_GROUPS}
+    missing = []
+    for item in CALC_INDICATORS:
+        name_zh = item["name_zh"]
+        code = CALC_INDICATOR_TO_GROUP.get(name_zh)
+        if not code or code not in by_code:
+            missing.append(name_zh)
+            continue
+        indicators = by_code[code]["indicators"]
+        if name_zh not in indicators:
+            indicators.append(name_zh)
+    if missing:
+        raise RuntimeError(f"计算指标未配置业务分组: {missing}")
 
 
 def _auto_calc_name_zh_set() -> set:
@@ -319,7 +383,7 @@ def _auto_calc_name_zh_set() -> set:
     return {item["name_zh"] for item in CALC_INDICATORS if item.get("expr")}
 
 
-_fill_calculated_catalog_group()
+_distribute_calc_indicators()
 
 # 区县录入/查询用指标子集
 AREA_INDICATOR_CATALOG_GROUPS: List[IndicatorGroup] = [
@@ -409,8 +473,6 @@ def get_form_indicator_categories(scope: str = "city") -> Dict[str, List[str]]:
     auto_calc_zh = _auto_calc_name_zh_set() if scope == "city" else set()
     result: Dict[str, List[str]] = {}
     for group in groups:
-        if group["code"] == "calculated":
-            continue
         result[group["code"]] = [
             build_form_label(name, scope)
             for name in group["indicators"]

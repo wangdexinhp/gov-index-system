@@ -1077,23 +1077,25 @@ def save_area_df_to_database(rows_data, year):
             )
             print(f"处理指标: {name_zh}，值: {value}，来源: {source}")
             try:
-                IndicatorArea.objects.create(
+                IndicatorArea.objects.update_or_create(
                     year=year,
-                    province_id=province_id,
                     city_id=city_id,
-                    source=source,
-                    input_method=IndicatorArea.InputMethod.EXCEL,
-                    value=value,
                     name_en=name_en or '',
-                    note=note or '',
-                    name_zh=name_zh or '',
                     area=area,
-                    input_form=IndicatorArea.InputForm.INPUT,
-                    indicator_type=IndicatorArea.IndicatorType.OTHER,
+                    defaults={
+                        'province_id': province_id,
+                        'source': source,
+                        'input_method': IndicatorArea.InputMethod.EXCEL,
+                        'value': value,
+                        'note': note or '',
+                        'name_zh': name_zh or '',
+                        'input_form': IndicatorArea.InputForm.INPUT,
+                        'indicator_type': IndicatorArea.IndicatorType.OTHER,
+                    },
                 )
             except IntegrityError as e:
                 if 'Duplicate entry' in str(e) or 'UNIQUE constraint failed' in str(e):
-                    print(f"跳过重复记录: {year}-{city_id}-{name_en}")
+                    print(f"跳过重复记录: {year}-{city_id}-{area}-{name_en}")
                     continue
                 else:
                     print(f"保存指标时出错: {name_zh}, 错误: {e}")
